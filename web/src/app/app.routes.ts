@@ -15,6 +15,10 @@ export const routes: Routes = [
     loadComponent: () => import('./organizations/components/organization-list/organization-list').then(m => m.OrganizationList)
   },
   {
+    path: 'teams',
+    loadComponent: () => import('./teams/components/team-list/team-list').then(m => m.TeamList)
+  },
+  {
     path: 'queries',
     loadComponent: () => import('./queries/components/query-browser/query-browser').then(m => m.QueryBrowser)
   },
