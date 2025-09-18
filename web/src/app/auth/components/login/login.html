@@ -1,0 +1,65 @@
+<div class="login-container">
+  <mat-card class="login-card">
+    <mat-card-header>
+      <mat-card-title>Welcome to Joinery</mat-card-title>
+      <mat-card-subtitle>Sign in to your account</mat-card-subtitle>
+    </mat-card-header>
+    
+    <mat-card-content>
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+        <mat-form-field class="full-width">
+          <mat-label>Email</mat-label>
+          <input matInput type="email" formControlName="email" required>
+          <mat-icon matSuffix>email</mat-icon>
+          <mat-error *ngIf="loginForm.get('email')?.hasError('email') && !loginForm.get('email')?.hasError('required')">
+            Please enter a valid email address
+          </mat-error>
+          <mat-error *ngIf="loginForm.get('email')?.hasError('required')">
+            Email is required
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field class="full-width">
+          <mat-label>Password</mat-label>
+          <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="password" required>
+          <button mat-icon-button matSuffix (click)="hidePassword = !hidePassword" [attr.aria-label]="'Hide password'" [attr.aria-pressed]="hidePassword" type="button">
+            <mat-icon>{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
+          </button>
+          <mat-error *ngIf="loginForm.get('password')?.hasError('required')">
+            Password is required
+          </mat-error>
+          <mat-error *ngIf="loginForm.get('password')?.hasError('minlength')">
+            Password must be at least 6 characters long
+          </mat-error>
+        </mat-form-field>
+
+        <button mat-raised-button color="primary" type="submit" class="full-width login-button" [disabled]="loginForm.invalid">
+          Sign In
+        </button>
+      </form>
+
+      <mat-divider class="divider"></mat-divider>
+      <p class="oauth-text">Or sign in with:</p>
+      
+      <div class="oauth-buttons">
+        <button mat-stroked-button class="oauth-button" (click)="loginWithProvider('microsoft')">
+          <mat-icon>business</mat-icon>
+          Microsoft Entra ID
+        </button>
+        <button mat-stroked-button class="oauth-button" (click)="loginWithProvider('github')">
+          <mat-icon>code</mat-icon>
+          GitHub
+        </button>
+        <button mat-stroked-button class="oauth-button" (click)="loginWithProvider('aws')">
+          <mat-icon>cloud</mat-icon>
+          AWS IAM
+        </button>
+      </div>
+    </mat-card-content>
+
+    <mat-card-actions align="end">
+      <button mat-button>Forgot Password?</button>
+      <button mat-button>Create Account</button>
+    </mat-card-actions>
+  </mat-card>
+</div>

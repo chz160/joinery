@@ -1,0 +1,79 @@
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  avatar?: string;
+  createdAt: Date;
+}
+
+export interface Organization {
+  id: string;
+  name: string;
+  description?: string;
+  ownerId: string;
+  owner?: User;
+  members: User[];
+  authProvider?: AuthProvider;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Team {
+  id: string;
+  name: string;
+  description?: string;
+  organizationId: string;
+  organization?: Organization;
+  members: User[];
+  repositories: Repository[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Repository {
+  id: string;
+  name: string;
+  url: string;
+  provider: 'github' | 'gitlab' | 'bitbucket' | 'azure-devops';
+  organizationId?: string;
+  teamId?: string;
+  queries: Query[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Query {
+  id: string;
+  name: string;
+  description?: string;
+  content: string;
+  folderId?: string;
+  repositoryId?: string;
+  authorId: string;
+  author?: User;
+  tags: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Folder {
+  id: string;
+  name: string;
+  description?: string;
+  parentId?: string;
+  organizationId?: string;
+  teamId?: string;
+  queries: Query[];
+  subfolders: Folder[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface AuthProvider {
+  type: 'microsoft' | 'github' | 'aws-iam';
+  config: {
+    clientId: string;
+    domain?: string;
+    [key: string]: any;
+  };
+}

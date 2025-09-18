@@ -1,0 +1,85 @@
+<div class="organizations-container">
+  <div class="header">
+    <h1>Organizations</h1>
+    <p class="subtitle">Manage your organizations and their authentication settings</p>
+    <button mat-raised-button color="primary" (click)="createOrganization()" class="create-btn">
+      <mat-icon>add</mat-icon>
+      Create Organization
+    </button>
+  </div>
+
+  <div class="organizations-grid" *ngIf="!loading">
+    <mat-card *ngFor="let org of organizations" class="org-card">
+      <mat-card-header>
+        <mat-icon mat-card-avatar>business</mat-icon>
+        <mat-card-title>{{ org.name }}</mat-card-title>
+        <mat-card-subtitle>{{ org.members.length }} members</mat-card-subtitle>
+        <button mat-icon-button [matMenuTriggerFor]="menu" class="menu-button">
+          <mat-icon>more_vert</mat-icon>
+        </button>
+        <mat-menu #menu="matMenu">
+          <button mat-menu-item (click)="editOrganization(org)">
+            <mat-icon>edit</mat-icon>
+            Edit
+          </button>
+          <button mat-menu-item (click)="deleteOrganization(org)">
+            <mat-icon>delete</mat-icon>
+            Delete
+          </button>
+        </mat-menu>
+      </mat-card-header>
+      
+      <mat-card-content>
+        <p class="org-description">{{ org.description || 'No description available' }}</p>
+        
+        <div class="auth-provider" *ngIf="org.authProvider">
+          <mat-chip-set>
+            <mat-chip>
+              <mat-icon>{{ getAuthProviderIcon(org.authProvider.type) }}</mat-icon>
+              {{ getAuthProviderName(org.authProvider.type) }}
+            </mat-chip>
+          </mat-chip-set>
+        </div>
+
+        <div class="org-meta">
+          <div class="meta-item">
+            <mat-icon>calendar_today</mat-icon>
+            Created {{ org.createdAt | date:'shortDate' }}
+          </div>
+          <div class="meta-item">
+            <mat-icon>update</mat-icon>
+            Updated {{ org.updatedAt | date:'shortDate' }}
+          </div>
+        </div>
+      </mat-card-content>
+      
+      <mat-card-actions>
+        <button mat-button [routerLink]="['/organizations', org.id]">
+          <mat-icon>visibility</mat-icon>
+          View Details
+        </button>
+        <button mat-button [routerLink]="['/organizations', org.id, 'teams']">
+          <mat-icon>groups</mat-icon>
+          Manage Teams
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+
+  <div class="loading-container" *ngIf="loading">
+    <div class="loading-content">
+      <mat-icon class="loading-icon">business</mat-icon>
+      <p>Loading organizations...</p>
+    </div>
+  </div>
+
+  <div class="empty-state" *ngIf="!loading && organizations.length === 0">
+    <mat-icon class="empty-icon">business_center</mat-icon>
+    <h2>No Organizations Yet</h2>
+    <p>Create your first organization to start managing teams and queries</p>
+    <button mat-raised-button color="primary" (click)="createOrganization()">
+      <mat-icon>add</mat-icon>
+      Create Your First Organization
+    </button>
+  </div>
+</div>
