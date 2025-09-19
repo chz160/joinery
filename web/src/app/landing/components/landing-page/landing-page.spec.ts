@@ -206,4 +206,112 @@ describe('LandingPage', () => {
     expect(compiled.textContent).toContain('REST API access');
     expect(compiled.textContent).toContain('Custom workflow support');
   });
+
+  // Footer Tests
+  it('should display footer on landing page', () => {
+    const compiled = fixture.nativeElement;
+    const footer = compiled.querySelector('.landing-footer');
+    expect(footer).toBeTruthy();
+  });
+
+  it('should display footer brand section', () => {
+    const compiled = fixture.nativeElement;
+    const footerBrand = compiled.querySelector('.footer-brand');
+    expect(footerBrand).toBeTruthy();
+    
+    const footerLogo = compiled.querySelector('.footer-logo');
+    expect(footerLogo).toBeTruthy();
+    expect(footerLogo.textContent).toContain('Joinery');
+    
+    const footerTagline = compiled.querySelector('.footer-tagline');
+    expect(footerTagline.textContent).toContain('Secure, collaborative query sharing for teams');
+  });
+
+  it('should display footer navigation links', () => {
+    const compiled = fixture.nativeElement;
+    
+    // Resources section
+    expect(compiled.textContent).toContain('Resources');
+    expect(compiled.textContent).toContain('Documentation');
+    expect(compiled.textContent).toContain('Support');
+    expect(compiled.textContent).toContain('Roadmap');
+    
+    // Company section  
+    expect(compiled.textContent).toContain('Company');
+    expect(compiled.textContent).toContain('Privacy Policy');
+    expect(compiled.textContent).toContain('How It Works');
+    expect(compiled.textContent).toContain('Contact');
+    
+    // Community section
+    expect(compiled.textContent).toContain('Community');
+    expect(compiled.textContent).toContain('GitHub');
+    expect(compiled.textContent).toContain('Discussions');
+    expect(compiled.textContent).toContain('Contribute');
+  });
+
+  it('should have correct external links in footer', () => {
+    const compiled = fixture.nativeElement;
+    
+    // Documentation link
+    const docLink = compiled.querySelector('a[href="https://github.com/chz160/joinery-web/wiki"]');
+    expect(docLink).toBeTruthy();
+    expect(docLink.textContent).toContain('Documentation');
+    
+    // Support link
+    const supportLink = compiled.querySelector('a[href="https://github.com/chz160/joinery-web/issues"]');
+    expect(supportLink).toBeTruthy();
+    expect(supportLink.textContent).toContain('Support');
+    
+    // GitHub link
+    const githubLink = compiled.querySelector('a[href="https://github.com/chz160/joinery-web"]');
+    expect(githubLink).toBeTruthy();
+    expect(githubLink.textContent).toContain('GitHub');
+    
+    // Contact link
+    const contactLink = compiled.querySelector('a[href="mailto:support@joinery.dev"]');
+    expect(contactLink).toBeTruthy();
+    expect(contactLink.textContent).toContain('Contact');
+  });
+
+  it('should display footer bottom section', () => {
+    const compiled = fixture.nativeElement;
+    const footerBottom = compiled.querySelector('.footer-bottom');
+    expect(footerBottom).toBeTruthy();
+    
+    const copyright = compiled.querySelector('.footer-copyright');
+    expect(copyright.textContent).toContain('© 2024 Joinery. Open source under MIT License.');
+    
+    const legal = compiled.querySelector('.footer-legal');
+    expect(legal.textContent).toContain('Built for teams and educational organizations');
+  });
+
+  it('should have proper accessibility attributes on footer links', () => {
+    const compiled = fixture.nativeElement;
+    
+    // Check external links have proper rel attributes
+    const externalLinks = compiled.querySelectorAll('a[target="_blank"]');
+    externalLinks.forEach((link: any) => {
+      expect(link.getAttribute('rel')).toBe('noopener noreferrer');
+    });
+  });
+
+  it('should not reference public query exploration in footer', () => {
+    const compiled = fixture.nativeElement;
+    const footerText = compiled.querySelector('.landing-footer').textContent.toLowerCase();
+    
+    // Ensure no references to public query exploration
+    expect(footerText).not.toContain('public query');
+    expect(footerText).not.toContain('explore queries');
+    expect(footerText).not.toContain('public database');
+    expect(footerText).not.toContain('browse queries');
+  });
+
+  it('should focus on team/organization audience in footer', () => {
+    const compiled = fixture.nativeElement;
+    const footerText = compiled.querySelector('.landing-footer').textContent.toLowerCase();
+    
+    // Ensure focus on teams and organizations
+    expect(footerText).toContain('teams');
+    expect(footerText).toContain('organizations');
+  });
 });
