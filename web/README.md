@@ -1,4 +1,6 @@
-# JoineryWebTemp
+# Joinery Web
+
+Joinery Web is the frontend application for the Joinery Server, providing a modern web interface for SQL query management, team collaboration, and organization oversight.
 
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.3.2.
 
@@ -57,3 +59,308 @@ Angular CLI does not come with an end-to-end testing framework by default. You c
 ## Additional Resources
 
 For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+
+## Frontend-Backend Integration
+
+Joinery Web connects to the Joinery Server backend to provide authentication, data management, and API services. This section explains how the frontend interacts with the backend and how to configure the connection.
+
+### Authentication Flow
+
+The application supports OAuth-based authentication through multiple identity providers:
+
+#### Supported OAuth Providers
+- **Microsoft Entra ID** - Enterprise authentication
+- **GitHub** - Developer-focused authentication  
+- **AWS IAM** - Cloud-native authentication
+
+#### Authentication Process
+
+1. **OAuth Initialization**: User selects an OAuth provider on the login page
+2. **Backend Redirect**: Frontend redirects to `/api/auth/{provider}` endpoint on the Joinery Server
+3. **OAuth Flow**: User completes OAuth flow with the selected provider
+4. **Token Exchange**: Joinery Server exchanges OAuth tokens for JWT tokens
+5. **JWT Storage**: Frontend receives and stores JWT tokens for API authentication
+
+#### JWT Token Handling
+
+The application uses JSON Web Tokens (JWT) for authenticated API requests:
+
+```typescript
+// JWT tokens are stored securely and included in API requests
+Authorization: Bearer <jwt-token>
+```
+
+**Token Storage**: JWTs are stored in secure HTTP-only cookies or localStorage (configurable)
+**Token Refresh**: Automatic token refresh before expiration
+**Token Validation**: Server-side validation on each request
+
+### API Usage
+
+The frontend communicates with the Joinery Server through RESTful API endpoints.
+
+#### API Configuration
+
+Configure the backend API base URL in your environment:
+
+```typescript
+// src/environments/environment.ts
+export const environment = {
+  production: false,
+  apiBaseUrl: 'http://localhost:3000/api' // Development
+};
+
+// src/environments/environment.prod.ts  
+export const environment = {
+  production: true,
+  apiBaseUrl: 'https://your-joinery-server.com/api' // Production
+};
+```
+
+#### API Service Implementation
+
+The `Api` service handles all HTTP requests with automatic JWT injection:
+
+```typescript
+// Example API service usage
+@Injectable({
+  providedIn: 'root'
+})
+export class Api {
+  constructor(private http: HttpClient) {}
+  
+  private get headers() {
+    const token = this.getStoredToken();
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  }
+  
+  // GET request example
+  getOrganizations(): Observable<Organization[]> {
+    return this.http.get<Organization[]>(`${environment.apiBaseUrl}/organizations`, {
+      headers: this.headers
+    });
+  }
+  
+  // POST request example
+  createQuery(query: Partial<Query>): Observable<Query> {
+    return this.http.post<Query>(`${environment.apiBaseUrl}/queries`, query, {
+      headers: this.headers
+    });
+  }
+}
+```
+
+### Sample API Endpoints
+
+#### Authentication Endpoints
+```
+POST   /api/auth/login            # Standard login
+GET    /api/auth/microsoft        # Microsoft OAuth login
+GET    /api/auth/github           # GitHub OAuth login  
+GET    /api/auth/aws              # AWS IAM login
+POST   /api/auth/logout           # Logout
+POST   /api/auth/refresh          # Token refresh
+GET    /api/auth/me               # Get current user
+```
+
+#### Core Resource Endpoints
+```
+# Organizations
+GET    /api/organizations         # List organizations
+POST   /api/organizations         # Create organization
+GET    /api/organizations/{id}    # Get organization
+PUT    /api/organizations/{id}    # Update organization
+DELETE /api/organizations/{id}    # Delete organization
+
+# Teams  
+GET    /api/teams                 # List teams
+POST   /api/teams                 # Create team
+GET    /api/teams/{id}            # Get team
+PUT    /api/teams/{id}            # Update team
+DELETE /api/teams/{id}            # Delete team
+
+# Queries
+GET    /api/queries               # List queries
+POST   /api/queries               # Create query
+GET    /api/queries/{id}          # Get query
+PUT    /api/queries/{id}          # Update query
+DELETE /api/queries/{id}          # Delete query
+POST   /api/queries/{id}/execute  # Execute query
+
+# Repositories
+GET    /api/repositories          # List repositories
+POST   /api/repositories          # Link repository
+GET    /api/repositories/{id}     # Get repository
+PUT    /api/repositories/{id}     # Update repository
+DELETE /api/repositories/{id}     # Unlink repository
+```
+
+### Environment Configuration
+
+#### Development Setup
+
+1. **Install Dependencies**
+   ```bash
+   npm install
+   ```
+
+2. **Configure API URL**
+   Create or update environment files:
+   ```typescript
+   // src/environments/environment.ts
+   export const environment = {
+     production: false,
+     apiBaseUrl: 'http://localhost:3000/api',
+     oauth: {
+       redirectUri: 'http://localhost:4200/auth/callback'
+     }
+   };
+   ```
+
+3. **Start Development Server**
+   ```bash
+   ng serve
+   ```
+
+4. **Proxy Configuration** (Optional)
+   Create `proxy.conf.json` for API proxying during development:
+   ```json
+   {
+     "/api/*": {
+       "target": "http://localhost:3000",
+       "secure": false,
+       "changeOrigin": true,
+       "logLevel": "debug"
+     }
+   }
+   ```
+
+   Update `angular.json`:
+   ```json
+   "serve": {
+     "builder": "@angular/build:dev-server",
+     "options": {
+       "proxyConfig": "proxy.conf.json"
+     }
+   }
+   ```
+
+#### Production Configuration
+
+1. **Environment Variables**
+   ```typescript
+   // src/environments/environment.prod.ts
+   export const environment = {
+     production: true,
+     apiBaseUrl: process.env['API_BASE_URL'] || 'https://api.joinery.com',
+     oauth: {
+       redirectUri: process.env['OAUTH_REDIRECT_URI'] || 'https://app.joinery.com/auth/callback'
+     }
+   };
+   ```
+
+2. **Build for Production**
+   ```bash
+   ng build --prod
+   ```
+
+### Error Handling
+
+#### API Error Interceptor
+
+The application includes comprehensive error handling for API requests:
+
+```typescript
+@Injectable()
+export class ErrorInterceptor implements HttpInterceptor {
+  intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+    return next.handle(req).pipe(
+      catchError((error: HttpErrorResponse) => {
+        switch (error.status) {
+          case 401:
+            // Token expired or invalid - redirect to login
+            this.router.navigate(['/auth/login']);
+            break;
+          case 403:
+            // Forbidden - show access denied message
+            this.notificationService.error('Access denied');
+            break;
+          case 500:
+            // Server error - show generic error message
+            this.notificationService.error('Server error occurred');
+            break;
+          default:
+            // Handle other errors
+            this.notificationService.error('An unexpected error occurred');
+        }
+        return throwError(() => error);
+      })
+    );
+  }
+}
+```
+
+#### Common Error Scenarios
+
+**Authentication Errors**
+- `401 Unauthorized`: Token expired or missing - user redirected to login
+- `403 Forbidden`: Insufficient permissions - show access denied message
+
+**Network Errors**  
+- Connection timeout: Retry with exponential backoff
+- Network unavailable: Show offline indicator
+
+**Validation Errors**
+- `400 Bad Request`: Display field-specific validation messages
+- `422 Unprocessable Entity`: Show form validation errors
+
+#### Retry Logic
+
+```typescript
+// Automatic retry for failed requests
+return this.http.get(url).pipe(
+  retryWhen(errors => 
+    errors.pipe(
+      delay(1000),
+      take(3)
+    )
+  )
+);
+```
+
+### Development Workflow
+
+#### Connecting to Backend
+
+1. **Start Joinery Server**
+   ```bash
+   # In your joinery-server directory
+   npm start
+   # Server typically runs on http://localhost:3000
+   ```
+
+2. **Configure Frontend**
+   ```bash
+   # In this directory  
+   # Update src/environments/environment.ts with correct API URL
+   npm start
+   # Frontend runs on http://localhost:4200
+   ```
+
+3. **Verify Connection**
+   - Open browser developer tools
+   - Navigate to http://localhost:4200
+   - Check Network tab for successful API calls
+   - Verify authentication flow works end-to-end
+
+#### Debugging Tips
+
+- **Network Tab**: Monitor API requests/responses
+- **Console Logs**: Check for authentication errors
+- **Local Storage**: Verify JWT token storage
+- **CORS Issues**: Ensure backend allows frontend origin
+- **Proxy Setup**: Use Angular proxy for local development
+
+For detailed backend setup instructions, refer to the [Joinery Server documentation](https://github.com/your-org/joinery-server).
