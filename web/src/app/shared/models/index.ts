@@ -77,3 +77,32 @@ export interface AuthProvider {
     [key: string]: any;
   };
 }
+
+export interface DashboardPreview {
+  stats: {
+    organizations: number;
+    teams: number;
+    queries: number;
+    repositories: number;
+  };
+  recentActivity: ActivityItem[];
+  recentQueries: Query[];
+  notifications: Notification[];
+}
+
+export interface ActivityItem {
+  id: string;
+  action: string;
+  item: string;
+  time: string;
+  icon?: string;
+}
+
+export interface Notification {
+  id: string;
+  type: 'info' | 'warning' | 'success' | 'error';
+  title: string;
+  message: string;
+  time: string;
+  read: boolean;
+}
