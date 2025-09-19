@@ -58,6 +58,58 @@ describe('LandingPage', () => {
     expect(features[2].textContent).toContain('Query organization');
   });
 
+  it('should display the demo section', () => {
+    const compiled = fixture.nativeElement;
+    expect(compiled.textContent).toContain('See Joinery in Action');
+    expect(compiled.textContent).toContain('Watch how teams collaborate seamlessly on data queries and insights');
+  });
+
+  it('should display all three demo steps', () => {
+    const compiled = fixture.nativeElement;
+    const steps = compiled.querySelectorAll('.demo-step');
+    expect(steps.length).toBe(3);
+    expect(steps[0].textContent).toContain('Create & Share Queries');
+    expect(steps[1].textContent).toContain('Team Collaboration');
+    expect(steps[2].textContent).toContain('Track History & Insights');
+  });
+
+  it('should show step 1 as active by default', () => {
+    const compiled = fixture.nativeElement;
+    const activeStep = compiled.querySelector('.demo-step.active');
+    expect(activeStep).toBeTruthy();
+    expect(activeStep.textContent).toContain('Create & Share Queries');
+  });
+
+  it('should change active step when clicked', () => {
+    const compiled = fixture.nativeElement;
+    const step2 = compiled.querySelectorAll('.demo-step')[1];
+    
+    step2.click();
+    fixture.detectChanges();
+    
+    expect(component.currentStep).toBe(2);
+    expect(step2.classList).toContain('active');
+  });
+
+  it('should display correct screen title for each step', () => {
+    expect(component.getScreenTitle()).toBe('Joinery Query Editor');
+    
+    component.setStep(2);
+    expect(component.getScreenTitle()).toBe('Team Collaboration Hub');
+    
+    component.setStep(3);
+    expect(component.getScreenTitle()).toBe('Analytics & History Dashboard');
+  });
+
+  it('should display demo benefits section', () => {
+    const compiled = fixture.nativeElement;
+    const benefits = compiled.querySelectorAll('.benefit');
+    expect(benefits.length).toBe(3);
+    expect(benefits[0].textContent).toContain('Enhanced Team Productivity');
+    expect(benefits[1].textContent).toContain('Enterprise Security');
+    expect(benefits[2].textContent).toContain('Data-Driven Insights');
+  });
+
   it('should display benefits section', () => {
     const compiled = fixture.nativeElement;
     const benefitCards = compiled.querySelectorAll('.benefit-card');

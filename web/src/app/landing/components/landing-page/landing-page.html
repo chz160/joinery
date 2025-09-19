@@ -60,6 +60,217 @@
     </div>
   </section>
 
+  <!-- Demo/Walkthrough Section -->
+  <section class="demo-section">
+    <div class="demo-container">
+      <div class="section-header">
+        <h2>See Joinery in Action</h2>
+        <p class="section-description">
+          Watch how teams collaborate seamlessly on data queries and insights
+        </p>
+      </div>
+      
+      <div class="demo-content">
+        <div class="demo-steps">
+          <div class="demo-step" [class.active]="currentStep === 1" (click)="setStep(1)">
+            <div class="step-number">1</div>
+            <div class="step-content">
+              <h3>Create & Share Queries</h3>
+              <p>Team members write SQL queries in their secure workspace and share them with specific colleagues or the entire team.</p>
+              <div class="step-highlights">
+                <span class="highlight">✓ Syntax highlighting & autocomplete</span>
+                <span class="highlight">✓ Granular sharing permissions</span>
+                <span class="highlight">✓ Real-time collaboration</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="demo-step" [class.active]="currentStep === 2" (click)="setStep(2)">
+            <div class="step-number">2</div>
+            <div class="step-content">
+              <h3>Team Collaboration</h3>
+              <p>Team members review, comment, and improve queries together. Notifications keep everyone in sync on important updates.</p>
+              <div class="step-highlights">
+                <span class="highlight">✓ Inline comments & discussions</span>
+                <span class="highlight">✓ @mention teammates</span>
+                <span class="highlight">✓ Email & in-app notifications</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="demo-step" [class.active]="currentStep === 3" (click)="setStep(3)">
+            <div class="step-number">3</div>
+            <div class="step-content">
+              <h3>Track History & Insights</h3>
+              <p>Complete audit trail of all changes, executions, and access patterns. Perfect for compliance and team learning.</p>
+              <div class="step-highlights">
+                <span class="highlight">✓ Full version history</span>
+                <span class="highlight">✓ Usage analytics</span>
+                <span class="highlight">✓ Compliance reporting</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="demo-visual">
+          <div class="demo-screen" [class.step-1]="currentStep === 1" [class.step-2]="currentStep === 2" [class.step-3]="currentStep === 3">
+            <div class="screen-header">
+              <div class="screen-dots">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+              </div>
+              <div class="screen-title">{{getScreenTitle()}}</div>
+            </div>
+            
+            <div class="screen-content">
+              <!-- Step 1: Query Creation -->
+              <div class="step-view step-1-view" *ngIf="currentStep === 1">
+                <div class="query-editor">
+                  <div class="editor-toolbar">
+                    <span class="file-name">customer_analytics.sql</span>
+                    <button class="share-btn">
+                      <mat-icon>share</mat-icon>
+                      Share with Team
+                    </button>
+                  </div>
+                  <div class="code-area">
+                    <div class="line-numbers">1<br>2<br>3<br>4</div>
+                    <div class="code-content">
+                      <span class="sql-keyword">SELECT</span> customer_id, name, total_orders<br>
+                      <span class="sql-keyword">FROM</span> customers<br>
+                      <span class="sql-keyword">WHERE</span> created_date >= '2024-01-01'<br>
+                      <span class="sql-keyword">ORDER BY</span> total_orders <span class="sql-keyword">DESC</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="team-sidebar">
+                  <h4>Share with:</h4>
+                  <div class="team-members">
+                    <div class="member">
+                      <mat-icon>person</mat-icon>
+                      <span>Sarah Chen (Data Analyst)</span>
+                      <mat-icon class="check">check_circle</mat-icon>
+                    </div>
+                    <div class="member">
+                      <mat-icon>person</mat-icon>
+                      <span>Analytics Team</span>
+                      <mat-icon class="check">check_circle</mat-icon>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Step 2: Team Collaboration -->
+              <div class="step-view step-2-view" *ngIf="currentStep === 2">
+                <div class="collaboration-view">
+                  <div class="query-header">
+                    <h4>customer_analytics.sql</h4>
+                    <span class="shared-by">Shared by Alex Kim • 2 hours ago</span>
+                  </div>
+                  <div class="comments-section">
+                    <div class="comment">
+                      <div class="avatar">SC</div>
+                      <div class="comment-content">
+                        <div class="comment-header">
+                          <strong>Sarah Chen</strong>
+                          <span class="timestamp">1 hour ago</span>
+                        </div>
+                        <p>Great query! Should we also include the email field for our marketing campaign?</p>
+                      </div>
+                    </div>
+                    <div class="comment">
+                      <div class="avatar">AK</div>
+                      <div class="comment-content">
+                        <div class="comment-header">
+                          <strong>Alex Kim</strong>
+                          <span class="timestamp">30 min ago</span>
+                        </div>
+                        <p>Good point! I'll add that and notify the team when ready.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="notification-badge">
+                    <mat-icon>notifications</mat-icon>
+                    <span>3 team members notified</span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Step 3: History & Insights -->
+              <div class="step-view step-3-view" *ngIf="currentStep === 3">
+                <div class="history-view">
+                  <div class="history-header">
+                    <h4>Query History & Analytics</h4>
+                    <span class="date-range">Last 30 days</span>
+                  </div>
+                  <div class="stats-grid">
+                    <div class="stat-card">
+                      <div class="stat-number">47</div>
+                      <div class="stat-label">Executions</div>
+                    </div>
+                    <div class="stat-card">
+                      <div class="stat-number">8</div>
+                      <div class="stat-label">Team Members</div>
+                    </div>
+                    <div class="stat-card">
+                      <div class="stat-number">12</div>
+                      <div class="stat-label">Versions</div>
+                    </div>
+                  </div>
+                  <div class="version-history">
+                    <div class="version-item">
+                      <div class="version-info">
+                        <strong>v1.2</strong> • Alex Kim • Added email field
+                      </div>
+                      <div class="version-time">2 hours ago</div>
+                    </div>
+                    <div class="version-item">
+                      <div class="version-info">
+                        <strong>v1.1</strong> • Sarah Chen • Optimized WHERE clause
+                      </div>
+                      <div class="version-time">1 day ago</div>
+                    </div>
+                    <div class="version-item">
+                      <div class="version-info">
+                        <strong>v1.0</strong> • Alex Kim • Initial query
+                      </div>
+                      <div class="version-time">3 days ago</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="demo-benefits">
+        <div class="benefit">
+          <mat-icon>groups</mat-icon>
+          <div class="benefit-text">
+            <h4>Enhanced Team Productivity</h4>
+            <p>Reduce duplicate work and knowledge silos across your organization</p>
+          </div>
+        </div>
+        <div class="benefit">
+          <mat-icon>security</mat-icon>
+          <div class="benefit-text">
+            <h4>Enterprise Security</h4>
+            <p>Role-based permissions ensure sensitive data stays protected</p>
+          </div>
+        </div>
+        <div class="benefit">
+          <mat-icon>analytics</mat-icon>
+          <div class="benefit-text">
+            <h4>Data-Driven Insights</h4>
+            <p>Track usage patterns and optimize your team's analytical workflows</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- How Joinery Works Section -->
   <section class="how-it-works-section">
     <div class="how-it-works-container">
