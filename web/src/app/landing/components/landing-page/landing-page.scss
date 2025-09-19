@@ -1,0 +1,303 @@
+.landing-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+/* Hero Section */
+.hero-section {
+  display: flex;
+  align-items: center;
+  min-height: 80vh;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  gap: 3rem;
+}
+
+.hero-content {
+  flex: 1;
+  max-width: 600px;
+}
+
+.hero-brand {
+  margin-bottom: 2rem;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.logo-icon {
+  font-size: 3rem;
+  width: 3rem;
+  height: 3rem;
+  margin-right: 1rem;
+  color: #fff;
+}
+
+.logo-text {
+  font-size: 3rem;
+  font-weight: 700;
+  margin: 0;
+  color: #fff;
+}
+
+.tagline {
+  font-size: 1.25rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+  font-weight: 300;
+}
+
+.value-proposition {
+  margin-bottom: 2.5rem;
+}
+
+.value-proposition h2 {
+  font-size: 2.25rem;
+  font-weight: 600;
+  margin: 0 0 1rem 0;
+  line-height: 1.2;
+}
+
+.value-description {
+  font-size: 1.125rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0 0 2rem 0;
+}
+
+.feature-highlights {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 1rem;
+}
+
+.feature {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+
+.feature mat-icon {
+  font-size: 1.25rem;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.cta-section {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.primary-cta {
+  font-size: 1.125rem;
+  padding: 0.75rem 2rem;
+  min-height: 48px;
+  font-weight: 600;
+}
+
+.secondary-cta {
+  font-size: 1.125rem;
+  padding: 0.75rem 2rem;
+  min-height: 48px;
+  font-weight: 600;
+  color: white;
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
+.secondary-cta:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: white;
+}
+
+/* Hero Visual */
+.hero-visual {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.visual-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 1rem;
+  padding: 2rem;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  max-width: 350px;
+  width: 100%;
+}
+
+.visual-icon {
+  font-size: 4rem;
+  width: 4rem;
+  height: 4rem;
+  color: #fff;
+  margin-bottom: 1rem;
+}
+
+.visual-content h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+}
+
+.visual-content p {
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Benefits Section */
+.benefits-section {
+  background: #f8f9fa;
+  color: #333;
+  padding: 4rem 2rem;
+}
+
+.benefits-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.benefit-card {
+  height: 100%;
+}
+
+.benefit-card mat-card {
+  height: 100%;
+  text-align: center;
+  padding: 1.5rem;
+}
+
+.benefit-icon {
+  font-size: 3rem;
+  width: 3rem;
+  height: 3rem;
+  color: #3f51b5;
+  margin-bottom: 1rem;
+}
+
+.benefit-card h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 1rem 0;
+  color: #333;
+}
+
+.benefit-card p {
+  color: #666;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .hero-section {
+    flex-direction: column;
+    text-align: center;
+    padding: 1.5rem;
+    gap: 2rem;
+  }
+
+  .hero-content {
+    max-width: 100%;
+  }
+
+  .logo-text {
+    font-size: 2.5rem;
+  }
+
+  .value-proposition h2 {
+    font-size: 1.875rem;
+  }
+
+  .feature-highlights {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .cta-section {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .primary-cta,
+  .secondary-cta {
+    width: 100%;
+    max-width: 300px;
+  }
+
+  .benefits-grid {
+    grid-template-columns: 1fr;
+    padding: 0 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-section {
+    min-height: 70vh;
+    padding: 1rem;
+  }
+
+  .logo-icon,
+  .logo-text {
+    font-size: 2rem;
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .value-proposition h2 {
+    font-size: 1.5rem;
+  }
+
+  .value-description {
+    font-size: 1rem;
+  }
+
+  .visual-card {
+    padding: 1.5rem;
+  }
+
+  .benefits-section {
+    padding: 2rem 1rem;
+  }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus states for better accessibility */
+.primary-cta:focus,
+.secondary-cta:focus {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .landing-container {
+    background: #000;
+  }
+  
+  .visual-card {
+    border: 2px solid #fff;
+  }
+}
