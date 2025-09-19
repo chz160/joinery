@@ -18,5 +18,18 @@ import { MatCardModule } from '@angular/material/card';
   styleUrl: './landing-page.scss'
 })
 export class LandingPage {
+  currentStep = 1;
   
+  setStep(step: number) {
+    this.currentStep = step;
+  }
+  
+  getScreenTitle(): string {
+    switch (this.currentStep) {
+      case 1: return 'Joinery Query Editor';
+      case 2: return 'Team Collaboration Hub';
+      case 3: return 'Analytics & History Dashboard';
+      default: return 'Joinery Workspace';
+    }
+  }
 }
