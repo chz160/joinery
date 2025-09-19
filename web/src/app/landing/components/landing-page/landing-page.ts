@@ -52,4 +52,12 @@ export class LandingPage implements OnInit {
   toggleAuthDemo(): void {
     this.auth.toggleAuthForDemo();
   }
+
+  // Method to scroll to a specific section
+  scrollToSection(sectionId: string): void {
+    const element = document.querySelector(`.${sectionId}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
 }
