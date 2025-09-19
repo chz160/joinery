@@ -1,0 +1,736 @@
+<div class="landing-container">
+  <!-- Demo Toggle Button (for testing - remove in production) -->
+  <div class="demo-controls">
+    <button mat-stroked-button (click)="toggleAuthDemo()" class="demo-toggle">
+      <mat-icon>swap_horiz</mat-icon>
+      Toggle Auth State (Demo)
+    </button>
+  </div>
+
+  <!-- Authenticated User View -->
+  <div *ngIf="isAuthenticated$ | async" class="authenticated-view">
+    <app-dashboard-preview></app-dashboard-preview>
+  </div>
+
+  <!-- Unauthenticated User View -->
+  <div *ngIf="(isAuthenticated$ | async) === false" class="unauthenticated-view">
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div class="hero-content">
+        <!-- Logo and Branding -->
+        <div class="hero-brand">
+          <div class="logo">
+            <mat-icon class="logo-icon">group_work</mat-icon>
+            <h1 class="logo-text">Joinery</h1>
+          </div>
+          <p class="tagline">Secure, collaborative query sharing for teams</p>
+        </div>
+
+        <!-- Value Proposition -->
+        <div class="value-proposition">
+          <h2>Streamline your team's data workflow</h2>
+          <p class="value-description">
+            Joinery empowers organizations and educational teams to collaborate seamlessly on data queries. 
+            Share insights, manage access, and keep your team's analytical work organized and secure.
+          </p>
+          
+          <div class="feature-highlights">
+            <div class="feature">
+              <mat-icon>security</mat-icon>
+              <span>Secure collaboration</span>
+            </div>
+            <div class="feature">
+              <mat-icon>groups</mat-icon>
+              <span>Team management</span>
+            </div>
+            <div class="feature">
+              <mat-icon>search</mat-icon>
+              <span>Query organization</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Call to Actions -->
+        <div class="cta-section">
+          <button mat-raised-button color="primary" class="primary-cta" routerLink="/auth/login">
+            <mat-icon>code</mat-icon>
+            Sign in with GitHub
+          </button>
+          <button mat-stroked-button class="secondary-cta" routerLink="/dashboard">
+            <mat-icon>info</mat-icon>
+            Learn More
+          </button>
+        </div>
+      </div>
+
+      <!-- Hero Visual -->
+      <div class="hero-visual">
+        <div class="visual-card">
+          <mat-icon class="visual-icon">dashboard</mat-icon>
+          <div class="visual-content">
+            <h3>Your Team's Data Hub</h3>
+            <p>Centralized access to queries, repositories, and team insights</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Demo/Walkthrough Section -->
+    <section class="demo-section">
+      <div class="demo-container">
+        <div class="section-header">
+          <h2>See Joinery in Action</h2>
+          <p class="section-description">
+            Watch how teams collaborate seamlessly on data queries and insights
+          </p>
+        </div>
+        
+        <div class="demo-content">
+          <div class="demo-steps">
+            <div class="demo-step" [class.active]="currentStep === 1" (click)="setStep(1)">
+              <div class="step-number">1</div>
+              <div class="step-content">
+                <h3>Create & Share Queries</h3>
+                <p>Team members write SQL queries in their secure workspace and share them with specific colleagues or the entire team.</p>
+                <div class="step-highlights">
+                  <span class="highlight">✓ Syntax highlighting & autocomplete</span>
+                  <span class="highlight">✓ Granular sharing permissions</span>
+                  <span class="highlight">✓ Real-time collaboration</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="demo-step" [class.active]="currentStep === 2" (click)="setStep(2)">
+              <div class="step-number">2</div>
+              <div class="step-content">
+                <h3>Team Collaboration</h3>
+                <p>Team members review, comment, and improve queries together. Notifications keep everyone in sync on important updates.</p>
+                <div class="step-highlights">
+                  <span class="highlight">✓ Inline comments & discussions</span>
+                  <span class="highlight">✓ @mention teammates</span>
+                  <span class="highlight">✓ Email & in-app notifications</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="demo-step" [class.active]="currentStep === 3" (click)="setStep(3)">
+              <div class="step-number">3</div>
+              <div class="step-content">
+                <h3>Track History & Insights</h3>
+                <p>Complete audit trail of all changes, executions, and access patterns. Perfect for compliance and team learning.</p>
+                <div class="step-highlights">
+                  <span class="highlight">✓ Full version history</span>
+                  <span class="highlight">✓ Usage analytics</span>
+                  <span class="highlight">✓ Compliance reporting</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="demo-visual">
+            <div class="demo-screen" [class.step-1]="currentStep === 1" [class.step-2]="currentStep === 2" [class.step-3]="currentStep === 3">
+              <div class="screen-header">
+                <div class="screen-dots">
+                  <div class="dot"></div>
+                  <div class="dot"></div>
+                  <div class="dot"></div>
+                </div>
+                <div class="screen-title">{{getScreenTitle()}}</div>
+              </div>
+              
+              <div class="screen-content">
+                <!-- Step 1: Query Creation -->
+                <div class="step-view step-1-view" *ngIf="currentStep === 1">
+                  <div class="query-editor">
+                    <div class="editor-toolbar">
+                      <span class="file-name">customer_analytics.sql</span>
+                      <button class="share-btn">
+                        <mat-icon>share</mat-icon>
+                        Share with Team
+                      </button>
+                    </div>
+                    <div class="code-area">
+                      <div class="line-numbers">1<br>2<br>3<br>4</div>
+                      <div class="code-content">
+                        <span class="sql-keyword">SELECT</span> customer_id, name, total_orders<br>
+                        <span class="sql-keyword">FROM</span> customers<br>
+                        <span class="sql-keyword">WHERE</span> created_date >= '2024-01-01'<br>
+                        <span class="sql-keyword">ORDER BY</span> total_orders <span class="sql-keyword">DESC</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="team-sidebar">
+                    <h4>Share with:</h4>
+                    <div class="team-members">
+                      <div class="member">
+                        <mat-icon>person</mat-icon>
+                        <span>Sarah Chen (Data Analyst)</span>
+                        <mat-icon class="check">check_circle</mat-icon>
+                      </div>
+                      <div class="member">
+                        <mat-icon>person</mat-icon>
+                        <span>Analytics Team</span>
+                        <mat-icon class="check">check_circle</mat-icon>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Step 2: Team Collaboration -->
+                <div class="step-view step-2-view" *ngIf="currentStep === 2">
+                  <div class="collaboration-view">
+                    <div class="query-header">
+                      <h4>customer_analytics.sql</h4>
+                      <span class="shared-by">Shared by Alex Kim • 2 hours ago</span>
+                    </div>
+                    <div class="comments-section">
+                      <div class="comment">
+                        <div class="avatar">SC</div>
+                        <div class="comment-content">
+                          <div class="comment-header">
+                            <strong>Sarah Chen</strong>
+                            <span class="timestamp">1 hour ago</span>
+                          </div>
+                          <p>Great query! Should we also include the email field for our marketing campaign?</p>
+                        </div>
+                      </div>
+                      <div class="comment">
+                        <div class="avatar">AK</div>
+                        <div class="comment-content">
+                          <div class="comment-header">
+                            <strong>Alex Kim</strong>
+                            <span class="timestamp">30 min ago</span>
+                          </div>
+                          <p>Good point! I'll add that and notify the team when ready.</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="notification-badge">
+                      <mat-icon>notifications</mat-icon>
+                      <span>3 team members notified</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Step 3: History & Insights -->
+                <div class="step-view step-3-view" *ngIf="currentStep === 3">
+                  <div class="history-view">
+                    <div class="history-header">
+                      <h4>Query History & Analytics</h4>
+                      <span class="date-range">Last 30 days</span>
+                    </div>
+                    <div class="stats-grid">
+                      <div class="stat-card">
+                        <div class="stat-number">47</div>
+                        <div class="stat-label">Executions</div>
+                      </div>
+                      <div class="stat-card">
+                        <div class="stat-number">8</div>
+                        <div class="stat-label">Team Members</div>
+                      </div>
+                      <div class="stat-card">
+                        <div class="stat-number">12</div>
+                        <div class="stat-label">Versions</div>
+                      </div>
+                    </div>
+                    <div class="version-history">
+                      <div class="version-item">
+                        <div class="version-info">
+                          <strong>v1.2</strong> • Alex Kim • Added email field
+                        </div>
+                        <div class="version-time">2 hours ago</div>
+                      </div>
+                      <div class="version-item">
+                        <div class="version-info">
+                          <strong>v1.1</strong> • Sarah Chen • Optimized WHERE clause
+                        </div>
+                        <div class="version-time">1 day ago</div>
+                      </div>
+                      <div class="version-item">
+                        <div class="version-info">
+                          <strong>v1.0</strong> • Alex Kim • Initial query
+                        </div>
+                        <div class="version-time">3 days ago</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="demo-benefits">
+          <div class="benefit">
+            <mat-icon>groups</mat-icon>
+            <div class="benefit-text">
+              <h4>Enhanced Team Productivity</h4>
+              <p>Reduce duplicate work and knowledge silos across your organization</p>
+            </div>
+          </div>
+          <div class="benefit">
+            <mat-icon>security</mat-icon>
+            <div class="benefit-text">
+              <h4>Enterprise Security</h4>
+              <p>Role-based permissions ensure sensitive data stays protected</p>
+            </div>
+          </div>
+          <div class="benefit">
+            <mat-icon>analytics</mat-icon>
+            <div class="benefit-text">
+              <h4>Data-Driven Insights</h4>
+              <p>Track usage patterns and optimize your team's analytical workflows</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- How Joinery Works Section -->
+    <section class="how-it-works-section">
+      <div class="how-it-works-container">
+        <div class="section-header">
+          <h2>How Joinery Works</h2>
+          <p class="section-description">
+            Powerful features designed for team collaboration, security, and workflow management
+          </p>
+        </div>
+        
+        <div class="features-grid">
+          <div class="feature-card">
+            <mat-card>
+              <mat-card-content>
+                <div class="feature-header">
+                  <mat-icon class="feature-icon">share</mat-icon>
+                  <h3>Secure Query Sharing</h3>
+                </div>
+                <p>Share SQL queries and data insights with granular permissions. Control who can view, edit, or execute queries within your organization.</p>
+                <div class="feature-highlights">
+                  <span class="highlight">• Role-based access control</span>
+                  <span class="highlight">• Private team workspaces</span>
+                  <span class="highlight">• Secure query execution</span>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+          
+          <div class="feature-card">
+            <mat-card>
+              <mat-card-content>
+                <div class="feature-header">
+                  <mat-icon class="feature-icon">admin_panel_settings</mat-icon>
+                  <h3>Team & Organization Management</h3>
+                </div>
+                <p>Organize users into teams and departments with hierarchical permissions. Manage access across multiple projects and data sources.</p>
+                <div class="feature-highlights">
+                  <span class="highlight">• Multi-level team structure</span>
+                  <span class="highlight">• SSO integration ready</span>
+                  <span class="highlight">• Centralized user management</span>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+          
+          <div class="feature-card">
+            <mat-card>
+              <mat-card-content>
+                <div class="feature-header">
+                  <mat-icon class="feature-icon">history</mat-icon>
+                  <h3>Audit Trail & History</h3>
+                </div>
+                <p>Complete visibility into query usage, modifications, and access patterns. Meet compliance requirements with detailed audit logs.</p>
+                <div class="feature-highlights">
+                  <span class="highlight">• Full query version history</span>
+                  <span class="highlight">• User activity tracking</span>
+                  <span class="highlight">• Compliance reporting</span>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+          
+          <div class="feature-card">
+            <mat-card>
+              <mat-card-content>
+                <div class="feature-header">
+                  <mat-icon class="feature-icon">extension</mat-icon>
+                  <h3>Extension & Integration Support</h3>
+                </div>
+                <p>Connect with your existing tools and workflows. Repository integrations, API access, and extensible architecture.</p>
+                <div class="feature-highlights">
+                  <span class="highlight">• GitHub/GitLab integration</span>
+                  <span class="highlight">• REST API access</span>
+                  <span class="highlight">• Custom workflow support</span>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Benefits Section -->
+    <section class="benefits-section">
+      <div class="benefits-grid">
+        <div class="benefit-card">
+          <mat-card>
+            <mat-card-content>
+              <mat-icon class="benefit-icon">business</mat-icon>
+              <h3>For Organizations</h3>
+              <p>Manage multiple teams, maintain data governance, and ensure secure access across your organization.</p>
+            </mat-card-content>
+          </mat-card>
+        </div>
+        
+        <div class="benefit-card">
+          <mat-card>
+            <mat-card-content>
+              <mat-icon class="benefit-icon">school</mat-icon>
+              <h3>For Educational Teams</h3>
+              <p>Perfect for research groups, data science courses, and collaborative academic projects.</p>
+            </mat-card-content>
+          </mat-card>
+        </div>
+        
+        <div class="benefit-card">
+          <mat-card>
+            <mat-card-content>
+              <mat-icon class="benefit-icon">source</mat-icon>
+              <h3>Repository Integration</h3>
+              <p>Seamlessly connect with your code repositories and keep queries versioned and organized.</p>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+  </section>
+
+  <!-- Demo/Walkthrough Section -->
+  <section class="demo-section">
+    <div class="demo-container">
+      <div class="section-header">
+        <h2>See Joinery in Action</h2>
+        <p class="section-description">
+          Watch how teams collaborate seamlessly on data queries and insights
+        </p>
+      </div>
+      
+      <div class="demo-content">
+        <div class="demo-steps">
+          <div class="demo-step" [class.active]="currentStep === 1" (click)="setStep(1)">
+            <div class="step-number">1</div>
+            <div class="step-content">
+              <h3>Create & Share Queries</h3>
+              <p>Team members write SQL queries in their secure workspace and share them with specific colleagues or the entire team.</p>
+              <div class="step-highlights">
+                <span class="highlight">✓ Syntax highlighting & autocomplete</span>
+                <span class="highlight">✓ Granular sharing permissions</span>
+                <span class="highlight">✓ Real-time collaboration</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="demo-step" [class.active]="currentStep === 2" (click)="setStep(2)">
+            <div class="step-number">2</div>
+            <div class="step-content">
+              <h3>Team Collaboration</h3>
+              <p>Team members review, comment, and improve queries together. Notifications keep everyone in sync on important updates.</p>
+              <div class="step-highlights">
+                <span class="highlight">✓ Inline comments & discussions</span>
+                <span class="highlight">✓ @mention teammates</span>
+                <span class="highlight">✓ Email & in-app notifications</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="demo-step" [class.active]="currentStep === 3" (click)="setStep(3)">
+            <div class="step-number">3</div>
+            <div class="step-content">
+              <h3>Track History & Insights</h3>
+              <p>Complete audit trail of all changes, executions, and access patterns. Perfect for compliance and team learning.</p>
+              <div class="step-highlights">
+                <span class="highlight">✓ Full version history</span>
+                <span class="highlight">✓ Usage analytics</span>
+                <span class="highlight">✓ Compliance reporting</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="demo-visual">
+          <div class="demo-screen" [class.step-1]="currentStep === 1" [class.step-2]="currentStep === 2" [class.step-3]="currentStep === 3">
+            <div class="screen-header">
+              <div class="screen-dots">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+              </div>
+              <div class="screen-title">{{getScreenTitle()}}</div>
+            </div>
+            
+            <div class="screen-content">
+              <!-- Step 1: Query Creation -->
+              <div class="step-view step-1-view" *ngIf="currentStep === 1">
+                <div class="query-editor">
+                  <div class="editor-toolbar">
+                    <span class="file-name">customer_analytics.sql</span>
+                    <button class="share-btn">
+                      <mat-icon>share</mat-icon>
+                      Share with Team
+                    </button>
+                  </div>
+                  <div class="code-area">
+                    <div class="line-numbers">1<br>2<br>3<br>4</div>
+                    <div class="code-content">
+                      <span class="sql-keyword">SELECT</span> customer_id, name, total_orders<br>
+                      <span class="sql-keyword">FROM</span> customers<br>
+                      <span class="sql-keyword">WHERE</span> created_date >= '2024-01-01'<br>
+                      <span class="sql-keyword">ORDER BY</span> total_orders <span class="sql-keyword">DESC</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="team-sidebar">
+                  <h4>Share with:</h4>
+                  <div class="team-members">
+                    <div class="member">
+                      <mat-icon>person</mat-icon>
+                      <span>Sarah Chen (Data Analyst)</span>
+                      <mat-icon class="check">check_circle</mat-icon>
+                    </div>
+                    <div class="member">
+                      <mat-icon>person</mat-icon>
+                      <span>Analytics Team</span>
+                      <mat-icon class="check">check_circle</mat-icon>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Step 2: Team Collaboration -->
+              <div class="step-view step-2-view" *ngIf="currentStep === 2">
+                <div class="collaboration-view">
+                  <div class="query-header">
+                    <h4>customer_analytics.sql</h4>
+                    <span class="shared-by">Shared by Alex Kim • 2 hours ago</span>
+                  </div>
+                  <div class="comments-section">
+                    <div class="comment">
+                      <div class="avatar">SC</div>
+                      <div class="comment-content">
+                        <div class="comment-header">
+                          <strong>Sarah Chen</strong>
+                          <span class="timestamp">1 hour ago</span>
+                        </div>
+                        <p>Great query! Should we also include the email field for our marketing campaign?</p>
+                      </div>
+                    </div>
+                    <div class="comment">
+                      <div class="avatar">AK</div>
+                      <div class="comment-content">
+                        <div class="comment-header">
+                          <strong>Alex Kim</strong>
+                          <span class="timestamp">30 min ago</span>
+                        </div>
+                        <p>Good point! I'll add that and notify the team when ready.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="notification-badge">
+                    <mat-icon>notifications</mat-icon>
+                    <span>3 team members notified</span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Step 3: History & Insights -->
+              <div class="step-view step-3-view" *ngIf="currentStep === 3">
+                <div class="history-view">
+                  <div class="history-header">
+                    <h4>Query History & Analytics</h4>
+                    <span class="date-range">Last 30 days</span>
+                  </div>
+                  <div class="stats-grid">
+                    <div class="stat-card">
+                      <div class="stat-number">47</div>
+                      <div class="stat-label">Executions</div>
+                    </div>
+                    <div class="stat-card">
+                      <div class="stat-number">8</div>
+                      <div class="stat-label">Team Members</div>
+                    </div>
+                    <div class="stat-card">
+                      <div class="stat-number">12</div>
+                      <div class="stat-label">Versions</div>
+                    </div>
+                  </div>
+                  <div class="version-history">
+                    <div class="version-item">
+                      <div class="version-info">
+                        <strong>v1.2</strong> • Alex Kim • Added email field
+                      </div>
+                      <div class="version-time">2 hours ago</div>
+                    </div>
+                    <div class="version-item">
+                      <div class="version-info">
+                        <strong>v1.1</strong> • Sarah Chen • Optimized WHERE clause
+                      </div>
+                      <div class="version-time">1 day ago</div>
+                    </div>
+                    <div class="version-item">
+                      <div class="version-info">
+                        <strong>v1.0</strong> • Alex Kim • Initial query
+                      </div>
+                      <div class="version-time">3 days ago</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="demo-benefits">
+        <div class="benefit">
+          <mat-icon>groups</mat-icon>
+          <div class="benefit-text">
+            <h4>Enhanced Team Productivity</h4>
+            <p>Reduce duplicate work and knowledge silos across your organization</p>
+          </div>
+        </div>
+        <div class="benefit">
+          <mat-icon>security</mat-icon>
+          <div class="benefit-text">
+            <h4>Enterprise Security</h4>
+            <p>Role-based permissions ensure sensitive data stays protected</p>
+          </div>
+        </div>
+        <div class="benefit">
+          <mat-icon>analytics</mat-icon>
+          <div class="benefit-text">
+            <h4>Data-Driven Insights</h4>
+            <p>Track usage patterns and optimize your team's analytical workflows</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How Joinery Works Section -->
+  <section class="how-it-works-section">
+    <div class="how-it-works-container">
+      <div class="section-header">
+        <h2>How Joinery Works</h2>
+        <p class="section-description">
+          Powerful features designed for team collaboration, security, and workflow management
+        </p>
+      </div>
+      
+      <div class="features-grid">
+        <div class="feature-card">
+          <mat-card>
+            <mat-card-content>
+              <div class="feature-header">
+                <mat-icon class="feature-icon">share</mat-icon>
+                <h3>Secure Query Sharing</h3>
+              </div>
+              <p>Share SQL queries and data insights with granular permissions. Control who can view, edit, or execute queries within your organization.</p>
+              <div class="feature-highlights">
+                <span class="highlight">• Role-based access control</span>
+                <span class="highlight">• Private team workspaces</span>
+                <span class="highlight">• Secure query execution</span>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+        
+        <div class="feature-card">
+          <mat-card>
+            <mat-card-content>
+              <div class="feature-header">
+                <mat-icon class="feature-icon">admin_panel_settings</mat-icon>
+                <h3>Team & Organization Management</h3>
+              </div>
+              <p>Organize users into teams and departments with hierarchical permissions. Manage access across multiple projects and data sources.</p>
+              <div class="feature-highlights">
+                <span class="highlight">• Multi-level team structure</span>
+                <span class="highlight">• SSO integration ready</span>
+                <span class="highlight">• Centralized user management</span>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+        
+        <div class="feature-card">
+          <mat-card>
+            <mat-card-content>
+              <div class="feature-header">
+                <mat-icon class="feature-icon">history</mat-icon>
+                <h3>Audit Trail & History</h3>
+              </div>
+              <p>Complete visibility into query usage, modifications, and access patterns. Meet compliance requirements with detailed audit logs.</p>
+              <div class="feature-highlights">
+                <span class="highlight">• Full query version history</span>
+                <span class="highlight">• User activity tracking</span>
+                <span class="highlight">• Compliance reporting</span>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+        
+        <div class="feature-card">
+          <mat-card>
+            <mat-card-content>
+              <div class="feature-header">
+                <mat-icon class="feature-icon">extension</mat-icon>
+                <h3>Extension & Integration Support</h3>
+              </div>
+              <p>Connect with your existing tools and workflows. Repository integrations, API access, and extensible architecture.</p>
+              <div class="feature-highlights">
+                <span class="highlight">• GitHub/GitLab integration</span>
+                <span class="highlight">• REST API access</span>
+                <span class="highlight">• Custom workflow support</span>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Benefits Section -->
+  <section class="benefits-section">
+    <div class="benefits-grid">
+      <div class="benefit-card">
+        <mat-card>
+          <mat-card-content>
+            <mat-icon class="benefit-icon">business</mat-icon>
+            <h3>For Organizations</h3>
+            <p>Manage multiple teams, maintain data governance, and ensure secure access across your organization.</p>
+          </mat-card-content>
+        </mat-card>
+      </div>
+      
+      <div class="benefit-card">
+        <mat-card>
+          <mat-card-content>
+            <mat-icon class="benefit-icon">school</mat-icon>
+            <h3>For Educational Teams</h3>
+            <p>Perfect for research groups, data science courses, and collaborative academic projects.</p>
+          </mat-card-content>
+        </mat-card>
+      </div>
+      
+      <div class="benefit-card">
+        <mat-card>
+          <mat-card-content>
+            <mat-icon class="benefit-icon">source</mat-icon>
+            <h3>Repository Integration</h3>
+            <p>Seamlessly connect with your code repositories and keep queries versioned and organized.</p>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </div>
+  </section>
+</div>

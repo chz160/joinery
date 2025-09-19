@@ -1,9 +1,13 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
+import { Observable } from 'rxjs';
+import { Auth } from '../../../auth/services/auth';
+import { User } from '../../../shared/models';
+import { DashboardPreviewComponent } from '../../../shared/components/dashboard-preview/dashboard-preview';
 
 @Component({
   selector: 'app-landing-page',
@@ -12,13 +16,24 @@ import { MatCardModule } from '@angular/material/card';
     RouterModule,
     MatButtonModule,
     MatIconModule,
-    MatCardModule
+    MatCardModule,
+    DashboardPreviewComponent
   ],
   templateUrl: './landing-page.html',
   styleUrl: './landing-page.scss'
 })
-export class LandingPage {
+export class LandingPage implements OnInit {
   currentStep = 1;
+  isAuthenticated$: Observable<boolean>;
+  currentUser$: Observable<User | null>;
+  
+  constructor(private auth: Auth) {
+    this.isAuthenticated$ = this.auth.isAuthenticated$;
+    this.currentUser$ = this.auth.currentUser$;
+  }
+
+  ngOnInit(): void {
+  }
   
   setStep(step: number) {
     this.currentStep = step;
@@ -31,5 +46,10 @@ export class LandingPage {
       case 3: return 'Analytics & History Dashboard';
       default: return 'Joinery Workspace';
     }
+  }
+
+  // Demo method to toggle authentication state
+  toggleAuthDemo(): void {
+    this.auth.toggleAuthForDemo();
   }
 }

@@ -4,6 +4,41 @@
   color: white;
 }
 
+/* Demo Controls - Remove in production */
+.demo-controls {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1000;
+
+  .demo-toggle {
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--mat-primary-500);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(10px);
+    
+    &:hover {
+      background: white;
+      transform: translateY(-1px);
+    }
+
+    mat-icon {
+      margin-right: 0.5rem;
+    }
+  }
+}
+
+/* Authenticated and Unauthenticated Views */
+.authenticated-view {
+  background: var(--mat-app-background-color, #fafafa);
+  color: var(--mat-app-text-color, #333);
+  min-height: 100vh;
+}
+
+.unauthenticated-view {
+  /* Keep existing gradient background for unauthenticated users */
+}
+
 /* Hero Section */
 .hero-section {
   display: flex;
