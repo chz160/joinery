@@ -138,6 +138,51 @@ describe('LandingPage', () => {
     expect(compiled.textContent).toContain('Extension & Integration Support');
   });
 
+  it('should display Trust, Security, and Open Source section', () => {
+    const compiled = fixture.nativeElement;
+    const trustSection = compiled.querySelector('.trust-security-section');
+    expect(trustSection).toBeTruthy();
+    
+    expect(compiled.textContent).toContain('Built with Trust, Security, and Transparency');
+    expect(compiled.textContent).toContain('Your data security and privacy are our top priorities');
+  });
+
+  it('should display all three trust feature cards', () => {
+    const compiled = fixture.nativeElement;
+    const trustFeatureCards = compiled.querySelectorAll('.trust-feature-card');
+    expect(trustFeatureCards.length).toBe(3);
+    
+    expect(compiled.textContent).toContain('Secure Authentication');
+    expect(compiled.textContent).toContain('Data Privacy First');
+    expect(compiled.textContent).toContain('Open Source Transparency');
+  });
+
+  it('should display OAuth provider icons', () => {
+    const compiled = fixture.nativeElement;
+    const oauthProviders = compiled.querySelectorAll('.oauth-provider');
+    expect(oauthProviders.length).toBe(2);
+    
+    expect(compiled.textContent).toContain('GitHub');
+    expect(compiled.textContent).toContain('Microsoft');
+  });
+
+  it('should have GitHub repository link', () => {
+    const compiled = fixture.nativeElement;
+    const repoLink = compiled.querySelector('.repo-link');
+    expect(repoLink).toBeTruthy();
+    expect(repoLink.getAttribute('href')).toBe('https://github.com/chz160/joinery-web');
+    expect(repoLink.getAttribute('target')).toBe('_blank');
+    expect(repoLink.getAttribute('rel')).toBe('noopener noreferrer');
+    expect(repoLink.textContent).toContain('View on GitHub');
+  });
+
+  it('should display open source badge', () => {
+    const compiled = fixture.nativeElement;
+    const opensourceBadge = compiled.querySelector('.opensource-badge');
+    expect(opensourceBadge).toBeTruthy();
+    expect(opensourceBadge.textContent).toContain('MIT Licensed');
+  });
+
   it('should display feature highlights for each feature card', () => {
     const compiled = fixture.nativeElement;
     

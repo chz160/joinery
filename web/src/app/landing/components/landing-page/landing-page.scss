@@ -197,6 +197,153 @@
   padding: 5rem 2rem;
 }
 
+/* Trust, Security, and Open Source Section */
+.trust-security-section {
+  background: #f8f9fa;
+  color: #333;
+  padding: 5rem 2rem;
+  border-top: 1px solid #e0e0e0;
+}
+
+.trust-security-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.trust-features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 2rem;
+  margin-top: 3rem;
+}
+
+.trust-feature-card {
+  height: 100%;
+}
+
+.trust-feature-card mat-card {
+  height: 100%;
+  padding: 1.5rem;
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+  background: #ffffff;
+}
+
+.trust-feature-card mat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
+}
+
+.oauth-providers {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.oauth-provider {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #f8f9fa;
+  border-radius: 20px;
+  border: 1px solid #e0e0e0;
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.oauth-provider mat-icon {
+  font-size: 1rem;
+  width: 1rem;
+  height: 1rem;
+  color: #3f51b5;
+}
+
+.privacy-highlights {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.privacy-highlights .highlight {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #4caf50;
+}
+
+.privacy-highlights .highlight mat-icon {
+  font-size: 1rem;
+  width: 1rem;
+  height: 1rem;
+  color: #4caf50;
+}
+
+.opensource-links {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.repo-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #3f51b5;
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.repo-link:hover {
+  background: #303f9f;
+}
+
+.repo-link mat-icon {
+  font-size: 1rem;
+  width: 1rem;
+  height: 1rem;
+}
+
+.opensource-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.opensource-badge mat-icon {
+  font-size: 1rem;
+  width: 1rem;
+  height: 1rem;
+  color: #4caf50;
+}
+
+/* Responsive adjustments for trust section */
+@media (max-width: 768px) {
+  .trust-security-section {
+    padding: 3rem 1rem;
+  }
+  
+  .trust-features-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .oauth-providers {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+}
+
 .how-it-works-container {
   max-width: 1200px;
   margin: 0 auto;
