@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { of } from 'rxjs';
 import { OrganizationService } from './organization.service';
 import { Organization, OrganizationSetupWizardData } from '../models';
 import { environment } from '../../../environments/environment';
