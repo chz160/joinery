@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { of } from 'rxjs';
 import { AuthGuard } from './auth.guard';
 import { Auth } from '../services/auth';
@@ -16,6 +17,7 @@ describe('AuthGuard', () => {
     const routerSpy = jasmine.createSpyObj('Router', ['createUrlTree']);
 
     TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule],
       providers: [
         { provide: Auth, useValue: authSpy },
         { provide: Router, useValue: routerSpy }

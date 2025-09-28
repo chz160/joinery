@@ -1,5 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { of } from 'rxjs';
 import { OAuthCallback } from './oauth-callback';
 import { Auth } from '../../services/auth';
@@ -19,7 +21,11 @@ describe('OAuthCallback', () => {
     const authSpy = jasmine.createSpyObj('Auth', ['handleOAuthCallback']);
 
     await TestBed.configureTestingModule({
-      imports: [OAuthCallback],
+      imports: [
+        OAuthCallback,
+        HttpClientTestingModule,
+        BrowserAnimationsModule
+      ],
       providers: [
         { provide: Router, useValue: routerSpy },
         { provide: ActivatedRoute, useValue: activatedRouteSpy },
