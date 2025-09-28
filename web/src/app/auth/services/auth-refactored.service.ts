@@ -1,11 +1,13 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { User } from '../../shared/models';
+import { IAuthService } from '../interfaces/auth.interfaces';
 import { AuthStateService } from './auth-state.service';
 import { TokenService } from './token.service';
 import { SessionService } from './session.service';
 import { OAuthService } from './oauth.service';
 import { DemoService } from './demo.service';
+import { ConfigService } from '../../shared/services/config.service';
 
 /**
  * Main authentication service that orchestrates focused auth services.
@@ -19,14 +21,15 @@ import { DemoService } from './demo.service';
 @Injectable({
   providedIn: 'root'
 })
-export class AuthService {
+export class AuthService implements IAuthService {
 
   constructor(
     private authState: AuthStateService,
     private tokenService: TokenService,
     private sessionService: SessionService,
     private oauthService: OAuthService,
-    private demoService: DemoService
+    private demoService: DemoService,
+    private config: ConfigService
   ) {
     this.initializeAuthState();
   }
@@ -54,12 +57,22 @@ export class AuthService {
    * Initiate GitHub OAuth login
    */
   loginWithGitHub(): void {
-    try {
-      this.oauthService.initiateGitHubOAuth();
-    } catch (error) {
-      // If OAuth not configured, fall back to demo login
-      console.warn('GitHub OAuth not configured, using demo login:', error);
+    // Only attempt OAuth if configured and demo is not forced
+    if (this.config.oauth.github.isConfigured) {
+      try {
+        this.oauthService.initiateGitHubOAuth();
+        return;
+      } catch (error) {
+        console.warn('OAuth initiation failed:', error);
+      }
+    }
+    
+    // Fall back to demo login if OAuth not configured or in development
+    if (this.config.isDemoEnabled) {
+      console.warn('GitHub OAuth not configured, using demo login');
       this.performDemoLogin().subscribe();
+    } else {
+      throw new Error('GitHub OAuth is not configured and demo mode is disabled');
     }
   }
 

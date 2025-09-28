@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { User } from '../../shared/models';
-import { environment } from '../../../environments/environment';
+import { ConfigService } from '../../shared/services/config.service';
 
 /**
  * Response interface for OAuth token exchange
@@ -24,7 +24,10 @@ export interface OAuthTokenResponse {
 export class OAuthService {
   private oauthState: string | null = null;
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private config: ConfigService
+  ) {}
 
   /**
    * Initiate GitHub OAuth flow
@@ -32,7 +35,7 @@ export class OAuthService {
    */
   initiateGitHubOAuth(): void {
     // Check if OAuth is configured
-    if (!environment.oauth?.github?.clientId || environment.oauth.github.clientId === 'your-github-client-id') {
+    if (!this.config.oauth.github.isConfigured) {
       throw new Error('GitHub OAuth not configured');
     }
 
@@ -42,9 +45,9 @@ export class OAuthService {
 
     // Build GitHub OAuth URL
     const params = new URLSearchParams({
-      client_id: environment.oauth.github.clientId,
-      redirect_uri: environment.oauth.redirectUri,
-      scope: environment.oauth.github.scope,
+      client_id: this.config.oauth.github.clientId,
+      redirect_uri: this.config.oauth.redirectUri,
+      scope: this.config.oauth.github.scope,
       state: this.oauthState,
       response_type: 'code'
     });
@@ -74,10 +77,10 @@ export class OAuthService {
 
     // Exchange authorization code for access token via backend
     const tokenResponse = await this.http.post<OAuthTokenResponse>(
-      `${environment.apiBaseUrl}/auth/github/callback`, 
+      `${this.config.apiBaseUrl}/auth/github/callback`, 
       {
         code,
-        redirect_uri: environment.oauth.redirectUri
+        redirect_uri: this.config.oauth.redirectUri
       }
     ).toPromise();
 
@@ -102,7 +105,7 @@ export class OAuthService {
       access_token: string;
       expires_in: number;
       refresh_token?: string;
-    }>(`${environment.apiBaseUrl}/auth/refresh`, {
+    }>(`${this.config.apiBaseUrl}/auth/refresh`, {
       refresh_token: refreshToken
     }).toPromise();
 
@@ -118,7 +121,7 @@ export class OAuthService {
    * @param token Current access token
    */
   async logoutOnBackend(token: string): Promise<void> {
-    await this.http.post(`${environment.apiBaseUrl}/auth/logout`, {}, {
+    await this.http.post(`${this.config.apiBaseUrl}/auth/logout`, {}, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -130,8 +133,7 @@ export class OAuthService {
    * Check if OAuth is properly configured
    */
   isOAuthConfigured(): boolean {
-    return !!(environment.oauth?.github?.clientId && 
-              environment.oauth.github.clientId !== 'your-github-client-id');
+    return this.config.oauth.github.isConfigured;
   }
 
   /**
