@@ -43,7 +43,8 @@ export class App {
   }
 
   onLogout(): void {
-    this.auth.logout();
-    this.router.navigate(['/']);
+    this.auth.logout().then(() => {
+      this.router.navigate(['/']);
+    });
   }
 }
