@@ -1,25 +1,38 @@
 # Joinery Infrastructure
 
-This repository contains the infrastructure and CI/CD pipeline configurations for deploying Joinery applications across different environments.
+This repository contains the infrastructure orchestration and CI/CD pipeline configurations for deploying the complete Joinery application stack across different environments.
 
 ## Overview
 
-The Joinery infrastructure repository provides:
-- Reusable GitHub Actions workflows for building and deploying applications
-- Kubernetes manifests and deployment configurations  
-- SSH-based Docker deployment for on-premises hosts
-- Docker base images for consistent containerization
-- Environment-specific configuration management
-- Automated deployment scripts and health checks
-- Rollback capabilities for failed deployments
+The Joinery infrastructure repository serves as the **orchestration hub** for deploying and managing the entire Joinery application stack. It provides:
 
-## Structure
+- **Stack Orchestration**: Docker Compose configurations for multi-service deployment
+- **CI/CD Workflows**: Reusable GitHub Actions for automated deployment pipelines  
+- **Environment Management**: Kubernetes manifests and environment-specific configurations
+- **Deployment Automation**: Scripts for both Kubernetes and SSH-based Docker deployments
+- **Health Monitoring**: Automated health checks and rollback capabilities
+- **Reference Templates**: Base configurations and example workflows
+
+### Separation of Concerns
+
+This repository focuses on **orchestration and deployment**, while individual application repositories handle their own:
+- **Application Code**: Business logic, APIs, and frontend components
+- **Build Configuration**: Dockerfiles, build scripts, and dependency management
+- **Application Testing**: Unit tests, integration tests, and application-specific CI
+
+The infrastructure repository references pre-built application images from their respective repositories, enabling clean separation between application development and deployment orchestration.
+
+## Repository Structure and Relationships
+
+### Infrastructure Repository Structure
 
 ```
-├── .github/workflows/          # GitHub Actions workflows
+joinery-infra/
+├── .github/workflows/          # CI/CD orchestration workflows
 │   ├── build.yml              # Docker build and push workflow
 │   ├── deploy.yml             # Kubernetes deployment workflow
 │   └── ssh-deploy.yml         # SSH-based Docker deployment workflow
+├── docker-compose.yml         # Multi-service stack orchestration
 ├── docker/                    # Docker configurations
 │   └── base/                 # Base Dockerfiles for different tech stacks
 │       ├── Dockerfile.node   # Node.js applications
@@ -43,7 +56,176 @@ The Joinery infrastructure repository provides:
 └── config.yaml             # Environment configurations
 ```
 
+### Application Repository Structure (Recommended)
+
+Each application repository should maintain its own build configuration:
+
+```
+joinery-server/              # Example .NET API application
+├── .github/workflows/
+│   └── build.yml           # Application-specific build workflow
+├── src/                    # Application source code
+├── Dockerfile              # Application-specific Docker build
+├── appsettings.json        # Application configuration
+└── README.md
+
+joinery-web/                # Example frontend application  
+├── .github/workflows/
+│   └── build.yml           # Application-specific build workflow
+├── src/                    # Frontend source code
+├── Dockerfile              # Application-specific Docker build
+├── package.json            # Dependencies and build scripts
+└── README.md
+```
+
+### Relationship Between Repositories
+
+1. **Application Repositories** (`joinery-server`, `joinery-web`, etc.):
+   - Own their source code, Dockerfiles, and build configurations
+   - Build and push Docker images to a container registry
+   - May trigger deployment workflows in the infrastructure repository
+
+2. **Infrastructure Repository** (`joinery-infra`):
+   - References pre-built application images by tag/version
+   - Orchestrates multi-service deployments using Docker Compose
+   - Manages environment-specific configurations and secrets
+   - Provides reusable CI/CD workflows for consistent deployments
+
+## Stack Orchestration with Docker Compose
+
+### Complete Stack Deployment
+
+The infrastructure repository includes a `docker-compose.yml` file that orchestrates the entire Joinery application stack by referencing pre-built images from application repositories:
+
+```yaml
+version: "3.8"
+
+services:
+  api:
+    image: chz160/joinery-server:latest  # Built by joinery-server repo
+    ports:
+      - "5256:5256"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+    depends_on:
+      - db
+    networks:
+      - joinery-network
+    restart: unless-stopped
+
+  web:
+    image: chz160/joinery-web:latest     # Built by joinery-web repo
+    ports:
+      - "80:80"
+    environment:
+      - API_URL=http://api:5256
+    depends_on:
+      - api
+    networks:
+      - joinery-network
+    restart: unless-stopped
+
+  db:
+    image: postgres:15
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=joinery
+      - POSTGRES_USER=joinery
+      - POSTGRES_PASSWORD=supersecure
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - joinery-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  joinery-network:
+    driver: bridge
+```
+
+### Deployment Workflow Example
+
+```yaml
+name: Deploy Joinery Stack
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout infrastructure repo
+        uses: actions/checkout@v4
+      
+      - name: Deploy stack
+        run: |
+          # Pull latest images built by application repositories
+          docker-compose pull
+          
+          # Deploy the complete stack
+          docker-compose up -d
+          
+          # Verify deployment
+          docker-compose ps
+```
+
 ## Quick Start
+
+### For Docker Compose Stack Deployment
+
+To deploy the complete Joinery stack using Docker Compose:
+
+1. **Application Repositories Build and Push**: Ensure your application repositories (e.g., `joinery-server`, `joinery-web`) have CI workflows that build and push Docker images:
+
+   ```yaml
+   # Example: joinery-server/.github/workflows/build.yml
+   name: Build and Push
+   on:
+     push:
+       branches: [main]
+   jobs:
+     build:
+       runs-on: ubuntu-latest
+       steps:
+         - uses: actions/checkout@v4
+         - name: Build and push Docker image
+           run: |
+             docker build -t chz160/joinery-server:latest .
+             docker push chz160/joinery-server:latest
+   ```
+
+2. **Deploy the Stack**: From the infrastructure repository:
+
+   ```bash
+   # Pull latest application images
+   docker-compose pull
+   
+   # Deploy the complete stack
+   docker-compose up -d
+   
+   # View running services
+   docker-compose ps
+   ```
+
+3. **Environment Configuration**: Override settings using environment files:
+
+   ```bash
+   # Create environment-specific compose file
+   cp docker-compose.yml docker-compose.prod.yml
+   
+   # Deploy with production overrides
+   docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+   ```
+
+4. **Automated Deployment**: Copy the example workflow from `examples/deploy-stack.yml` to `.github/workflows/deploy-stack.yml` for automated stack deployment via GitHub Actions.
 
 ### For Kubernetes Deployment
 
@@ -160,7 +342,12 @@ Rollback to a previous version:
 
 ## Configuration
 
-Environment-specific configurations are managed in `config.yaml`. Each environment (dev, staging, prod) has its own resource limits, replica counts, and domain settings.
+Environment-specific configurations are managed in multiple ways:
+
+- **`config.yaml`**: Environment-specific resource limits, replica counts, and domain settings for Kubernetes deployments
+- **`docker-compose.yml`**: Base stack configuration with service definitions and network topology
+- **Environment overrides**: Use `docker-compose.prod.yml`, `docker-compose.staging.yml` for environment-specific customizations
+- **Application configuration**: Individual app repos manage their own configuration files and environment variables
 
 ## Security
 
