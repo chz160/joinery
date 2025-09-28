@@ -53,6 +53,11 @@ export class LandingPage implements OnInit {
     this.auth.toggleAuthForDemo();
   }
 
+  // Method to initiate GitHub OAuth login
+  loginWithGitHub(): void {
+    this.auth.loginWithGitHub();
+  }
+
   // Method to scroll to a specific section
   scrollToSection(sectionId: string): void {
     const element = document.querySelector(`.${sectionId}`);

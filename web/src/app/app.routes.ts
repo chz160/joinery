@@ -14,6 +14,10 @@ export const routes: Routes = [
     loadComponent: () => import('./auth/components/login/login').then(m => m.Login)
   },
   {
+    path: 'auth/callback',
+    loadComponent: () => import('./auth/components/oauth-callback/oauth-callback').then(m => m.OAuthCallback)
+  },
+  {
     path: 'organizations',
     loadComponent: () => import('./organizations/components/organization-list/organization-list').then(m => m.OrganizationList)
   },
