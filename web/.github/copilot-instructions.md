@@ -4,6 +4,30 @@ Joinery Web is the frontend application for the Joinery Server, providing a mode
 
 **ALWAYS follow these instructions first and only fall back to search or bash commands when you encounter unexpected information that does not match the details provided here.**
 
+## Project Context and Goals
+
+### Project Overview
+Joinery Web is a collaborative SQL query management platform designed for:
+- **Teams and Organizations**: Multi-level team structure with role-based access control
+- **Educational Institutions**: Classroom and research collaboration
+- **Open Source**: MIT licensed with transparent development practices
+- **Security First**: Enterprise-grade authentication and data privacy
+
+### Key Features Being Built
+- GitHub/OAuth authentication integration
+- Organization and team management
+- Query sharing and collaboration
+- Repository integration (GitHub, GitLab)
+- Audit trails and compliance reporting
+- REST API for extensibility
+
+### Target Users
+- Database administrators and analysts
+- Software development teams
+- Educational institutions and students
+- Research organizations
+- Any team needing secure SQL collaboration
+
 ## Working Effectively
 
 ### Bootstrap and Setup
@@ -135,3 +159,99 @@ Before completing any changes, ALWAYS:
 - Components: `component-name.ts`, `component-name.html`, `component-name.scss`, `component-name.spec.ts`
 - Services: `service-name.ts`, `service-name.spec.ts`
 - All files use kebab-case naming
+
+## TypeScript and Angular Best Practices
+
+### Code Quality Standards
+- **Type Safety**: Always use explicit types, avoid `any` unless absolutely necessary
+- **Strict Mode**: Project uses strict TypeScript configuration - respect all compiler warnings
+- **Null Safety**: Use strict null checks, prefer optional chaining `?.` and nullish coalescing `??`
+- **Immutability**: Prefer `readonly` properties and immutable data patterns where possible
+
+### Angular-Specific Guidelines
+- **Standalone Components**: Always use Angular's standalone component architecture (no NgModules)
+- **Dependency Injection**: Use constructor injection for services, prefer `inject()` function in newer code
+- **Reactive Patterns**: Use RxJS observables for async operations, prefer `async` pipe in templates
+- **OnPush Strategy**: Use `ChangeDetectionStrategy.OnPush` for performance when appropriate
+- **Track By Functions**: Always provide `trackBy` functions for `*ngFor` loops with dynamic data
+
+### Component Architecture
+- **Single Responsibility**: Components should have one clear purpose
+- **Smart vs Dumb**: Separate container (smart) components from presentation (dumb) components
+- **Input/Output**: Use `@Input()` and `@Output()` for component communication
+- **Signal-Based**: Prefer Angular Signals over traditional property binding where applicable
+- **Lifecycle Hooks**: Implement only needed lifecycle hooks, prefer `OnDestroy` for cleanup
+
+### Service Design
+- **Injectable Services**: All services must use `@Injectable()` decorator
+- **Singleton Pattern**: Services are typically singletons provided at root level
+- **HTTP Services**: Wrap HTTP calls in services, not components
+- **Error Handling**: Implement proper error handling with RxJS operators like `catchError`
+- **State Management**: Keep component state local, share global state through services
+
+### Testing Standards
+- **Unit Tests**: Every component and service must have corresponding `.spec.ts` files
+- **Test Coverage**: Aim for meaningful tests, not just coverage percentages
+- **TestBed**: Use Angular TestBed for component testing
+- **Mocking**: Mock dependencies properly using spies and stubs
+- **Async Testing**: Use `fakeAsync` and `tick` for testing async operations
+
+### Performance Guidelines
+- **Lazy Loading**: Use lazy-loaded routes for feature modules
+- **Bundle Optimization**: Keep bundle sizes reasonable, current warning at 750kB is acceptable
+- **OnPush Detection**: Use OnPush change detection for performance-critical components
+- **Template Optimization**: Avoid complex expressions in templates
+- **Memory Leaks**: Always unsubscribe from observables in `ngOnDestroy`
+
+### Code Organization Patterns
+- **Feature Modules**: Organize code by features, not by file types
+- **Shared Components**: Place reusable components in `/shared/components/`
+- **Core Services**: Place singleton services in `/shared/services/`
+- **Models**: Define interfaces and types in `/shared/models/`
+- **Constants**: Use enums and constants instead of magic strings/numbers
+
+### Security Best Practices
+- **XSS Prevention**: Never use `innerHTML` with dynamic content, prefer `textContent`
+- **CSP Compliance**: Avoid inline styles and scripts
+- **HTTP Security**: Use HTTPS for all API calls, implement proper CORS handling
+- **Authentication**: Store JWT tokens securely, implement proper logout
+- **Input Validation**: Validate all user inputs both client-side and expect server-side validation
+
+### Debugging and Development
+- **Chrome DevTools**: Use Angular DevTools browser extension for debugging
+- **Source Maps**: Leverage source maps for debugging in development
+- **Console Logging**: Use appropriate log levels, remove console statements before production
+- **Network Inspection**: Monitor HTTP requests in browser Network tab
+- **Performance Profiling**: Use Angular DevTools Profiler for performance analysis
+
+## Git and Collaboration
+
+### Conventional Commits
+Use the following commit message format:
+- `feat:` - new features or enhancements
+- `fix:` - bug fixes
+- `docs:` - documentation changes
+- `style:` - code formatting, missing semicolons, etc.
+- `refactor:` - code refactoring without changing functionality
+- `test:` - adding or updating tests
+- `chore:` - maintenance tasks, dependency updates
+- `perf:` - performance improvements
+
+Examples:
+- `feat: add user authentication service`
+- `fix: resolve routing issue in dashboard component`
+- `docs: update API integration examples`
+- `refactor: extract common validation logic to service`
+
+### Code Review Guidelines
+- **Small PRs**: Keep pull requests focused and small for easier review
+- **Self-Review**: Always review your own changes before submitting
+- **Tests**: Include tests for new functionality
+- **Documentation**: Update relevant documentation for significant changes
+- **Breaking Changes**: Clearly mark and document any breaking changes
+
+### Dependencies and Security
+- **Dependency Updates**: Keep dependencies up to date, test thoroughly after updates
+- **Security Audits**: Run `npm audit` regularly and fix security vulnerabilities
+- **Lock Files**: Always commit `package-lock.json` changes
+- **Peer Dependencies**: Ensure Angular and Material versions are compatible
