@@ -1,12 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatMenuModule } from '@angular/material/menu';
-import { MatDialogModule } from '@angular/material/dialog';
+import { SharedMaterialModule } from '../../../shared/modules/material.module';
+import { ProviderService } from '../../../shared/services/provider.service';
 import { Organization } from '../../../shared/models';
 
 @Component({
@@ -14,12 +10,7 @@ import { Organization } from '../../../shared/models';
   imports: [
     CommonModule,
     RouterModule,
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule,
-    MatChipsModule,
-    MatMenuModule,
-    MatDialogModule
+    SharedMaterialModule
   ],
   templateUrl: './organization-list.html',
   styleUrl: './organization-list.scss'
@@ -28,7 +19,7 @@ export class OrganizationList implements OnInit {
   organizations: Organization[] = [];
   loading = true;
 
-  constructor() {}
+  constructor(private providerService: ProviderService) {}
 
   ngOnInit(): void {
     this.loadOrganizations();
@@ -98,20 +89,10 @@ export class OrganizationList implements OnInit {
   }
 
   getAuthProviderIcon(type: string): string {
-    switch (type) {
-      case 'microsoft': return 'business';
-      case 'github': return 'code';
-      case 'aws-iam': return 'cloud';
-      default: return 'security';
-    }
+    return this.providerService.getAuthProviderIcon(type);
   }
 
   getAuthProviderName(type: string): string {
-    switch (type) {
-      case 'microsoft': return 'Microsoft Entra ID';
-      case 'github': return 'GitHub';
-      case 'aws-iam': return 'AWS IAM';
-      default: return 'Unknown';
-    }
+    return this.providerService.getAuthProviderName(type);
   }
 }

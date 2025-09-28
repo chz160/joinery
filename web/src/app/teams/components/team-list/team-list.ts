@@ -1,21 +1,14 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatBadgeModule } from '@angular/material/badge';
+import { SharedMaterialModule } from '../../../shared/modules/material.module';
+import { ProviderService } from '../../../shared/services/provider.service';
 import { Team, Repository } from '../../../shared/models';
 
 @Component({
   selector: 'app-team-list',
   imports: [
     CommonModule,
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule,
-    MatChipsModule,
-    MatBadgeModule
+    SharedMaterialModule
   ],
   templateUrl: './team-list.html',
   styleUrl: './team-list.scss'
@@ -23,7 +16,7 @@ import { Team, Repository } from '../../../shared/models';
 export class TeamList implements OnInit {
   teams: Team[] = [];
 
-  constructor() {}
+  constructor(private providerService: ProviderService) {}
 
   ngOnInit(): void {
     this.loadTeams();
@@ -105,12 +98,6 @@ export class TeamList implements OnInit {
   }
 
   getProviderIcon(provider: string): string {
-    switch (provider) {
-      case 'github': return 'code';
-      case 'gitlab': return 'merge_type';
-      case 'bitbucket': return 'account_tree';
-      case 'azure-devops': return 'cloud';
-      default: return 'source';
-    }
+    return this.providerService.getRepositoryProviderIcon(provider);
   }
 }
