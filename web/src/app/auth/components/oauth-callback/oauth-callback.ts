@@ -1,20 +1,14 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { Auth } from '../../services/auth';
+import { SharedMaterialModule } from '../../../shared/modules/material.module';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-oauth-callback',
   imports: [
     CommonModule,
-    MatProgressSpinnerModule,
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule
+    SharedMaterialModule
   ],
   templateUrl: './oauth-callback.html',
   styleUrl: './oauth-callback.scss'
@@ -26,7 +20,7 @@ export class OAuthCallback implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private auth: Auth
+    private auth: AuthService
   ) {}
 
   ngOnInit(): void {

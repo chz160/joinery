@@ -1,12 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatCardModule } from '@angular/material/card';
-import { Observable } from 'rxjs';
-import { Auth } from '../../../auth/services/auth';
-import { User } from '../../../shared/models';
+import { SharedMaterialModule } from '../../../shared/modules/material.module';
+import { BaseAuthComponent } from '../../../shared/components/base-auth-component';
 import { DashboardPreviewComponent } from '../../../shared/components/dashboard-preview/dashboard-preview';
 
 @Component({
@@ -14,24 +10,15 @@ import { DashboardPreviewComponent } from '../../../shared/components/dashboard-
   imports: [
     CommonModule,
     RouterModule,
-    MatButtonModule,
-    MatIconModule,
-    MatCardModule,
+    SharedMaterialModule,
     DashboardPreviewComponent
   ],
   templateUrl: './landing-page.html',
   styleUrl: './landing-page.scss'
 })
-export class LandingPage implements OnInit {
+export class LandingPage extends BaseAuthComponent implements OnInit {
   currentStep = 1;
-  isAuthenticated$: Observable<boolean>;
-  currentUser$: Observable<User | null>;
   
-  constructor(private auth: Auth) {
-    this.isAuthenticated$ = this.auth.isAuthenticated$;
-    this.currentUser$ = this.auth.currentUser$;
-  }
-
   ngOnInit(): void {
   }
   

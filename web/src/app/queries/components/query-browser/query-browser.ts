@@ -1,12 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatTreeModule } from '@angular/material/tree';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatMenuModule } from '@angular/material/menu';
-import { MatToolbarModule } from '@angular/material/toolbar';
+import { SharedMaterialModule } from '../../../shared/modules/material.module';
 import { FlatTreeControl } from '@angular/cdk/tree';
 import { MatTreeFlatDataSource, MatTreeFlattener } from '@angular/material/tree';
 import { Query, Folder } from '../../../shared/models';
@@ -27,13 +21,7 @@ interface TreeNode {
   selector: 'app-query-browser',
   imports: [
     CommonModule,
-    MatTreeModule,
-    MatIconModule,
-    MatButtonModule,
-    MatCardModule,
-    MatChipsModule,
-    MatMenuModule,
-    MatToolbarModule
+    SharedMaterialModule
   ],
   templateUrl: './query-browser.html',
   styleUrl: './query-browser.scss'
