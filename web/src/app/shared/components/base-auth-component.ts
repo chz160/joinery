@@ -1,7 +1,7 @@
 import { inject, OnDestroy, Directive } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { AuthService } from '../../auth/services/auth-refactored.service';
+import { AuthService } from '../../auth/services/auth.service';
 import { User } from '../models';
 
 /**
