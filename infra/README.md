@@ -225,6 +225,8 @@ To deploy the complete Joinery stack using Docker Compose:
    docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
    ```
 
+4. **Automated Deployment**: Copy the example workflow from `examples/deploy-stack.yml` to `.github/workflows/deploy-stack.yml` for automated stack deployment via GitHub Actions.
+
 ### For Kubernetes Deployment
 
 To use this infrastructure for Kubernetes deployment in your Joinery application repository:
@@ -340,7 +342,12 @@ Rollback to a previous version:
 
 ## Configuration
 
-Environment-specific configurations are managed in `config.yaml`. Each environment (dev, staging, prod) has its own resource limits, replica counts, and domain settings.
+Environment-specific configurations are managed in multiple ways:
+
+- **`config.yaml`**: Environment-specific resource limits, replica counts, and domain settings for Kubernetes deployments
+- **`docker-compose.yml`**: Base stack configuration with service definitions and network topology
+- **Environment overrides**: Use `docker-compose.prod.yml`, `docker-compose.staging.yml` for environment-specific customizations
+- **Application configuration**: Individual app repos manage their own configuration files and environment variables
 
 ## Security
 
