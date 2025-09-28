@@ -9,6 +9,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
 import { CommonModule } from '@angular/common';
 import { Auth } from './auth/services/auth';
+import { NotificationComponent } from './shared/components/notification/notification.component';
 
 @Component({
   selector: 'app-root',
@@ -21,7 +22,8 @@ import { Auth } from './auth/services/auth';
     MatListModule,
     MatMenuModule,
     MatDividerModule,
-    CommonModule
+    CommonModule,
+    NotificationComponent
   ],
   templateUrl: './app.html',
   styleUrl: './app.scss'

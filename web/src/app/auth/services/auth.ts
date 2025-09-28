@@ -4,6 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { User } from '../../shared/models';
 import { environment } from '../../../environments/environment';
 import { throttleTime, switchMap } from 'rxjs/operators';
+import { NotificationService } from '../../shared/services/notification.service';
 
 @Injectable({
   providedIn: 'root'
@@ -29,7 +30,7 @@ export class Auth {
     createdAt: new Date('2024-01-15')
   };
 
-  constructor(private http: HttpClient) {
+  constructor(private http: HttpClient, private notificationService: NotificationService) {
     // Check for existing authentication state
     this.checkAuthenticationStatus();
     
@@ -367,6 +368,18 @@ export class Auth {
    * Start idle timer for session timeout
    */
   private startIdleTimer(): void {
+    // Clear any existing timeout
+    if (this.sessionTimeout) {
+      clearTimeout(this.sessionTimeout);
+    }
+    
+    // Set warning timer (show warning 5 minutes before timeout)
+    const warningTime = this.SESSION_IDLE_TIME - this.SESSION_WARNING_TIME;
+    setTimeout(() => {
+      this.showSessionWarning();
+    }, warningTime);
+    
+    // Set main timeout
     this.sessionTimeout = setTimeout(() => {
       this.handleSessionTimeout();
     }, this.SESSION_IDLE_TIME);
@@ -377,8 +390,8 @@ export class Auth {
    */
   private handleSessionTimeout(): void {
     console.warn('Session timed out due to inactivity');
+    this.notificationService.showWarning('Your session has expired due to inactivity. Please log in again.', 10000);
     this.logout().then(() => {
-      // Could show a notification here
       console.log('Session expired. Please log in again.');
     });
   }
@@ -492,10 +505,12 @@ export class Auth {
    * Show session timeout warning
    */
   private showSessionWarning(): void {
-    if (!this.sessionWarningShown) {
+    if (!this.sessionWarningShown && this.isAuthenticated) {
       this.sessionWarningShown = true;
-      // This could trigger a dialog/notification component
-      console.warn('Session will expire soon. Please refresh your activity.');
+      this.notificationService.showWarning(
+        'Your session will expire in 5 minutes due to inactivity. Move your mouse or click to extend your session.',
+        8000
+      );
     }
   }
 }
