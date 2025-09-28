@@ -33,6 +33,12 @@
           </mat-error>
         </mat-form-field>
 
+        <div class="remember-me-container">
+          <mat-checkbox formControlName="rememberMe">
+            Remember me
+          </mat-checkbox>
+        </div>
+
         <button mat-raised-button color="primary" type="submit" class="full-width login-button" [disabled]="loginForm.invalid">
           Sign In
         </button>
