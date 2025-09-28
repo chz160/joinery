@@ -2,7 +2,7 @@ import { Component, signal } from '@angular/core';
 import { RouterOutlet, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { SharedMaterialModule } from './shared/modules/material.module';
-import { AuthService } from './auth/services/auth-refactored.service';
+import { AuthService } from './auth/services/auth.service';
 import { NotificationComponent } from './shared/components/notification/notification.component';
 
 @Component({

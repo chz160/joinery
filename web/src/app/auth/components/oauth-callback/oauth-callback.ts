@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SharedMaterialModule } from '../../../shared/modules/material.module';
-import { AuthService } from '../../services/auth-refactored.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-oauth-callback',
