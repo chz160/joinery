@@ -1,0 +1,47 @@
+version: "3.8"
+
+services:
+  api:
+    image: chz160/joinery-server:latest
+    ports:
+      - "5256:5256"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+    depends_on:
+      - db
+    networks:
+      - joinery-network
+    restart: unless-stopped
+
+  web:
+    image: chz160/joinery-web:latest
+    ports:
+      - "80:80"
+    environment:
+      - API_URL=http://api:5256
+    depends_on:
+      - api
+    networks:
+      - joinery-network
+    restart: unless-stopped
+
+  db:
+    image: postgres:15
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=joinery
+      - POSTGRES_USER=joinery
+      - POSTGRES_PASSWORD=supersecure
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - joinery-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  joinery-network:
+    driver: bridge
