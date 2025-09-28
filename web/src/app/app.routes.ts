@@ -26,8 +26,8 @@ export const routes: Routes = [
   },
   {
     path: 'organizations/setup',
-    loadComponent: () => import('./organizations/components/setup-wizard/organization-setup-wizard').then(m => m.OrganizationSetupWizard),
-    canActivate: [AuthGuard]
+    loadComponent: () => import('./organizations/components/setup-wizard/organization-setup-wizard').then(m => m.OrganizationSetupWizard)
+    // Temporarily removed canActivate: [AuthGuard] for demo purposes
   },
   {
     path: 'teams',
