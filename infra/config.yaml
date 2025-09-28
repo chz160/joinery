@@ -4,48 +4,14 @@
 environments:
   dev:
     domain: dev.joinery.com
-    replicas: 1
-    resources:
-      requests:
-        memory: "128Mi"
-        cpu: "100m"
-      limits:
-        memory: "256Mi"
-        cpu: "250m"
-  
+    
   staging:
     domain: staging.joinery.com
-    replicas: 2
-    resources:
-      requests:
-        memory: "256Mi"
-        cpu: "200m"
-      limits:
-        memory: "512Mi"
-        cpu: "500m"
   
   prod:
     domain: joinery.com
-    replicas: 3
-    resources:
-      requests:
-        memory: "512Mi"
-        cpu: "500m"
-      limits:
-        memory: "1Gi"
-        cpu: "1000m"
 
 # Docker registry configuration
 docker:
   registry: docker.io
   organization: joinery
-  
-# Monitoring and observability
-monitoring:
-  enabled: true
-  namespace: monitoring
-  
-# Security settings
-security:
-  enable_network_policies: true
-  enable_pod_security_standards: true
