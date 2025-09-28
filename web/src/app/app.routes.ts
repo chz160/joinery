@@ -25,6 +25,11 @@ export const routes: Routes = [
     canActivate: [AuthGuard]
   },
   {
+    path: 'organizations/setup',
+    loadComponent: () => import('./organizations/components/setup-wizard/organization-setup-wizard').then(m => m.OrganizationSetupWizard),
+    canActivate: [AuthGuard]
+  },
+  {
     path: 'teams',
     loadComponent: () => import('./teams/components/team-list/team-list').then(m => m.TeamList),
     canActivate: [AuthGuard]

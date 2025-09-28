@@ -16,6 +16,12 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatTreeModule } from '@angular/material/tree';
+import { MatStepperModule } from '@angular/material/stepper';
+import { MatSelectModule } from '@angular/material/select';
+import { MatRadioModule } from '@angular/material/radio';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 /**
  * Shared Material Design modules to eliminate import duplication across components.
@@ -40,6 +46,12 @@ const MATERIAL_MODULES = [
   MatProgressSpinnerModule,
   MatDialogModule,
   MatTreeModule,
+  MatStepperModule,
+  MatSelectModule,
+  MatRadioModule,
+  MatSlideToggleModule,
+  MatSnackBarModule,
+  MatTooltipModule,
 ];
 
 @NgModule({
