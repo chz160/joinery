@@ -3,7 +3,7 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { SharedMaterialModule } from '../../../shared/modules/material.module';
-import { Auth } from '../../services/auth';
+import { AuthService } from '../../services/auth-refactored.service';
 
 @Component({
   selector: 'app-login',
@@ -23,7 +23,7 @@ export class Login {
   constructor(
     private fb: FormBuilder,
     private router: Router,
-    private auth: Auth
+    private auth: AuthService
   ) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],

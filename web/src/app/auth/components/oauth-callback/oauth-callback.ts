@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SharedMaterialModule } from '../../../shared/modules/material.module';
-import { Auth } from '../../services/auth';
+import { AuthService } from '../../services/auth-refactored.service';
 
 @Component({
   selector: 'app-oauth-callback',
@@ -20,7 +20,7 @@ export class OAuthCallback implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private auth: Auth
+    private auth: AuthService
   ) {}
 
   ngOnInit(): void {

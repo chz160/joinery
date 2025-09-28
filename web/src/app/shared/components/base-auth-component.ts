@@ -1,7 +1,7 @@
 import { inject, OnDestroy, Directive } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { Auth } from '../../auth/services/auth';
+import { AuthService } from '../../auth/services/auth-refactored.service';
 import { User } from '../models';
 
 /**
@@ -15,7 +15,7 @@ import { User } from '../models';
  */
 @Directive()
 export abstract class BaseAuthComponent implements OnDestroy {
-  protected readonly auth = inject(Auth);
+  protected readonly auth = inject(AuthService);
   private readonly destroy$ = new Subject<void>();
 
   /**

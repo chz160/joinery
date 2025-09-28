@@ -2,7 +2,7 @@ import { Component, signal } from '@angular/core';
 import { RouterOutlet, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { SharedMaterialModule } from './shared/modules/material.module';
-import { Auth } from './auth/services/auth';
+import { AuthService } from './auth/services/auth-refactored.service';
 import { NotificationComponent } from './shared/components/notification/notification.component';
 
 @Component({
@@ -20,7 +20,7 @@ export class App {
   protected readonly title = signal('Joinery');
 
   constructor(
-    private auth: Auth,
+    private auth: AuthService,
     private router: Router
   ) {}
 
