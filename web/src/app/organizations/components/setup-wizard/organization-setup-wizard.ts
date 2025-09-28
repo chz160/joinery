@@ -176,14 +176,16 @@ export class OrganizationSetupWizard implements OnInit, OnDestroy {
           this.isLoading = false;
           this.markStepCompleted(this.totalSteps);
           
-          this.notificationService.showSuccess(
-            `Organization "${organization.name}" created successfully!`
-          );
+          // Navigate to success page with organization details
+          const wizardData = this.wizardData;
+          const queryParams = {
+            name: organization.name,
+            id: organization.id,
+            invitations: wizardData?.teamMembers.length || 0,
+            repositories: wizardData?.repositories.length || 0
+          };
           
-          // Redirect to dashboard after a short delay
-          setTimeout(() => {
-            this.router.navigate(['/dashboard']);
-          }, 2000);
+          this.router.navigate(['/organizations/setup/success'], { queryParams });
         },
         error: (error) => {
           this.isLoading = false;

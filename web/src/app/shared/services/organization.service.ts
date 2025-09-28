@@ -20,6 +20,20 @@ export class OrganizationService {
   constructor(private http: HttpClient) {}
 
   /**
+   * Check if user is a first-time user (has no organizations)
+   */
+  isFirstTimeUser(): Observable<boolean> {
+    // For development: check if user has completed setup
+    if (localStorage.getItem('userHasCompletedSetup') === 'true') {
+      return of(false);
+    }
+    
+    return this.getOrganizations().pipe(
+      map(organizations => organizations.length === 0)
+    );
+  }
+
+  /**
    * Get all organizations for the current user
    */
   getOrganizations(): Observable<Organization[]> {
@@ -166,6 +180,9 @@ export class OrganizationService {
       map(organization => {
         // Mark wizard as completed
         this.updateWizardData({ completed: true });
+        
+        // Mark user as having completed setup (for development)
+        localStorage.setItem('userHasCompletedSetup', 'true');
         
         // TODO: Send team invitations
         // TODO: Connect repositories
