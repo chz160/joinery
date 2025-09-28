@@ -7,7 +7,9 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CommonModule } from '@angular/common';
+import { Auth } from '../../services/auth';
 
 @Component({
   selector: 'app-login',
@@ -19,7 +21,8 @@ import { CommonModule } from '@angular/common';
     MatInputModule,
     MatButtonModule,
     MatIconModule,
-    MatDividerModule
+    MatDividerModule,
+    MatProgressSpinnerModule
   ],
   templateUrl: './login.html',
   styleUrl: './login.scss'
@@ -27,10 +30,12 @@ import { CommonModule } from '@angular/common';
 export class Login {
   loginForm: FormGroup;
   hidePassword = true;
+  isLoading = false;
 
   constructor(
     private fb: FormBuilder,
-    private router: Router
+    private router: Router,
+    private auth: Auth
   ) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
@@ -40,14 +45,28 @@ export class Login {
 
   onSubmit(): void {
     if (this.loginForm.valid) {
-      // TODO: Implement authentication logic
+      // TODO: Implement email/password authentication logic
       console.log('Login attempt:', this.loginForm.value);
       this.router.navigate(['/dashboard']);
     }
   }
 
   loginWithProvider(provider: string): void {
-    // TODO: Implement OAuth login logic
-    console.log(`Login with ${provider}`);
+    if (provider === 'github') {
+      this.loginWithGitHub();
+    } else {
+      // TODO: Implement other OAuth providers
+      console.log(`Login with ${provider} - Coming soon`);
+    }
+  }
+
+  loginWithGitHub(): void {
+    this.isLoading = true;
+    try {
+      this.auth.loginWithGitHub();
+    } catch (error) {
+      console.error('GitHub login error:', error);
+      this.isLoading = false;
+    }
   }
 }

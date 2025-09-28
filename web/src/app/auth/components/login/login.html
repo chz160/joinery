@@ -42,15 +42,18 @@
       <p class="oauth-text">Or sign in with:</p>
       
       <div class="oauth-buttons">
-        <button mat-stroked-button class="oauth-button" (click)="loginWithProvider('microsoft')">
+        <button mat-stroked-button class="oauth-button" (click)="loginWithProvider('microsoft')" [disabled]="isLoading">
           <mat-icon>business</mat-icon>
           Microsoft Entra ID
         </button>
-        <button mat-stroked-button class="oauth-button" (click)="loginWithProvider('github')">
-          <mat-icon>code</mat-icon>
-          GitHub
+        <button mat-stroked-button class="oauth-button github-button" (click)="loginWithProvider('github')" [disabled]="isLoading">
+          <div class="button-content">
+            <mat-spinner *ngIf="isLoading" diameter="18" class="spinner"></mat-spinner>
+            <mat-icon *ngIf="!isLoading">code</mat-icon>
+            <span>{{ isLoading ? 'Redirecting to GitHub...' : 'GitHub' }}</span>
+          </div>
         </button>
-        <button mat-stroked-button class="oauth-button" (click)="loginWithProvider('aws')">
+        <button mat-stroked-button class="oauth-button" (click)="loginWithProvider('aws')" [disabled]="isLoading">
           <mat-icon>cloud</mat-icon>
           AWS IAM
         </button>
