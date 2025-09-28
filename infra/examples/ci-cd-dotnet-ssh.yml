@@ -1,0 +1,102 @@
+# Example CI/CD workflow for .NET 8 Joinery applications with SSH deployment
+# Copy this file to .github/workflows/ci-cd.yml in your .NET application repository
+
+name: Build, Test, and Deploy .NET App
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+      
+      - name: Restore dependencies
+        run: dotnet restore
+      
+      - name: Build application
+        run: dotnet build --no-restore -c Release
+      
+      - name: Run tests
+        run: dotnet test --no-build --no-restore -c Release --logger trx --results-directory TestResults
+      
+      - name: Publish test results
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          name: .NET Tests
+          path: TestResults/*.trx
+          reporter: dotnet-trx
+  
+  build-docker:
+    needs: build-and-test
+    if: github.event_name == 'push'
+    uses: chz160/joinery-infra/.github/workflows/build.yml@main
+    with:
+      app_name: joinery-server  # Replace with your app name
+      dockerfile_path: ./Dockerfile
+      build_context: .
+    secrets:
+      DOCKER_REGISTRY_TOKEN: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
+  
+  deploy-dev:
+    if: github.ref == 'refs/heads/develop'
+    needs: build-docker
+    uses: chz160/joinery-infra/.github/workflows/ssh-deploy.yml@main
+    with:
+      app_name: joinery-server  # Replace with your app name
+      environment: dev
+      image_tag: ${{ needs.build-docker.outputs.image_tag }}
+      container_port: "8080"
+      host_port: "8080"
+    secrets:
+      DOCKER_REGISTRY_TOKEN: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY_DEV }}
+      SSH_HOST: ${{ secrets.SSH_HOST_DEV }}
+      SSH_USER: ${{ secrets.SSH_USER_DEV }}
+      SSH_PORT: ${{ secrets.SSH_PORT_DEV }}
+  
+  deploy-staging:
+    if: github.ref == 'refs/heads/main'
+    needs: build-docker
+    uses: chz160/joinery-infra/.github/workflows/ssh-deploy.yml@main
+    with:
+      app_name: joinery-server  # Replace with your app name
+      environment: staging
+      image_tag: ${{ needs.build-docker.outputs.image_tag }}
+      container_port: "8080"
+      host_port: "8080"
+    secrets:
+      DOCKER_REGISTRY_TOKEN: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY_STAGING }}
+      SSH_HOST: ${{ secrets.SSH_HOST_STAGING }}
+      SSH_USER: ${{ secrets.SSH_USER_STAGING }}
+      SSH_PORT: ${{ secrets.SSH_PORT_STAGING }}
+  
+  deploy-prod:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[deploy-prod]')
+    needs: build-docker
+    uses: chz160/joinery-infra/.github/workflows/ssh-deploy.yml@main
+    with:
+      app_name: joinery-server  # Replace with your app name
+      environment: prod
+      image_tag: ${{ needs.build-docker.outputs.image_tag }}
+      container_port: "8080"
+      host_port: "80"
+    secrets:
+      DOCKER_REGISTRY_TOKEN: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY_PROD }}
+      SSH_HOST: ${{ secrets.SSH_HOST_PROD }}
+      SSH_USER: ${{ secrets.SSH_USER_PROD }}
+      SSH_PORT: ${{ secrets.SSH_PORT_PROD }}

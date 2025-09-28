@@ -1,0 +1,50 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost;Database=JoineryServer;Trusted_Connection=true;"
+  },
+  "Authentication": {
+    "GitHub": {
+      "ClientId": "your-github-client-id",
+      "ClientSecret": "your-github-client-secret"
+    }
+  },
+  "JWT": {
+    "Issuer": "https://your-domain.com",
+    "Audience": "https://your-domain.com",
+    "SecretKey": "your-jwt-secret-key-min-256-bits",
+    "ExpireMinutes": 60
+  },
+  "App": {
+    "Name": "Joinery Server",
+    "Version": "1.0.0",
+    "MaxFileUploadSize": 10485760,
+    "AllowedOrigins": [
+      "https://your-frontend-domain.com",
+      "http://localhost:3000"
+    ]
+  },
+  "EmailSettings": {
+    "SmtpServer": "smtp.your-provider.com",
+    "SmtpPort": 587,
+    "FromEmail": "noreply@your-domain.com",
+    "Username": "your-smtp-username",
+    "Password": "your-smtp-password",
+    "EnableSsl": true
+  },
+  "ExternalAPI": {
+    "BaseUrl": "https://api.external-service.com",
+    "ApiKey": "your-external-api-key",
+    "TimeoutSeconds": 30
+  },
+  "Redis": {
+    "ConnectionString": "localhost:6379",
+    "DefaultDatabase": 0
+  },
+  "AllowedHosts": "*"
+}

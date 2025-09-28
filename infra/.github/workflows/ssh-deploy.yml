@@ -1,0 +1,94 @@
+name: SSH Docker Deployment
+
+on:
+  workflow_call:
+    inputs:
+      app_name:
+        required: true
+        type: string
+        description: 'Application name to deploy'
+      environment:
+        required: true
+        type: string
+        description: 'Environment to deploy to (dev, staging, prod)'
+      image_tag:
+        required: false
+        type: string
+        default: 'latest'
+        description: 'Docker image tag to deploy'
+      container_port:
+        required: false
+        type: string
+        default: '8080'
+        description: 'Application container port'
+      host_port:
+        required: false
+        type: string
+        default: '80'
+        description: 'Host port to map to container'
+    secrets:
+      DOCKER_REGISTRY_TOKEN:
+        required: true
+      SSH_PRIVATE_KEY:
+        required: true
+      SSH_HOST:
+        required: true
+      SSH_USER:
+        required: true
+      SSH_PORT:
+        required: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    
+    steps:
+      - name: Checkout infrastructure repo
+        uses: actions/checkout@v4
+        with:
+          repository: chz160/joinery-infra
+          token: ${{ github.token }}
+          path: infra
+      
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p ${{ secrets.SSH_PORT || '22' }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+      
+      - name: Test SSH Connection
+        run: |
+          ssh -p ${{ secrets.SSH_PORT || '22' }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} 'echo "SSH connection successful"'
+      
+      - name: Deploy via SSH
+        run: |
+          cd infra
+          ./scripts/ssh-deploy.sh \
+            ${{ inputs.app_name }} \
+            ${{ inputs.environment }} \
+            ${{ inputs.image_tag }} \
+            ${{ inputs.container_port }} \
+            ${{ inputs.host_port }} \
+            ${{ secrets.SSH_USER }} \
+            ${{ secrets.SSH_HOST }} \
+            ${{ secrets.SSH_PORT || '22' }}
+        env:
+          DOCKER_REGISTRY_TOKEN: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
+      
+      - name: Verify Deployment
+        run: |
+          ssh -p ${{ secrets.SSH_PORT || '22' }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "docker ps --filter name=${{ inputs.app_name }}-${{ inputs.environment }} --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
+      
+      - name: Health Check
+        run: |
+          cd infra
+          ./scripts/ssh-health-check.sh \
+            ${{ inputs.app_name }} \
+            ${{ inputs.environment }} \
+            ${{ inputs.host_port }} \
+            ${{ secrets.SSH_USER }} \
+            ${{ secrets.SSH_HOST }} \
+            ${{ secrets.SSH_PORT || '22' }}
