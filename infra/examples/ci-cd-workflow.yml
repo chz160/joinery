@@ -1,0 +1,56 @@
+# Example CI/CD workflow for Joinery applications
+# Copy this file to .github/workflows/ci-cd.yml in your application repository
+
+name: Build and Deploy
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    uses: chz160/joinery-infra/.github/workflows/build.yml@main
+    with:
+      app_name: example-app  # Replace with your app name
+      dockerfile_path: ./Dockerfile
+      build_context: .
+    secrets:
+      DOCKER_REGISTRY_TOKEN: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
+  
+  deploy-dev:
+    if: github.ref == 'refs/heads/develop'
+    needs: build
+    uses: chz160/joinery-infra/.github/workflows/deploy.yml@main
+    with:
+      app_name: example-app  # Replace with your app name
+      environment: dev
+      image_tag: ${{ needs.build.outputs.image_tag }}
+    secrets:
+      DOCKER_REGISTRY_TOKEN: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
+      KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+  
+  deploy-staging:
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    uses: chz160/joinery-infra/.github/workflows/deploy.yml@main
+    with:
+      app_name: example-app  # Replace with your app name
+      environment: staging
+      image_tag: ${{ needs.build.outputs.image_tag }}
+    secrets:
+      DOCKER_REGISTRY_TOKEN: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
+      KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+  
+  deploy-prod:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[deploy-prod]')
+    needs: build
+    uses: chz160/joinery-infra/.github/workflows/deploy.yml@main
+    with:
+      app_name: example-app  # Replace with your app name
+      environment: prod
+      image_tag: ${{ needs.build.outputs.image_tag }}
+    secrets:
+      DOCKER_REGISTRY_TOKEN: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
+      KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
