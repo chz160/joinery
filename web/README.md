@@ -364,3 +364,148 @@ return this.http.get(url).pipe(
 - **Proxy Setup**: Use Angular proxy for local development
 
 For detailed backend setup instructions, refer to the [Joinery Server documentation](https://github.com/your-org/joinery-server).
+
+## Docker & Infrastructure
+
+### Dockerfile Ownership & Architecture Decision
+
+This repository contains the `Dockerfile` for building the joinery-web container image. This architectural decision follows best practices for containerized applications:
+
+**Why the Dockerfile lives in this repository:**
+- **Code-Build Coupling**: Build configurations are versioned alongside the application code, ensuring consistency between code changes and build requirements
+- **Developer Experience**: Developers can build and test the application locally using the same Dockerfile used in production
+- **Atomic Changes**: Application changes and their corresponding build/deployment requirements can be updated together in a single commit
+- **Simplified Debugging**: Build issues can be reproduced and debugged locally with the exact same configuration
+
+**Infrastructure Separation**: While the Dockerfile lives here, orchestration, deployment workflows, and infrastructure configuration are managed in the separate [joinery-infra](https://github.com/chz160/joinery-infra) repository.
+
+### Repository Structure & Responsibilities
+
+#### This Repository (joinery-web)
+```
+joinery-web/
+├── Dockerfile              # Container build configuration
+├── nginx.conf             # Web server configuration  
+├── src/                   # Angular application source
+├── dist/                  # Build output (generated)
+├── package.json           # Dependencies and build scripts
+├── angular.json           # Angular CLI configuration
+└── README.md             # This documentation
+```
+
+**Responsibilities:**
+- Angular application source code
+- Frontend build configuration (`angular.json`, `package.json`)
+- Container build definition (`Dockerfile`)
+- Web server configuration (`nginx.conf`)
+- Local development setup
+
+#### Infrastructure Repository (joinery-infra)
+**Responsibilities:**
+- Docker Compose configurations for different environments
+- CI/CD pipeline definitions
+- Infrastructure provisioning (Terraform, CloudFormation, etc.)
+- Environment-specific configurations
+- Orchestration and deployment workflows
+- Monitoring and logging configuration
+
+### Example Docker Integration
+
+#### Building the Application Container
+
+```bash
+# Build the Docker image locally
+docker build -t chz160/joinery-web:latest .
+
+# Run the container locally
+docker run -p 8080:80 \
+  -e API_URL=http://localhost:3000 \
+  chz160/joinery-web:latest
+```
+
+#### Docker Compose Integration (from joinery-infra)
+
+The infrastructure repository contains Docker Compose configurations that reference this image:
+
+```yaml
+# Example from joinery-infra/docker-compose.yml
+version: '3.8'
+
+services:
+  web:
+    image: chz160/joinery-web:latest
+    ports:
+      - "80:80"
+    environment:
+      - API_URL=http://api:5256
+      - OAUTH_REDIRECT_URI=http://localhost:4200/auth/callback
+    depends_on:
+      - api
+    networks:
+      - joinery-network
+
+  api:
+    image: chz160/joinery-server:latest
+    ports:
+      - "5256:5256"
+    environment:
+      - DATABASE_URL=postgresql://user:pass@db:5432/joinery
+    networks:
+      - joinery-network
+
+networks:
+  joinery-network:
+    driver: bridge
+```
+
+### CI/CD Workflow Integration
+
+The relationship between repositories in the CI/CD pipeline:
+
+1. **Code Changes**: Developers commit changes to `joinery-web`
+2. **Image Build**: GitHub Actions builds and pushes container image to registry
+3. **Infrastructure Deployment**: `joinery-infra` repository references the new image tag
+4. **Orchestration**: Docker Compose or Kubernetes manifests deploy the updated stack
+
+#### Typical Workflow
+```bash
+# 1. Developer workflow (this repo)
+git commit -m "feat: add new feature"
+git push origin main
+
+# 2. CI builds and pushes image
+# → docker build -t chz160/joinery-web:v1.2.3
+# → docker push chz160/joinery-web:v1.2.3
+
+# 3. Infrastructure update (joinery-infra repo)
+# → Update image tag in docker-compose.yml or k8s manifests
+# → Deploy updated stack
+```
+
+### Local Development with Docker
+
+For local development using Docker:
+
+```bash
+# Option 1: Use docker-compose from joinery-infra
+git clone https://github.com/chz160/joinery-infra
+cd joinery-infra
+docker-compose up
+
+# Option 2: Build and run locally
+cd joinery-web
+docker build -t joinery-web-local .
+docker run -p 8080:80 joinery-web-local
+```
+
+### Environment Configuration
+
+The containerized application accepts environment variables for runtime configuration:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `API_URL` | Backend API base URL | `http://api:5256` |
+| `OAUTH_REDIRECT_URI` | OAuth callback URL | `http://localhost:4200/auth/callback` |
+| `NODE_ENV` | Runtime environment | `production` |
+
+For comprehensive infrastructure setup, deployment guides, and orchestration examples, see the [joinery-infra repository](https://github.com/chz160/joinery-infra).
