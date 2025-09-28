@@ -30,7 +30,7 @@ Joinery Web is a collaborative SQL query management platform designed for:
 
 ## Prime Directives (SOLID • DRY • KISS • Evolutionary Change)
 
-You are contributing to a C#/.NET codebase. Follow these rules in this order of priority:
+You are contributing to a Angular codebase. Follow these rules in this order of priority:
 
 1) **Safety & Tests First**
    - Never change behavior without tests that prove the behavior.
@@ -63,7 +63,7 @@ You are contributing to a C#/.NET codebase. Follow these rules in this order of 
      - Write adapters/facades to route traffic.
      - Migrate callers gradually with feature flags.
      - Deprecate old paths with clear timelines.
-   - Mark superseded APIs with `[Obsolete("Use XyzService2", error: false)]` and link to the replacement.
+   - Mark superseded APIs utilize the JSDoc @deprecated tag and link to the replacement.
 
 ---
 
