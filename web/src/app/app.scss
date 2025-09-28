@@ -24,3 +24,30 @@ mat-nav-list a {
 mat-nav-list mat-icon {
   margin-right: 8px;
 }
+
+.user-menu {
+  display: flex;
+  align-items: center;
+}
+
+.user-info {
+  pointer-events: none;
+  opacity: 1 !important;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 0;
+}
+
+.user-name {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.user-email {
+  font-size: 12px;
+  opacity: 0.7;
+}
