@@ -1,5 +1,5 @@
 # Multi-stage build for Angular application
-FROM node:20-alpine AS builder
+FROM node:20 AS builder
 
 # Set working directory
 WORKDIR /app
@@ -7,22 +7,20 @@ WORKDIR /app
 # Copy package files first for better layer caching
 COPY package*.json ./
 
-# Install all dependencies (including dev dependencies for build)
-RUN npm ci --include=dev
+# Install dependencies
+RUN echo "Running npm install..." && npm install && echo "npm install completed" && ls -la node_modules/@angular/cli/ || echo "CLI not found after install"
 
-# Copy source code files (one by one to preserve node_modules)
+# Copy source code (excluding node_modules via .dockerignore)
 COPY src/ src/
 COPY angular.json ./
 COPY tsconfig.json ./
 COPY tsconfig.app.json ./
 COPY tsconfig.spec.json ./
 COPY public/ public/
+COPY build.sh ./
 
-# Debug: Check what we have
-RUN ls -la node_modules/@angular/cli/bin/ || echo "CLI bin not found"
-
-# Build the Angular application for production  
-RUN node node_modules/@angular/cli/bin/ng.js build
+# Build the Angular application using custom script
+RUN chmod +x build.sh && ./build.sh
 
 # Production stage with nginx
 FROM nginx:alpine
