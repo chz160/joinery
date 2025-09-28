@@ -1,0 +1,254 @@
+.success-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #e8f5e8 0%, #f0f8f0 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+}
+
+.success-header {
+  text-align: center;
+  margin-bottom: 3rem;
+  max-width: 600px;
+
+  .success-icon {
+    margin-bottom: 1.5rem;
+    
+    mat-icon {
+      font-size: 4rem;
+      width: 4rem;
+      height: 4rem;
+      color: #4caf50;
+      animation: successPulse 2s ease-in-out infinite;
+    }
+  }
+
+  h1 {
+    font-size: 2.5rem;
+    color: #2e7d32;
+    margin: 0 0 1rem 0;
+    font-weight: 500;
+  }
+
+  .success-message {
+    font-size: 1.125rem;
+    color: #388e3c;
+    line-height: 1.6;
+    margin: 0;
+    
+    strong {
+      color: #2e7d32;
+      font-weight: 600;
+    }
+  }
+}
+
+.success-details {
+  width: 100%;
+  max-width: 800px;
+  margin-bottom: 3rem;
+
+  .details-card {
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border: 2px solid #c8e6c9;
+
+    mat-card-header {
+      padding-bottom: 0;
+      
+      mat-icon {
+        background: #4caf50;
+        color: white;
+      }
+      
+      mat-card-title {
+        color: #2e7d32;
+      }
+      
+      mat-card-subtitle {
+        color: #66bb6a;
+      }
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1rem;
+
+      .summary-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        background: #f1f8e9;
+        border-radius: 8px;
+        border-left: 4px solid #4caf50;
+
+        mat-icon {
+          color: #4caf50;
+          font-size: 1.5rem;
+          width: 1.5rem;
+          height: 1.5rem;
+        }
+
+        .summary-content {
+          h3 {
+            margin: 0 0 0.25rem 0;
+            font-size: 1rem;
+            color: #2e7d32;
+            font-weight: 500;
+          }
+
+          p {
+            margin: 0;
+            font-size: 0.875rem;
+            color: #388e3c;
+          }
+        }
+      }
+    }
+  }
+}
+
+.next-steps {
+  width: 100%;
+  max-width: 1000px;
+  text-align: center;
+  margin-bottom: 2rem;
+
+  h2 {
+    font-size: 1.75rem;
+    color: #2e7d32;
+    margin: 0 0 2rem 0;
+    font-weight: 500;
+  }
+
+  .action-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+
+    .action-card {
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border-radius: 12px;
+      border: 2px solid transparent;
+      
+      &:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        border-color: #4caf50;
+      }
+
+      mat-card-content {
+        padding: 2rem;
+        text-align: center;
+
+        mat-icon {
+          font-size: 2.5rem;
+          width: 2.5rem;
+          height: 2.5rem;
+          color: #4caf50;
+          margin-bottom: 1rem;
+        }
+
+        h3 {
+          margin: 0 0 0.75rem 0;
+          font-size: 1.25rem;
+          color: #2e7d32;
+          font-weight: 500;
+        }
+
+        p {
+          margin: 0;
+          color: #666;
+          font-size: 0.875rem;
+          line-height: 1.5;
+        }
+      }
+    }
+  }
+}
+
+.auto-redirect {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 1rem 2rem;
+  border-radius: 24px;
+  border: 1px solid #c8e6c9;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  
+  mat-icon {
+    color: #4caf50;
+    font-size: 1.25rem;
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  
+  span {
+    font-size: 0.875rem;
+    color: #388e3c;
+  }
+}
+
+// Success pulse animation
+@keyframes successPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .success-container {
+    padding: 1rem;
+  }
+  
+  .success-header {
+    h1 {
+      font-size: 2rem;
+    }
+    
+    .success-message {
+      font-size: 1rem;
+    }
+  }
+  
+  .success-details .details-card .summary-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .next-steps .action-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .success-header {
+    .success-icon mat-icon {
+      font-size: 3rem;
+      width: 3rem;
+      height: 3rem;
+    }
+    
+    h1 {
+      font-size: 1.75rem;
+    }
+  }
+  
+  .auto-redirect {
+    padding: 0.75rem 1.5rem;
+    text-align: center;
+    
+    span {
+      font-size: 0.8rem;
+    }
+  }
+}

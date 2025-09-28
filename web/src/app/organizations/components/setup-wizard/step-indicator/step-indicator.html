@@ -1,0 +1,30 @@
+<div class="step-indicator">
+  <div class="steps-container">
+    <div 
+      *ngFor="let step of steps; let i = index" 
+      class="step-item"
+      [class]="getStepStatus(step)"
+      [class.clickable]="canNavigateToStep(step)"
+      (click)="onStepClick(step)">
+      
+      <!-- Step Circle with Icon -->
+      <div class="step-circle">
+        <mat-icon [class.small-icon]="getStepIcon(step) === 'check'">
+          {{ getStepIcon(step) }}
+        </mat-icon>
+        <div class="step-number" *ngIf="getStepIcon(step) !== 'check'">
+          {{ step.id }}
+        </div>
+      </div>
+      
+      <!-- Step Content -->
+      <div class="step-content">
+        <div class="step-title">{{ step.title }}</div>
+        <div class="step-description">{{ step.description }}</div>
+      </div>
+      
+      <!-- Connection Line -->
+      <div class="step-connector" *ngIf="i < steps.length - 1"></div>
+    </div>
+  </div>
+</div>

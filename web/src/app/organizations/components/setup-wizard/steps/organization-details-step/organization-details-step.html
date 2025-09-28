@@ -1,0 +1,111 @@
+<div class="organization-details-step">
+  <div class="step-header">
+    <h2>Organization Details</h2>
+    <p>Let's start by creating your organization profile. This information will help your team identify and connect to your workspace.</p>
+  </div>
+
+  <form [formGroup]="organizationForm" class="organization-form">
+    <!-- Organization Name -->
+    <div class="form-group">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Organization Name *</mat-label>
+        <input 
+          matInput 
+          formControlName="name"
+          placeholder="e.g., Acme Corp, Data Science Team"
+          maxlength="50">
+        
+        <!-- Name validation status -->
+        <div class="validation-status" *ngIf="isCheckingName">
+          <mat-spinner diameter="20"></mat-spinner>
+        </div>
+        
+        <div class="validation-status" *ngIf="!isCheckingName && nameCheckResult === 'available'">
+          <mat-icon color="primary">check_circle</mat-icon>
+        </div>
+        
+        <div class="validation-status" *ngIf="!isCheckingName && nameCheckResult === 'taken'">
+          <mat-icon color="warn">error</mat-icon>
+        </div>
+        
+        <mat-error>
+          <span *ngIf="getFormControl('name')?.hasError('required') || getFormControl('name')?.hasError('minlength') || getFormControl('name')?.hasError('maxlength') || getFormControl('name')?.hasError('pattern')">
+            {{ getNameErrorMessage() }}
+          </span>
+          <span *ngIf="nameCheckResult === 'taken'">
+            This organization name is already taken
+          </span>
+          <span *ngIf="nameCheckResult === 'error'">
+            Error checking name availability
+          </span>
+        </mat-error>
+        
+        <mat-hint *ngIf="nameCheckResult === 'available'">
+          Great! This name is available
+        </mat-hint>
+      </mat-form-field>
+    </div>
+
+    <!-- Organization Description -->
+    <div class="form-group">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Description (Optional)</mat-label>
+        <textarea 
+          matInput 
+          formControlName="description"
+          placeholder="Describe your organization's purpose, team, or data focus"
+          rows="3"
+          maxlength="500"></textarea>
+        
+        <mat-hint align="end">{{ getDescriptionCharCount() }}/500</mat-hint>
+        
+        <mat-error>
+          {{ getDescriptionErrorMessage() }}
+        </mat-error>
+      </mat-form-field>
+    </div>
+
+    <!-- Authentication Provider -->
+    <div class="form-group">
+      <div class="field-label">
+        <h3>Authentication Provider *</h3>
+        <p>Choose how your team will sign in to this organization</p>
+      </div>
+      
+      <mat-radio-group formControlName="authProviderType" class="auth-provider-group">
+        <div *ngFor="let provider of authProviders" class="auth-provider-option">
+          <mat-radio-button [value]="provider.type">
+            <div class="provider-content">
+              <div class="provider-info">
+                <mat-icon [class]="'provider-icon ' + provider.type">{{ provider.icon }}</mat-icon>
+                <div class="provider-details">
+                  <div class="provider-name">{{ provider.name }}</div>
+                  <div class="provider-description">
+                    <span *ngIf="provider.type === 'github'">
+                      Sign in with GitHub accounts. Perfect for development teams.
+                    </span>
+                    <span *ngIf="provider.type === 'microsoft'">
+                      Use Microsoft/Azure AD for enterprise authentication.
+                    </span>
+                    <span *ngIf="provider.type === 'aws-iam'">
+                      Integrate with AWS IAM for cloud-native teams.
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </mat-radio-button>
+        </div>
+      </mat-radio-group>
+    </div>
+
+    <!-- Form Summary -->
+    <div class="form-summary" *ngIf="organizationForm.valid && nameCheckResult === 'available'">
+      <mat-icon color="primary">check_circle</mat-icon>
+      <div class="summary-text">
+        <strong>Ready to continue!</strong>
+        <p>Your organization "{{ getFormControl('name')?.value }}" will be created with {{ getSelectedAuthProviderName() }} authentication.</p>
+      </div>
+    </div>
+  </form>
+</div>

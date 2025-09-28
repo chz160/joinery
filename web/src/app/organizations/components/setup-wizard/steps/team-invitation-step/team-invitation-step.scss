@@ -1,0 +1,151 @@
+.team-invitation-step {
+  .step-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    
+    h2 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.5rem;
+      color: #333;
+      font-weight: 500;
+    }
+    
+    p {
+      margin: 0;
+      color: #666;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+  }
+  
+  .invitations-list {
+    .invitation-item {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+      padding: 1rem;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      background: white;
+      
+      .invitation-fields {
+        flex: 1;
+        display: grid;
+        grid-template-columns: 2fr 2fr 1fr;
+        gap: 1rem;
+        align-items: start;
+        
+        .email-field,
+        .name-field,
+        .role-field {
+          width: 100%;
+        }
+      }
+      
+      .invitation-actions {
+        display: flex;
+        align-items: center;
+        
+        button {
+          color: #666;
+          
+          &:hover:not(:disabled) {
+            color: #d32f2f;
+          }
+          
+          &:disabled {
+            color: #ccc;
+          }
+        }
+      }
+    }
+  }
+  
+  .add-invitation {
+    margin: 1rem 0;
+    
+    button {
+      color: var(--mat-primary-500);
+      
+      mat-icon {
+        margin-right: 0.5rem;
+      }
+    }
+  }
+  
+  .skip-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    background: #fff3e0;
+    border-radius: 8px;
+    border-left: 4px solid #ff9800;
+    margin-top: 1rem;
+    
+    mat-icon {
+      color: #ff9800;
+      margin-top: 0.125rem;
+    }
+    
+    .skip-text {
+      flex: 1;
+      
+      strong {
+        color: #f57c00;
+        display: block;
+        margin-bottom: 0.25rem;
+      }
+      
+      p {
+        margin: 0;
+        font-size: 0.875rem;
+        color: #666;
+        line-height: 1.4;
+      }
+    }
+  }
+}
+
+// Role option styling
+.role-option {
+  display: flex;
+  flex-direction: column;
+  
+  .role-label {
+    font-weight: 500;
+  }
+  
+  .role-desc {
+    font-size: 0.75rem;
+    color: #666;
+    margin-top: 0.125rem;
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .team-invitation-step {
+    .invitations-list .invitation-item {
+      flex-direction: column;
+      
+      .invitation-fields {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+      }
+      
+      .invitation-actions {
+        align-self: flex-end;
+      }
+    }
+  }
+}
+
+@media (max-width: 600px) {
+  .team-invitation-step {
+    .invitations-list .invitation-item .invitation-fields {
+      grid-template-columns: 1fr;
+    }
+  }
+}

@@ -106,3 +106,45 @@ export interface Notification {
   time: string;
   read: boolean;
 }
+
+// Organization Setup Wizard interfaces
+export interface OrganizationSetupWizardData {
+  organization: Partial<Organization>;
+  repositories: GitHubRepository[];
+  teamMembers: TeamInvitation[];
+  settings: OrganizationSettings;
+  currentStep: number;
+  completed: boolean;
+}
+
+export interface GitHubRepository {
+  id: number;
+  name: string;
+  full_name: string;
+  description?: string;
+  private: boolean;
+  html_url: string;
+  clone_url: string;
+  selected?: boolean;
+}
+
+export interface TeamInvitation {
+  email: string;
+  role: 'admin' | 'member' | 'viewer';
+  name?: string;
+}
+
+export interface OrganizationSettings {
+  defaultQueryVisibility: 'private' | 'team' | 'organization';
+  allowRepositoryIntegration: boolean;
+  requireApprovalForQueries: boolean;
+  enableAuditLogging: boolean;
+}
+
+export interface WizardStep {
+  id: number;
+  title: string;
+  description?: string;
+  completed: boolean;
+  valid: boolean;
+}

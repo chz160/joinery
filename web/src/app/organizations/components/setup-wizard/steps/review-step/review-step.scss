@@ -1,0 +1,273 @@
+.review-step {
+  .step-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    
+    h2 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.5rem;
+      color: #333;
+      font-weight: 500;
+    }
+    
+    p {
+      margin: 0;
+      color: #666;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+  }
+  
+  .review-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    
+    .review-section {
+      background: white;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      overflow: hidden;
+      
+      .section-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e0e0e0;
+        
+        mat-icon {
+          color: var(--mat-primary-500);
+        }
+        
+        h3 {
+          margin: 0;
+          font-size: 1rem;
+          font-weight: 500;
+          color: #333;
+        }
+      }
+      
+      .section-content {
+        padding: 1rem;
+        
+        .detail-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 0.75rem;
+          
+          &:last-child {
+            margin-bottom: 0;
+          }
+          
+          .detail-label {
+            font-weight: 500;
+            color: #666;
+            flex-shrink: 0;
+          }
+          
+          .detail-value {
+            color: #333;
+            text-align: right;
+            font-weight: 500;
+          }
+        }
+        
+        .repositories-list,
+        .team-members-list {
+          .repository-items,
+          .member-items {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #eee;
+            
+            .repository-item,
+            .member-item {
+              display: flex;
+              align-items: center;
+              gap: 0.5rem;
+              margin-bottom: 0.5rem;
+              padding: 0.5rem;
+              background: #f8f9fa;
+              border-radius: 4px;
+              
+              &:last-child {
+                margin-bottom: 0;
+              }
+            }
+            
+            .repository-item {
+              .private-icon {
+                color: #f57c00;
+                font-size: 1rem;
+                width: 1rem;
+                height: 1rem;
+              }
+              
+              .public-icon {
+                color: #4caf50;
+                font-size: 1rem;
+                width: 1rem;
+                height: 1rem;
+              }
+              
+              .repo-name {
+                font-family: monospace;
+                font-size: 0.875rem;
+                color: #333;
+              }
+            }
+            
+            .member-item {
+              justify-content: space-between;
+              
+              .member-info {
+                display: flex;
+                flex-direction: column;
+                gap: 0.125rem;
+                
+                .member-email {
+                  font-size: 0.875rem;
+                  color: #333;
+                  font-weight: 500;
+                }
+                
+                .member-name {
+                  font-size: 0.75rem;
+                  color: #666;
+                }
+              }
+              
+              mat-chip {
+                font-size: 0.75rem;
+                height: 1.5rem;
+                
+                &.role-chip-admin {
+                  background: #e8f5e8;
+                  color: #4caf50;
+                }
+                
+                &.role-chip-member {
+                  background: #e3f2fd;
+                  color: #2196f3;
+                }
+                
+                &.role-chip-viewer {
+                  background: #fff3e0;
+                  color: #ff9800;
+                }
+              }
+            }
+          }
+        }
+        
+        .no-items {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          color: #999;
+          font-style: italic;
+          font-size: 0.875rem;
+          
+          mat-icon {
+            font-size: 1rem;
+            width: 1rem;
+            height: 1rem;
+          }
+        }
+      }
+    }
+  }
+  
+  .confirmation-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: var(--mat-primary-50);
+    border-radius: 8px;
+    border-left: 4px solid var(--mat-primary-500);
+    
+    mat-icon {
+      margin-top: 0.125rem;
+    }
+    
+    .notice-content {
+      flex: 1;
+      
+      strong {
+        color: var(--mat-primary-700);
+        display: block;
+        margin-bottom: 0.5rem;
+        font-size: 1rem;
+      }
+      
+      p {
+        margin: 0;
+        color: #666;
+        font-size: 0.875rem;
+        line-height: 1.5;
+      }
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .review-step {
+    .review-sections .review-section {
+      .section-content {
+        .detail-item {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 0.25rem;
+          
+          .detail-value {
+            text-align: left;
+          }
+        }
+        
+        .repositories-list,
+        .team-members-list {
+          .repository-items .repository-item,
+          .member-items .member-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+          }
+          
+          .member-items .member-item {
+            .member-info {
+              width: 100%;
+            }
+          }
+        }
+      }
+    }
+    
+    .confirmation-notice {
+      flex-direction: column;
+      text-align: center;
+      
+      mat-icon {
+        margin: 0 0 1rem 0;
+        align-self: center;
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .review-step .step-header {
+    h2 {
+      font-size: 1.25rem;
+    }
+    
+    p {
+      font-size: 0.875rem;
+    }
+  }
+}
