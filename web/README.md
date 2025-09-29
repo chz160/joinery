@@ -509,3 +509,56 @@ The containerized application accepts environment variables for runtime configur
 | `NODE_ENV` | Runtime environment | `production` |
 
 For comprehensive infrastructure setup, deployment guides, and orchestration examples, see the [joinery-infra repository](https://github.com/chz160/joinery-infra).
+
+## CI/CD and Docker Hub Integration
+
+### GitHub Actions Workflow
+
+The repository includes a GitHub Actions workflow that automatically builds and publishes Docker images to Docker Hub on every push to the main branch.
+
+#### Required GitHub Secrets
+
+To enable Docker Hub publishing, configure these secrets in your GitHub repository settings (`Settings > Secrets and variables > Actions`):
+
+| Secret Name | Description | Example Value |
+|-------------|-------------|---------------|
+| `DOCKER_USERNAME` | Your Docker Hub username | `your-dockerhub-username` |
+| `DOCKER_PASSWORD` | Your Docker Hub access token or password | `dckr_pat_abc123...` |
+
+#### Image Tagging Strategy
+
+The workflow automatically creates multiple tags for each build:
+
+- `latest` - Latest build from main branch
+- `main-<commit-sha>` - Specific commit from main branch  
+- `<branch-name>` - Latest build from feature branches
+- `pr-<number>` - Pull request builds (not pushed to registry)
+
+#### Using Published Images
+
+Once published, you can use the Docker images in your deployments:
+
+```bash
+# Pull latest image
+docker pull <your-username>/joinery-web:latest
+
+# Run the container
+docker run -p 8080:80 <your-username>/joinery-web:latest
+
+# Use in docker-compose (from joinery-infra repo)
+services:
+  web:
+    image: <your-username>/joinery-web:latest
+    ports:
+      - "80:80"
+```
+
+#### Build Process
+
+The CI/CD pipeline:
+
+1. **Triggers**: Runs on push to main branch and pull requests
+2. **Build**: Creates production-optimized Angular build using multi-stage Docker build
+3. **Security**: Runs as non-root nginx user with health checks
+4. **Caching**: Uses GitHub Actions cache to speed up builds
+5. **Publishing**: Pushes to Docker Hub with multiple tags for different use cases
