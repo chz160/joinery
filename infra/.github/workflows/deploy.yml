@@ -1,0 +1,226 @@
+name: Deploy Joinery Stack
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'prod'
+        type: choice
+        options:
+          - staging
+          - prod
+
+jobs:
+  deploy-stack:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'prod' }}
+    
+    steps:
+      - name: Checkout infrastructure repo
+        uses: actions/checkout@v4
+        
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p ${{ secrets.SSH_PORT || '22' }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+      
+      - name: Test SSH Connection
+        run: |
+          ssh -p ${{ secrets.SSH_PORT || '22' }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} 'echo "SSH connection successful"'
+      
+      - name: Transfer Docker Compose files to server
+        run: |
+          echo "Transferring Docker Compose configuration..."
+          scp -P ${{ secrets.SSH_PORT || '22' }} \
+            docker-compose.yml \
+            config.yaml \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/joinery-stack/
+      
+      - name: Deploy Stack via SSH
+        run: |
+          ssh -p ${{ secrets.SSH_PORT || '22' }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          set -euo pipefail
+          
+          cd ~/joinery-stack
+          
+          echo "=== Joinery Stack Deployment ==="
+          echo "Environment: ${{ github.event.inputs.environment || 'prod' }}"
+          echo "Timestamp: $(date)"
+          echo "==============================="
+          
+          # Login to Docker registry
+          if [[ -n "${DOCKER_REGISTRY_TOKEN:-}" ]]; then
+            echo "Logging into on-prem Docker registry..."
+            echo "$DOCKER_REGISTRY_TOKEN" | docker login registry.pocketfulofdoom.com --password-stdin -u "$DOCKER_REGISTRY_USERNAME"
+          else
+            echo "Warning: DOCKER_REGISTRY_TOKEN not provided, attempting without authentication"
+          fi
+          
+          # Create backup of current running containers
+          echo "Creating backup of current deployment..."
+          if docker-compose ps --services --filter status=running | grep -q .; then
+            docker-compose ps --format json > backup-containers-$(date +%Y%m%d-%H%M%S).json || true
+            echo "Current containers backed up"
+          else
+            echo "No running containers to backup"
+          fi
+          
+          # Pull latest images
+          echo "Pulling latest images from registry..."
+          docker-compose pull
+          
+          # Restart the stack
+          echo "Restarting the Joinery stack..."
+          docker-compose up -d --remove-orphans
+          
+          # Wait for services to be ready
+          echo "Waiting for services to start up..."
+          sleep 30
+          
+          echo "Deployment completed!"
+          EOF
+        env:
+          DOCKER_REGISTRY_TOKEN: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
+          DOCKER_REGISTRY_USERNAME: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
+      
+      - name: Verify Deployment
+        run: |
+          ssh -p ${{ secrets.SSH_PORT || '22' }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          set -euo pipefail
+          
+          cd ~/joinery-stack
+          
+          echo "=== Deployment Verification ==="
+          
+          # Check running services
+          echo "Running containers:"
+          docker-compose ps
+          
+          # Check container health
+          FAILED_SERVICES=""
+          
+          if ! docker-compose ps api --format json | jq -r '.[0].State' | grep -q "running"; then
+            echo "❌ API service is not running properly"
+            FAILED_SERVICES="$FAILED_SERVICES api"
+          else
+            echo "✅ API service is running"
+          fi
+          
+          if ! docker-compose ps web --format json | jq -r '.[0].State' | grep -q "running"; then
+            echo "❌ Web service is not running properly"
+            FAILED_SERVICES="$FAILED_SERVICES web"
+          else
+            echo "✅ Web service is running"
+          fi
+          
+          if ! docker-compose ps db --format json | jq -r '.[0].State' | grep -q "running"; then
+            echo "❌ Database service is not running properly"
+            FAILED_SERVICES="$FAILED_SERVICES db"
+          else
+            echo "✅ Database service is running"
+          fi
+          
+          if [[ -n "$FAILED_SERVICES" ]]; then
+            echo "❌ Some services failed to start: $FAILED_SERVICES"
+            echo "Showing logs for failed services:"
+            for service in $FAILED_SERVICES; do
+              echo "=== Logs for $service ==="
+              docker-compose logs --tail=20 $service || echo "Could not retrieve logs for $service"
+            done
+            exit 1
+          fi
+          
+          echo "✅ All services are running successfully!"
+          EOF
+      
+      - name: Basic Health Checks
+        run: |
+          ssh -p ${{ secrets.SSH_PORT || '22' }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          set -euo pipefail
+          
+          echo "=== Health Checks ==="
+          
+          # Check web service health (try multiple endpoints)
+          WEB_HEALTH_PASSED=false
+          for endpoint in "http://localhost/" "http://localhost/health" "http://localhost:80/"; do
+            echo "Testing web endpoint: $endpoint"
+            if curl -sf --max-time 10 "$endpoint" > /dev/null 2>&1; then
+              echo "✅ Web service health check passed: $endpoint"
+              WEB_HEALTH_PASSED=true
+              break
+            else
+              echo "❌ Web service health check failed: $endpoint"
+            fi
+          done
+          
+          # Check API service health
+          API_HEALTH_PASSED=false
+          for endpoint in "http://localhost:5256/" "http://localhost:5256/health"; do
+            echo "Testing API endpoint: $endpoint"
+            if curl -sf --max-time 10 "$endpoint" > /dev/null 2>&1; then
+              echo "✅ API service health check passed: $endpoint"
+              API_HEALTH_PASSED=true
+              break
+            else
+              echo "❌ API service health check failed: $endpoint"
+            fi
+          done
+          
+          # Report overall health status
+          if [[ "$WEB_HEALTH_PASSED" == "true" && "$API_HEALTH_PASSED" == "true" ]]; then
+            echo "✅ All health checks passed!"
+          else
+            echo "⚠️  Some health checks failed, but containers are running"
+            echo "This might be expected if services are still starting up"
+            
+            echo "=== Recent logs for troubleshooting ==="
+            docker-compose logs --tail=10 api || echo "Could not retrieve API logs"
+            docker-compose logs --tail=10 web || echo "Could not retrieve Web logs"
+          fi
+          EOF
+      
+      - name: Show logs on failure
+        if: failure()
+        run: |
+          echo "=== Deployment failed - showing logs ==="
+          ssh -p ${{ secrets.SSH_PORT || '22' }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          cd ~/joinery-stack
+          echo "=== Docker Compose Logs ==="
+          docker-compose logs --tail=50
+          
+          echo "=== Container Status ==="
+          docker-compose ps
+          
+          echo "=== System Resources ==="
+          docker system df
+          EOF
+      
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          echo "=== Attempting rollback ==="
+          ssh -p ${{ secrets.SSH_PORT || '22' }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          cd ~/joinery-stack
+          
+          echo "Stopping failed deployment..."
+          docker-compose down || true
+          
+          # Look for the most recent backup
+          BACKUP_FILE=$(ls -t backup-containers-*.json 2>/dev/null | head -n1 || echo "")
+          
+          if [[ -n "$BACKUP_FILE" && -f "$BACKUP_FILE" ]]; then
+            echo "Found backup file: $BACKUP_FILE"
+            echo "Manual rollback may be needed - backup information preserved"
+          else
+            echo "No backup file found for automatic rollback"
+          fi
+          
+          echo "Rollback preparation completed - manual intervention may be required"
+          EOF

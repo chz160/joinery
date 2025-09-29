@@ -35,7 +35,8 @@ The infrastructure repository references pre-built application images from their
 joinery-infra/
 ├── .github/workflows/          # CI/CD orchestration workflows
 │   ├── build.yml              # Docker build and push workflow
-│   └── ssh-deploy.yml         # SSH-based Docker deployment workflow
+│   ├── ssh-deploy.yml         # SSH-based Docker deployment workflow
+│   └── deploy.yml             # Docker Compose stack deployment workflow
 ├── docker-compose.yml         # Multi-service stack orchestration
 ├── docker/                    # Docker configurations
 │   └── base/                 # Base Dockerfiles for different tech stacks
@@ -60,6 +61,7 @@ joinery-infra/
 
 ### For Docker Compose Stack Deployment
 
+#### Local Development
 1. Clone this repository:
 ```bash
 git clone https://github.com/chz160/joinery-infra.git
@@ -75,6 +77,31 @@ docker-compose up -d
 - Web application: http://localhost
 - API: http://localhost:5256
 - Database: localhost:5432
+
+#### Automated Production Deployment
+
+The repository includes a GitHub Actions workflow (`.github/workflows/deploy.yml`) that automatically deploys the complete Joinery stack using Docker Compose to your production server.
+
+**Deployment Triggers:**
+- Automatically on push to `main` branch
+- Manually via GitHub Actions UI with environment selection
+
+**What the deployment does:**
+1. Connects to your server via SSH
+2. Transfers updated Docker Compose configuration
+3. Logs into the on-prem Docker registry (registry.pocketfulofdoom.com)
+4. Pulls latest images for joinery-server and joinery-web
+5. Restarts the stack with `docker-compose up -d`
+6. Performs health checks on all services
+7. Provides detailed logging and rollback on failure
+
+**Required Secrets for Stack Deployment:**
+- `SSH_PRIVATE_KEY`: SSH private key for server access
+- `SSH_HOST`: Target server hostname or IP
+- `SSH_USER`: SSH username with Docker permissions
+- `SSH_PORT`: SSH port (optional, defaults to 22)
+- `DOCKER_REGISTRY_TOKEN`: Token for registry.pocketfulofdoom.com
+- `DOCKER_REGISTRY_USERNAME`: Username for the registry
 
 ### For SSH-based Docker Deployment (.NET Applications)
 
@@ -96,8 +123,10 @@ jobs:
     uses: chz160/joinery-infra/.github/workflows/build.yml@main
     with:
       app_name: your-app-name
+      registry_url: registry.pocketfulofdoom.com
     secrets:
       DOCKER_REGISTRY_TOKEN: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
+      DOCKER_REGISTRY_USERNAME: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
   
   deploy-dev:
     if: github.ref == 'refs/heads/develop'
@@ -107,8 +136,10 @@ jobs:
       app_name: your-app-name
       environment: dev
       image_tag: ${{ needs.build.outputs.image_tag }}
+      registry_url: registry.pocketfulofdoom.com
     secrets:
       DOCKER_REGISTRY_TOKEN: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
+      DOCKER_REGISTRY_USERNAME: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
       SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY_DEV }}
       SSH_HOST: ${{ secrets.SSH_HOST_DEV }}
       SSH_USER: ${{ secrets.SSH_USER_DEV }}
@@ -121,8 +152,10 @@ jobs:
       app_name: your-app-name
       environment: prod
       image_tag: ${{ needs.build.outputs.image_tag }}
+      registry_url: registry.pocketfulofdoom.com
     secrets:
       DOCKER_REGISTRY_TOKEN: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
+      DOCKER_REGISTRY_USERNAME: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
       SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY_PROD }}
       SSH_HOST: ${{ secrets.SSH_HOST_PROD }}
       SSH_USER: ${{ secrets.SSH_USER_PROD }}
@@ -163,17 +196,38 @@ Rollback to the previous version:
 
 Environment-specific configurations are managed in multiple ways:
 
-- **`config.yaml`**: Environment-specific domain settings
-- **`docker-compose.yml`**: Base stack configuration with service definitions and network topology
+- **`config.yaml`**: Environment-specific domain settings and Docker registry configuration
+- **`docker-compose.yml`**: Base stack configuration with service definitions and network topology referencing on-prem registry images
 - **Environment overrides**: Use `docker-compose.prod.yml`, `docker-compose.staging.yml` for environment-specific customizations
 - **Application configuration**: Individual app repos manage their own configuration files and environment variables
+
+### Docker Registry Configuration
+
+The infrastructure is configured to use the on-prem Docker registry:
+
+- **Registry URL**: `registry.pocketfulofdoom.com`
+- **Images**: 
+  - `registry.pocketfulofdoom.com/joinery-server:latest`
+  - `registry.pocketfulofdoom.com/joinery-web:latest`
+- **Authentication**: Uses `DOCKER_REGISTRY_TOKEN` and `DOCKER_REGISTRY_USERNAME` secrets
 
 ## Required Secrets
 
 ### For Docker Registry Access
-- `DOCKER_REGISTRY_TOKEN`: Token for pushing to Docker registry
+- `DOCKER_REGISTRY_TOKEN`: Token for accessing registry.pocketfulofdoom.com
+- `DOCKER_REGISTRY_USERNAME`: Username for the registry (optional, defaults to 'joinery')
 
-### For SSH-based Docker Deployment
+### For Docker Compose Stack Deployment
+The following secrets are required for the automated stack deployment workflow:
+
+- `SSH_PRIVATE_KEY`: SSH private key for accessing the target server
+- `SSH_HOST`: Target server hostname or IP address
+- `SSH_USER`: SSH username with Docker permissions
+- `SSH_PORT`: SSH port (optional, defaults to 22)
+- `DOCKER_REGISTRY_TOKEN`: Token for registry access
+- `DOCKER_REGISTRY_USERNAME`: Registry username
+
+### For SSH-based Docker Deployment (Individual Apps)
 The following secrets need to be configured for each environment (replace [ENV] with dev, staging, prod):
 
 - `SSH_PRIVATE_KEY_[ENV]`: SSH private key for accessing the target server

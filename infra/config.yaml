@@ -13,5 +13,5 @@ environments:
 
 # Docker registry configuration
 docker:
-  registry: docker.io
-  organization: joinery
+  registry: registry.pocketfulofdoom.com
+  organization: ""
