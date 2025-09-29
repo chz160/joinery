@@ -1,26 +1,23 @@
 # Multi-stage build for Angular application
-FROM node:20 AS builder
+FROM node:20-alpine AS builder
 
 # Set working directory
 WORKDIR /app
 
-# Copy package files first for better layer caching
+# Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN echo "Running npm install..." && npm install && echo "npm install completed" && ls -la node_modules/@angular/cli/ || echo "CLI not found after install"
+# Install dependencies - using npm install to avoid the ci issue
+RUN npm install
 
-# Copy source code (excluding node_modules via .dockerignore)
+# Copy source code
 COPY src/ src/
 COPY angular.json ./
-COPY tsconfig.json ./
-COPY tsconfig.app.json ./
-COPY tsconfig.spec.json ./
+COPY tsconfig*.json ./
 COPY public/ public/
-COPY build.sh ./
 
-# Build the Angular application using custom script
-RUN chmod +x build.sh && ./build.sh
+# Build using npx to directly call Angular CLI
+RUN npx --yes @angular/cli@20.3.2 build
 
 # Production stage with nginx
 FROM nginx:alpine
@@ -31,18 +28,16 @@ RUN rm -rf /etc/nginx/conf.d/default.conf /usr/share/nginx/html/*
 # Copy custom nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# Copy built application from builder stage (using correct output path)
+# Copy built application from builder stage
 COPY --from=builder /app/dist/joinery-web-temp/browser /usr/share/nginx/html
 
-# Create nginx cache directories
+# Create nginx cache directories and set permissions
 RUN mkdir -p /var/cache/nginx/client_temp \
     && mkdir -p /var/cache/nginx/proxy_temp \
     && mkdir -p /var/cache/nginx/fastcgi_temp \
     && mkdir -p /var/cache/nginx/uwsgi_temp \
-    && mkdir -p /var/cache/nginx/scgi_temp
-
-# Set proper permissions
-RUN chown -R nginx:nginx /var/cache/nginx \
+    && mkdir -p /var/cache/nginx/scgi_temp \
+    && chown -R nginx:nginx /var/cache/nginx \
     && chown -R nginx:nginx /usr/share/nginx/html \
     && chown -R nginx:nginx /var/log/nginx
 
