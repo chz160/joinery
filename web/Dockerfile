@@ -31,13 +31,17 @@ COPY nginx.conf /etc/nginx/nginx.conf
 # Copy built application from builder stage
 COPY --from=builder /app/dist/joinery-web-temp/browser /usr/share/nginx/html
 
-# Create nginx cache directories and set permissions
-RUN mkdir -p /var/cache/nginx/client_temp \
-    && mkdir -p /var/cache/nginx/proxy_temp \
-    && mkdir -p /var/cache/nginx/fastcgi_temp \
-    && mkdir -p /var/cache/nginx/uwsgi_temp \
-    && mkdir -p /var/cache/nginx/scgi_temp \
-    && chown -R nginx:nginx /var/cache/nginx \
+# Create nginx temp directories in user-writable locations and set permissions
+RUN mkdir -p /tmp/client_temp \
+    && mkdir -p /tmp/proxy_temp \
+    && mkdir -p /tmp/fastcgi_temp \
+    && mkdir -p /tmp/uwsgi_temp \
+    && mkdir -p /tmp/scgi_temp \
+    && chown -R nginx:nginx /tmp/client_temp \
+    && chown -R nginx:nginx /tmp/proxy_temp \
+    && chown -R nginx:nginx /tmp/fastcgi_temp \
+    && chown -R nginx:nginx /tmp/uwsgi_temp \
+    && chown -R nginx:nginx /tmp/scgi_temp \
     && chown -R nginx:nginx /usr/share/nginx/html \
     && chown -R nginx:nginx /var/log/nginx
 
@@ -47,7 +51,7 @@ USER nginx
 # Expose port 80
 EXPOSE 80
 
-# Add health check
+# Add health check  
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost/health || exit 1
 
