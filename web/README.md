@@ -514,41 +514,84 @@ For comprehensive infrastructure setup, deployment guides, and orchestration exa
 
 ### GitHub Actions Workflow
 
-The repository includes a GitHub Actions workflow that automatically builds and publishes Docker images to Docker Hub on every push to the main branch.
+The repository includes a GitHub Actions workflow that automatically builds and publishes Docker images. The workflow supports **conditional registry selection** - it can publish to Docker Hub or an on-premises registry based on the secrets configured.
+
+#### Registry Selection Logic
+
+The workflow automatically determines which registry to use based on available secrets:
+
+1. **Docker Hub** (preferred): If both `DOCKER_HUB_USERNAME` and `DOCKER_HUB_ACCESS_TOKEN` are configured
+2. **On-Premises Registry**: If `DOCKER_REGISTRY_URL` is configured (along with registry credentials)
+3. **Error**: If no valid registry configuration is found
 
 #### Required GitHub Secrets
 
-To enable Docker Hub publishing, configure these secrets in your GitHub repository settings (`Settings > Secrets and variables > Actions`):
+Configure these secrets in your GitHub repository settings (`Settings > Secrets and variables > Actions`):
+
+##### Option 1: Docker Hub Registry
 
 | Secret Name | Description | Example Value |
 |-------------|-------------|---------------|
-| `DOCKER_USERNAME` | Your Docker Hub username | `your-dockerhub-username` |
-| `DOCKER_PASSWORD` | Your Docker Hub access token or password | `dckr_pat_abc123...` |
+| `DOCKER_HUB_USERNAME` | Your Docker Hub username | `your-dockerhub-username` |
+| `DOCKER_HUB_ACCESS_TOKEN` | Your Docker Hub access token | `dckr_pat_abc123...` |
+
+##### Option 2: On-Premises Registry
+
+| Secret Name | Description | Example Value |
+|-------------|-------------|---------------|
+| `DOCKER_REGISTRY_URL` | Your private registry URL | `registry.company.com` |
+| `DOCKER_REGISTRY_USERNAME` | Registry username | `deploy-user` |
+| `DOCKER_REGISTRY_PASSWORD` | Registry password or token | `secure-password` |
+
+> **Note**: The workflow will prioritize Docker Hub if both configurations are present.
 
 #### Image Tagging Strategy
 
 The workflow automatically creates multiple tags for each build:
 
 - `latest` - Latest build from main branch
+- `<commit-sha>` - Full commit SHA for precise versioning
 - `main-<commit-sha>` - Specific commit from main branch  
 - `<branch-name>` - Latest build from feature branches
 - `pr-<number>` - Pull request builds (not pushed to registry)
 
-#### Using Published Images
+#### Registry Usage Examples
 
-Once published, you can use the Docker images in your deployments:
+The usage depends on which registry is configured:
 
+##### Docker Hub Usage
 ```bash
-# Pull latest image
-docker pull <your-username>/joinery-web:latest
+# Pull latest image (Docker Hub)
+docker pull your-username/joinery-web:latest
+
+# Pull specific commit
+docker pull your-username/joinery-web:abc1234567890
 
 # Run the container
-docker run -p 8080:80 <your-username>/joinery-web:latest
+docker run -p 8080:80 your-username/joinery-web:latest
+```
 
-# Use in docker-compose (from joinery-infra repo)
+##### On-Premises Registry Usage
+```bash
+# Pull latest image (on-prem)
+docker pull registry.company.com/joinery-web:latest
+
+# Pull specific commit
+docker pull registry.company.com/joinery-web:abc1234567890
+
+# Run the container
+docker run -p 8080:80 registry.company.com/joinery-web:latest
+```
+
+##### Docker Compose Integration
+```yaml
+# Example from joinery-infra/docker-compose.yml
 services:
   web:
-    image: <your-username>/joinery-web:latest
+    # Docker Hub
+    image: your-username/joinery-web:latest
+    # OR On-premises
+    # image: registry.company.com/joinery-web:latest
     ports:
       - "80:80"
 ```
@@ -558,7 +601,18 @@ services:
 The CI/CD pipeline:
 
 1. **Triggers**: Runs on push to main branch and pull requests
-2. **Build**: Creates production-optimized Angular build using multi-stage Docker build
-3. **Security**: Runs as non-root nginx user with health checks
-4. **Caching**: Uses GitHub Actions cache to speed up builds
-5. **Publishing**: Pushes to Docker Hub with multiple tags for different use cases
+2. **Registry Detection**: Automatically determines target registry based on configured secrets
+3. **Authentication**: Logs into the selected registry (Docker Hub or on-premises)
+4. **Build**: Creates production-optimized Angular build using multi-stage Docker build
+5. **Security**: Runs as non-root nginx user with health checks
+6. **Caching**: Uses GitHub Actions cache to speed up builds
+7. **Publishing**: Pushes to the selected registry with multiple tags
+8. **Reporting**: Provides deployment summary with registry info and available tags
+
+#### Registry Selection Logs
+
+The workflow provides clear logging about which registry is being used:
+
+- `🐳 Using Docker Hub registry` - When Docker Hub secrets are detected
+- `🏢 Using on-premises registry: <URL>` - When on-prem registry is configured  
+- `❌ No registry configuration found` - When no valid secrets are present
