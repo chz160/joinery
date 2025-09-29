@@ -1,46 +1,108 @@
+---
 name: Build and Push Docker Image
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-    - name: Log in to Docker Hub
-      if: github.event_name != 'pull_request'
-      uses: docker/login-action@v3
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Determine registry configuration
+        id: registry
+        run: |
+          if [[ -n "${{ secrets.DOCKER_HUB_USERNAME }}" && \
+                -n "${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}" ]]; then
+            echo "🐳 Using Docker Hub registry"
+            echo "registry=dockerhub" >> $GITHUB_OUTPUT
+            echo "image_name=${{ secrets.DOCKER_HUB_USERNAME }}/joinery-web" \
+              >> $GITHUB_OUTPUT
+            echo "registry_url=docker.io" >> $GITHUB_OUTPUT
+          elif [[ -n "${{ secrets.DOCKER_REGISTRY_URL }}" ]]; then
+            echo "🏢 Using on-premises registry: \
+              ${{ secrets.DOCKER_REGISTRY_URL }}"
+            echo "registry=onprem" >> $GITHUB_OUTPUT
+            echo "image_name=${{ secrets.DOCKER_REGISTRY_URL }}/joinery-web" \
+              >> $GITHUB_OUTPUT
+            echo "registry_url=${{ secrets.DOCKER_REGISTRY_URL }}" \
+              >> $GITHUB_OUTPUT
+          else
+            echo "❌ No registry configuration found. Please configure either \
+              Docker Hub or on-prem registry secrets."
+            exit 1
+          fi
 
-    - name: Extract metadata (tags, labels) for Docker
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ secrets.DOCKER_USERNAME }}/joinery-web
-        tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=sha,prefix={{branch}}-
-          type=raw,value=latest,enable={{is_default_branch}}
+      - name: Log in to Docker Hub
+        if: |
+          steps.registry.outputs.registry == 'dockerhub' &&
+          github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        push: ${{ github.event_name != 'pull_request' }}
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+      - name: Log in to on-premises registry
+        if: |
+          steps.registry.outputs.registry == 'onprem' &&
+          github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.DOCKER_REGISTRY_URL }}
+          username: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
+          password: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.registry.outputs.image_name }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ github.sha }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Image deployment summary
+        if: github.event_name != 'pull_request'
+        run: |
+          echo "## 🚀 Docker Image Published" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Registry Used:** \
+            ${{ steps.registry.outputs.registry_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Image Name:** \
+            ${{ steps.registry.outputs.image_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Available Tags:" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Usage Example:" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ${{ steps.registry.outputs.image_name }}:latest" \
+            >> $GITHUB_STEP_SUMMARY
+          echo "docker run -p 8080:80 \
+            ${{ steps.registry.outputs.image_name }}:latest" \
+            >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
