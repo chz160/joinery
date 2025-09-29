@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   api:
-    image: chz160/joinery-server:latest
+    image: registry.pocketfulofdoom.com/joinery-server:latest
     ports:
       - "5256:5256"
     environment:
@@ -14,7 +14,7 @@ services:
     restart: unless-stopped
 
   web:
-    image: chz160/joinery-web:latest
+    image: registry.pocketfulofdoom.com/joinery-web:latest
     ports:
       - "80:80"
     environment:

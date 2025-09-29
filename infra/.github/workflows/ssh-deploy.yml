@@ -26,9 +26,16 @@ on:
         type: string
         default: '80'
         description: 'Host port to map to container'
+      registry_url:
+        required: false
+        type: string
+        default: 'registry.pocketfulofdoom.com'
+        description: 'Docker registry URL'
     secrets:
       DOCKER_REGISTRY_TOKEN:
         required: true
+      DOCKER_REGISTRY_USERNAME:
+        required: false
       SSH_PRIVATE_KEY:
         required: true
       SSH_HOST:
@@ -73,9 +80,11 @@ jobs:
             ${{ inputs.host_port }} \
             ${{ secrets.SSH_USER }} \
             ${{ secrets.SSH_HOST }} \
-            ${{ secrets.SSH_PORT || '22' }}
+            ${{ secrets.SSH_PORT || '22' }} \
+            ${{ inputs.registry_url }}
         env:
           DOCKER_REGISTRY_TOKEN: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
+          DOCKER_REGISTRY_USERNAME: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
       
       - name: Verify Deployment
         run: |

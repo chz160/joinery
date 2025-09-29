@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # SSH-based Docker deployment script for Joinery applications
-# Usage: ./ssh-deploy.sh <app_name> <environment> <image_tag> <container_port> <host_port> <ssh_user> <ssh_host> [ssh_port]
+# Usage: ./ssh-deploy.sh <app_name> <environment> <image_tag> <container_port> <host_port> <ssh_user> <ssh_host> [ssh_port] [registry_url]
 
 set -euo pipefail
 
@@ -13,9 +13,10 @@ HOST_PORT=${5:-80}
 SSH_USER=${6:-}
 SSH_HOST=${7:-}
 SSH_PORT=${8:-22}
+REGISTRY_URL=${9:-registry.pocketfulofdoom.com}
 
 if [[ -z "$APP_NAME" || -z "$ENVIRONMENT" || -z "$SSH_USER" || -z "$SSH_HOST" ]]; then
-    echo "Usage: $0 <app_name> <environment> <image_tag> <container_port> <host_port> <ssh_user> <ssh_host> [ssh_port]"
+    echo "Usage: $0 <app_name> <environment> <image_tag> <container_port> <host_port> <ssh_user> <ssh_host> [ssh_port] [registry_url]"
     echo "  app_name: Name of the application to deploy"
     echo "  environment: Target environment (dev, staging, prod)"
     echo "  image_tag: Docker image tag"
@@ -24,6 +25,7 @@ if [[ -z "$APP_NAME" || -z "$ENVIRONMENT" || -z "$SSH_USER" || -z "$SSH_HOST" ]]
     echo "  ssh_user: SSH username"
     echo "  ssh_host: SSH host"
     echo "  ssh_port: SSH port (optional, default: 22)"
+    echo "  registry_url: Docker registry URL (optional, default: registry.pocketfulofdoom.com)"
     exit 1
 fi
 
@@ -39,7 +41,12 @@ case $ENVIRONMENT in
 esac
 
 CONTAINER_NAME="${APP_NAME}-${ENVIRONMENT}"
-IMAGE_NAME="joinery/${APP_NAME}:${IMAGE_TAG}"
+# Support both legacy format (joinery/app:tag) and new registry format (registry.example.com/app:tag)
+if [[ "$REGISTRY_URL" == "docker.io" ]] || [[ "$REGISTRY_URL" == "" ]]; then
+    IMAGE_NAME="joinery/${APP_NAME}:${IMAGE_TAG}"
+else
+    IMAGE_NAME="${REGISTRY_URL}/${APP_NAME}:${IMAGE_TAG}"
+fi
 
 echo "=== SSH Docker Deployment ==="
 echo "App: $APP_NAME"
@@ -66,7 +73,15 @@ echo "Starting deployment on remote host..."
 # Login to Docker registry if token provided
 if [[ -n "\${DOCKER_REGISTRY_TOKEN:-}" ]]; then
     echo "Logging into Docker registry..."
-    echo "\$DOCKER_REGISTRY_TOKEN" | docker login -u joinery --password-stdin
+    # Determine registry URL from image name or use default
+    REGISTRY_URL=\$(echo "\$IMAGE_NAME" | cut -d'/' -f1)
+    if [[ "\$REGISTRY_URL" == *"."* ]]; then
+        # Image includes registry URL (e.g., registry.example.com/image:tag)
+        echo "\$DOCKER_REGISTRY_TOKEN" | docker login "\$REGISTRY_URL" --password-stdin -u "\${DOCKER_REGISTRY_USERNAME:-joinery}"
+    else
+        # Default to Docker Hub
+        echo "\$DOCKER_REGISTRY_TOKEN" | docker login --password-stdin -u "\${DOCKER_REGISTRY_USERNAME:-joinery}"
+    fi
 fi
 
 # Pull the new image

@@ -17,9 +17,21 @@ on:
         type: string
         default: '.'
         description: 'Build context directory'
+      registry_url:
+        required: false
+        type: string
+        default: 'registry.pocketfulofdoom.com'
+        description: 'Docker registry URL'
+      registry_org:
+        required: false
+        type: string
+        default: ''
+        description: 'Docker registry organization/namespace'
     secrets:
       DOCKER_REGISTRY_TOKEN:
         required: true
+      DOCKER_REGISTRY_USERNAME:
+        required: false
     outputs:
       image_tag:
         description: 'Built image tag'
@@ -38,17 +50,18 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       
-      - name: Log in to Docker Hub
+      - name: Log in to Docker Registry
         uses: docker/login-action@v3
         with:
-          username: joinery
+          registry: ${{ inputs.registry_url }}
+          username: ${{ secrets.DOCKER_REGISTRY_USERNAME || 'joinery' }}
           password: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
       
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: joinery/${{ inputs.app_name }}
+          images: ${{ inputs.registry_url }}/${{ inputs.registry_org && format('{0}/', inputs.registry_org) || '' }}${{ inputs.app_name }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
