@@ -22,9 +22,12 @@ public class GitQueryFileConfiguration : IEntityTypeConfiguration<GitQueryFile>
                 v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList()
             )
             .Metadata.SetValueComparer(new ValueComparer<List<string>>(
-                (a, b) => a != null && b != null && a.SequenceEqual(b),
+                (a, b) =>
+                    ReferenceEquals(a, b)
+                    || (a == null && b == null)
+                    || (a != null && b != null && a.SequenceEqual(b)),
                 v => v == null ? 0 : v.Aggregate(0, (a, s) => HashCode.Combine(a, s.GetHashCode())),
-                v => v == null ? new List<string>() : v.ToList()));
+                v => v == null ? null! : v.ToList()));
 
         // Relationship: GitQueryFile -> GitRepository
         entity.HasOne(e => e.GitRepository)

@@ -23,9 +23,9 @@ public class DatabaseQueryConfiguration : IEntityTypeConfiguration<DatabaseQuery
             .Metadata.SetValueComparer(new ValueComparer<List<string>>(
                 (a, b) =>
                     ReferenceEquals(a, b) ||
-                    (a is null && b is null) ||
-                    (a is not null && b is not null && a.SequenceEqual(b)),
+                    (a == null && b == null) ||
+                    (a != null && b != null && a.SequenceEqual(b)),
                 v => v == null ? 0 : v.Aggregate(0, (a, s) => HashCode.Combine(a, s.GetHashCode())),
-                v => v == null ? null : v.ToList()));
+                v => v == null ? null! : v.ToList()));
     }
 }
