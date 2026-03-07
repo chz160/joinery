@@ -1,0 +1,140 @@
+<div class="wizard-container">
+  <!-- Header -->
+  <div class="wizard-header">
+    <div class="header-content">
+      <div class="header-left">
+        <mat-icon>business</mat-icon>
+        <div class="header-text">
+          <h1>Set Up Your Organization</h1>
+          <p>Let's get your team started with Joinery</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <button mat-button (click)="cancelWizard()" class="cancel-button">
+          <mat-icon>close</mat-icon>
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress Indicator -->
+  <div class="progress-section">
+    <app-step-indicator 
+      [steps]="steps" 
+      [currentStep]="currentStep"
+      (stepClicked)="goToStep($event)">
+    </app-step-indicator>
+  </div>
+
+  <!-- Main Content -->
+  <div class="wizard-content">
+    <mat-card class="step-card">
+      <!-- Step 1: Organization Details -->
+      <div *ngIf="currentStep === 1" class="step-content">
+        <app-organization-details-step
+          [data]="getCurrentStepData()"
+          (dataChanged)="onStepDataUpdate($event)">
+        </app-organization-details-step>
+      </div>
+
+      <!-- Step 2: Repository Connection -->
+      <div *ngIf="currentStep === 2" class="step-content">
+        <app-repository-connection-step
+          [data]="getCurrentStepData()"
+          (dataChanged)="onStepDataUpdate($event)">
+        </app-repository-connection-step>
+      </div>
+
+      <!-- Step 3: Team Member Invitation -->
+      <div *ngIf="currentStep === 3" class="step-content">
+        <app-team-invitation-step
+          [data]="getCurrentStepData()"
+          (dataChanged)="onStepDataUpdate($event)">
+        </app-team-invitation-step>
+      </div>
+
+      <!-- Step 4: Settings -->
+      <div *ngIf="currentStep === 4" class="step-content">
+        <app-settings-step
+          [data]="getCurrentStepData()"
+          (dataChanged)="onStepDataUpdate($event)">
+        </app-settings-step>
+      </div>
+
+      <!-- Step 5: Review -->
+      <div *ngIf="currentStep === 5" class="step-content">
+        <app-review-step
+          [data]="getCurrentStepData()">
+        </app-review-step>
+      </div>
+    </mat-card>
+  </div>
+
+  <!-- Navigation Footer -->
+  <div class="wizard-footer">
+    <div class="footer-content">
+      <div class="footer-left">
+        <button 
+          mat-button 
+          (click)="previousStep()" 
+          [disabled]="currentStep <= 1"
+          class="nav-button">
+          <mat-icon>arrow_back</mat-icon>
+          Previous
+        </button>
+      </div>
+
+      <div class="footer-center">
+        <span class="step-counter">
+          Step {{ currentStep }} of {{ totalSteps }}
+        </span>
+      </div>
+
+      <div class="footer-right">
+        <!-- Skip button for optional steps -->
+        <button 
+          *ngIf="isCurrentStepOptional() && currentStep !== totalSteps"
+          mat-button 
+          (click)="skipStep()"
+          class="skip-button">
+          Skip
+          <mat-icon>arrow_forward</mat-icon>
+        </button>
+
+        <!-- Next button -->
+        <button 
+          *ngIf="currentStep < totalSteps"
+          mat-raised-button 
+          color="primary"
+          (click)="nextStep()" 
+          [disabled]="!isCurrentStepValid()"
+          class="nav-button primary">
+          Next
+          <mat-icon>arrow_forward</mat-icon>
+        </button>
+
+        <!-- Complete button -->
+        <button 
+          *ngIf="currentStep === totalSteps"
+          mat-raised-button 
+          color="primary"
+          (click)="completeWizard()" 
+          [disabled]="!canCompleteWizard() || isLoading"
+          class="complete-button">
+          <mat-spinner *ngIf="isLoading" diameter="20" class="button-spinner"></mat-spinner>
+          <mat-icon *ngIf="!isLoading">check</mat-icon>
+          {{ isLoading ? 'Creating...' : 'Create Organization' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Loading Overlay -->
+<div *ngIf="isLoading" class="loading-overlay">
+  <div class="loading-content">
+    <mat-spinner diameter="50"></mat-spinner>
+    <p>Creating your organization...</p>
+  </div>
+</div>

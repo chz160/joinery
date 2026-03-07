@@ -1,0 +1,103 @@
+<div class="success-container">
+  <!-- Success Header -->
+  <div class="success-header">
+    <div class="success-icon">
+      <mat-icon>check_circle</mat-icon>
+    </div>
+    <h1>Organization Created Successfully!</h1>
+    <p class="success-message">
+      Welcome to <strong>{{ organizationName }}</strong>! Your organization is ready for your team to start collaborating.
+    </p>
+  </div>
+
+  <!-- Success Details -->
+  <div class="success-details">
+    <mat-card class="details-card">
+      <mat-card-header>
+        <mat-icon mat-card-avatar>summarize</mat-icon>
+        <mat-card-title>Setup Summary</mat-card-title>
+        <mat-card-subtitle>Here's what we've set up for you</mat-card-subtitle>
+      </mat-card-header>
+      
+      <mat-card-content>
+        <div class="summary-grid">
+          <div class="summary-item">
+            <mat-icon>business</mat-icon>
+            <div class="summary-content">
+              <h3>Organization</h3>
+              <p>{{ organizationName }} is ready for use</p>
+            </div>
+          </div>
+
+          <div class="summary-item" *ngIf="invitationsSent > 0">
+            <mat-icon>mail</mat-icon>
+            <div class="summary-content">
+              <h3>Team Invitations</h3>
+              <p>{{ invitationsSent }} invitations sent to team members</p>
+            </div>
+          </div>
+
+          <div class="summary-item" *ngIf="repositoriesConnected > 0">
+            <mat-icon>source</mat-icon>
+            <div class="summary-content">
+              <h3>Repositories</h3>
+              <p>{{ repositoriesConnected }} repositories connected</p>
+            </div>
+          </div>
+
+          <div class="summary-item">
+            <mat-icon>security</mat-icon>
+            <div class="summary-content">
+              <h3>Security</h3>
+              <p>Organization security policies configured</p>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Next Steps -->
+  <div class="next-steps">
+    <h2>What's Next?</h2>
+    <div class="action-cards">
+      <mat-card class="action-card" (click)="goToDashboard()">
+        <mat-card-content>
+          <mat-icon>dashboard</mat-icon>
+          <h3>Go to Dashboard</h3>
+          <p>Start exploring your organization dashboard and begin your data journey.</p>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="action-card" (click)="inviteMoreMembers()" *ngIf="invitationsSent === 0">
+        <mat-card-content>
+          <mat-icon>group_add</mat-icon>
+          <h3>Invite Team Members</h3>
+          <p>Add your colleagues to start collaborating on queries and insights.</p>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="action-card" (click)="connectMoreRepositories()" *ngIf="repositoriesConnected === 0">
+        <mat-card-content>
+          <mat-icon>source</mat-icon>
+          <h3>Connect Repositories</h3>
+          <p>Link your GitHub repositories to enable version control for your queries.</p>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="action-card" (click)="goToOrganizationSettings()">
+        <mat-card-content>
+          <mat-icon>settings</mat-icon>
+          <h3>Organization Settings</h3>
+          <p>Fine-tune your organization policies, permissions, and integrations.</p>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+
+  <!-- Auto Redirect Notice -->
+  <div class="auto-redirect">
+    <mat-icon>info</mat-icon>
+    <span>You'll be automatically redirected to the dashboard in a few seconds, or click any action above to continue.</span>
+  </div>
+</div>

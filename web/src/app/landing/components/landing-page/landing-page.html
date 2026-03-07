@@ -1,0 +1,287 @@
+<div class="landing-container">
+  <!-- Demo Toggle Button (for testing - remove in production) -->
+  <div class="demo-controls">
+    <button mat-stroked-button (click)="toggleAuthDemo()" class="demo-toggle">
+      <mat-icon>swap_horiz</mat-icon>
+      Toggle Auth State (Demo)
+    </button>
+  </div>
+
+  <!-- Authenticated User View -->
+  <div *ngIf="isAuthenticated$ | async" class="authenticated-view">
+    <app-dashboard-preview></app-dashboard-preview>
+  </div>
+
+  <!-- Unauthenticated User View -->
+  <div *ngIf="(isAuthenticated$ | async) === false" class="unauthenticated-view">
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div class="hero-content">
+        <!-- Logo and Branding -->
+        <div class="hero-brand">
+          <div class="logo">
+            <mat-icon class="logo-icon">group_work</mat-icon>
+            <h1 class="logo-text">Joinery</h1>
+          </div>
+          <p class="tagline">Secure, collaborative query sharing for teams</p>
+        </div>
+
+        <!-- Value Proposition -->
+        <div class="value-proposition">
+          <h2>Streamline your team's data workflow</h2>
+          <p class="value-description">
+            Joinery empowers organizations and educational teams to collaborate seamlessly on data queries. 
+            Share insights, manage access, and keep your team's analytical work organized and secure.
+          </p>
+          
+          <div class="feature-highlights">
+            <div class="feature">
+              <mat-icon>security</mat-icon>
+              <span>Secure collaboration</span>
+            </div>
+            <div class="feature">
+              <mat-icon>groups</mat-icon>
+              <span>Team management</span>
+            </div>
+            <div class="feature">
+              <mat-icon>search</mat-icon>
+              <span>Query organization</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Call to Actions -->
+        <div class="cta-section">
+          <button mat-raised-button color="primary" class="primary-cta" (click)="loginWithGitHub()">
+            <mat-icon>code</mat-icon>
+            Sign in with GitHub
+          </button>
+          <button mat-stroked-button class="secondary-cta" routerLink="/dashboard">
+            <mat-icon>info</mat-icon>
+            Learn More
+          </button>
+        </div>
+      </div>
+
+      <!-- Hero Visual -->
+      <div class="hero-visual">
+        <div class="visual-card">
+          <mat-icon class="visual-icon">dashboard</mat-icon>
+          <div class="visual-content">
+            <h3>Your Team's Data Hub</h3>
+            <p>Centralized access to queries, repositories, and team insights</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Trust, Security, and Open Source Section -->
+    <section class="trust-security-section">
+      <div class="trust-security-container">
+        <div class="section-header">
+          <h2>Built with Trust, Security, and Transparency</h2>
+          <p class="section-description">
+            Your data security and privacy are our top priorities. Joinery is built as an open-source platform with enterprise-grade security practices.
+          </p>
+        </div>
+        
+        <div class="trust-features-grid">
+          <div class="trust-feature-card">
+            <mat-card>
+              <mat-card-content>
+                <div class="feature-header">
+                  <mat-icon class="feature-icon">verified_user</mat-icon>
+                  <h3>Secure Authentication</h3>
+                </div>
+                <p>Enterprise-grade OAuth authentication with support for your existing identity providers. No passwords stored, complete audit trail.</p>
+                <div class="oauth-providers">
+                  <div class="oauth-provider">
+                    <mat-icon>code</mat-icon>
+                    <span>GitHub</span>
+                  </div>
+                  <div class="oauth-provider">
+                    <mat-icon>business</mat-icon>
+                    <span>Microsoft</span>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+          
+          <div class="trust-feature-card">
+            <mat-card>
+              <mat-card-content>
+                <div class="feature-header">
+                  <mat-icon class="feature-icon">privacy_tip</mat-icon>
+                  <h3>Data Privacy First</h3>
+                </div>
+                <p>Your queries and data remain private within your organization. Zero-knowledge architecture ensures we can't access your sensitive information.</p>
+                <div class="privacy-highlights">
+                  <div class="highlight">
+                    <mat-icon>check_circle</mat-icon>
+                    <span>End-to-end encryption</span>
+                  </div>
+                  <div class="highlight">
+                    <mat-icon>check_circle</mat-icon>
+                    <span>No data mining</span>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+          
+          <div class="trust-feature-card">
+            <mat-card>
+              <mat-card-content>
+                <div class="feature-header">
+                  <mat-icon class="feature-icon">code</mat-icon>
+                  <h3>Open Source Transparency</h3>
+                </div>
+                <p>Full transparency through open-source development. Review our code, contribute improvements, and build trust through visibility.</p>
+                <div class="opensource-links">
+                  <a href="https://github.com/chz160/joinery-web" target="_blank" rel="noopener noreferrer" class="repo-link">
+                    <mat-icon>launch</mat-icon>
+                    <span>View on GitHub</span>
+                  </a>
+                  <div class="opensource-badge">
+                    <mat-icon>verified</mat-icon>
+                    <span>MIT Licensed</span>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- How Joinery Works Section (simplified) -->
+    <section class="how-it-works-section">
+      <div class="how-it-works-container">
+        <div class="section-header">
+          <h2>How Joinery Works</h2>
+          <p class="section-description">
+            Powerful features designed for team collaboration, security, and workflow management
+          </p>
+        </div>
+        
+        <div class="features-grid">
+          <div class="feature-card">
+            <mat-card>
+              <mat-card-content>
+                <div class="feature-header">
+                  <mat-icon class="feature-icon">share</mat-icon>
+                  <h3>Secure Query Sharing</h3>
+                </div>
+                <p>Share SQL queries and data insights with granular permissions.</p>
+              </mat-card-content>
+            </mat-card>
+          </div>
+          
+          <div class="feature-card">
+            <mat-card>
+              <mat-card-content>
+                <div class="feature-header">
+                  <mat-icon class="feature-icon">admin_panel_settings</mat-icon>
+                  <h3>Team & Organization Management</h3>
+                </div>
+                <p>Organize users into teams with hierarchical permissions.</p>
+              </mat-card-content>
+            </mat-card>
+          </div>
+          
+          <div class="feature-card">
+            <mat-card>
+              <mat-card-content>
+                <div class="feature-header">
+                  <mat-icon class="feature-icon">history</mat-icon>
+                  <h3>Audit Trail & History</h3>
+                </div>
+                <p>Complete visibility into query usage and modifications.</p>
+              </mat-card-content>
+            </mat-card>
+          </div>
+          
+          <div class="feature-card">
+            <mat-card>
+              <mat-card-content>
+                <div class="feature-header">
+                  <mat-icon class="feature-icon">extension</mat-icon>
+                  <h3>Extension & Integration Support</h3>
+                </div>
+                <p>Connect with your existing tools and workflows.</p>
+              </mat-card-content>
+            </mat-card>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="landing-footer">
+      <div class="footer-container">
+        <div class="footer-content">
+          <!-- Brand Section -->
+          <div class="footer-brand">
+            <div class="footer-logo">
+              <mat-icon class="footer-logo-icon">group_work</mat-icon>
+              <span class="footer-brand-text">Joinery</span>
+            </div>
+            <p class="footer-tagline">Secure, collaborative query sharing for teams</p>
+          </div>
+
+          <!-- Navigation Links -->
+          <div class="footer-links">
+            <div class="footer-column">
+              <h4 class="footer-heading">Resources</h4>
+              <ul class="footer-nav">
+                <li><a href="https://github.com/chz160/joinery-web/wiki" target="_blank" rel="noopener noreferrer">Documentation</a></li>
+                <li><a href="https://github.com/chz160/joinery-web/issues" target="_blank" rel="noopener noreferrer">Support</a></li>
+                <li><a href="https://github.com/chz160/joinery-web/projects" target="_blank" rel="noopener noreferrer">Roadmap</a></li>
+              </ul>
+            </div>
+
+            <div class="footer-column">
+              <h4 class="footer-heading">Company</h4>
+              <ul class="footer-nav">
+                <li><a href="#" (click)="scrollToSection('trust-security-section')">Privacy Policy</a></li>
+                <li><a href="#" (click)="scrollToSection('how-it-works-section')">How It Works</a></li>
+                <li><a href="mailto:support@joinery.dev">Contact</a></li>
+              </ul>
+            </div>
+
+            <div class="footer-column">
+              <h4 class="footer-heading">Community</h4>
+              <ul class="footer-nav">
+                <li><a href="https://github.com/chz160/joinery-web" target="_blank" rel="noopener noreferrer">
+                  <mat-icon class="link-icon">code</mat-icon>
+                  GitHub
+                </a></li>
+                <li><a href="https://github.com/chz160/joinery-web/discussions" target="_blank" rel="noopener noreferrer">
+                  <mat-icon class="link-icon">forum</mat-icon>
+                  Discussions
+                </a></li>
+                <li><a href="https://github.com/chz160/joinery-web/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">
+                  <mat-icon class="link-icon">volunteer_activism</mat-icon>
+                  Contribute
+                </a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer Bottom -->
+        <div class="footer-bottom">
+          <div class="footer-bottom-content">
+            <p class="footer-copyright">
+              © 2024 Joinery. Open source under MIT License.
+            </p>
+            <div class="footer-legal">
+              <span>Built for teams and educational organizations</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </div>
+</div>

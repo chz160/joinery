@@ -1,0 +1,91 @@
+.teams-container {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.header h1 {
+  margin: 0;
+  color: #333;
+}
+
+.subtitle {
+  color: #666;
+  margin: 0;
+  font-size: 16px;
+}
+
+.header button {
+  align-self: flex-start;
+  margin-top: 16px;
+}
+
+.teams-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 24px;
+}
+
+.team-card {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.team-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.team-description {
+  margin: 0 0 20px 0;
+  color: #555;
+  line-height: 1.5;
+}
+
+.repositories-section h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.repo-list {
+  margin-bottom: 16px;
+}
+
+.repo-list mat-chip {
+  margin-right: 8px;
+  margin-bottom: 4px;
+}
+
+.empty-repos {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #999;
+  font-style: italic;
+  margin: 16px 0;
+}
+
+@media (max-width: 768px) {
+  .teams-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .header {
+    text-align: center;
+  }
+  
+  .header button {
+    align-self: center;
+  }
+}

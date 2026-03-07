@@ -1,0 +1,130 @@
+<div class="dashboard-preview" *ngIf="dashboardData$ | async as dashboardData">
+  <!-- Welcome Header -->
+  <div class="welcome-header" *ngIf="currentUser$ | async as user">
+    <div class="welcome-content">
+      <div class="user-info">
+        <div class="avatar" *ngIf="user.avatar">
+          <img [src]="user.avatar" [alt]="user.name" />
+        </div>
+        <div class="avatar fallback" *ngIf="!user.avatar">
+          <mat-icon>person</mat-icon>
+        </div>
+        <div class="greeting">
+          <h2>Good {{ getTimeOfDay() }}, {{ user.name }}!</h2>
+          <p>Welcome back to your data workspace</p>
+        </div>
+      </div>
+      <div class="notifications-badge" *ngIf="getUnreadNotificationsCount(dashboardData) > 0">
+        <mat-icon [matBadge]="getUnreadNotificationsCount(dashboardData)" matBadgeColor="warn">notifications</mat-icon>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Stats -->
+  <div class="quick-stats">
+    <h3>Your Overview</h3>
+    <mat-grid-list cols="4" rowHeight="80px">
+      <mat-grid-tile>
+        <mat-card class="stat-card">
+          <div class="stat-content">
+            <mat-icon class="stat-icon organizations">business</mat-icon>
+            <div class="stat-details">
+              <span class="stat-number">{{ dashboardData.stats.organizations }}</span>
+              <span class="stat-label">Organizations</span>
+            </div>
+          </div>
+        </mat-card>
+      </mat-grid-tile>
+      
+      <mat-grid-tile>
+        <mat-card class="stat-card">
+          <div class="stat-content">
+            <mat-icon class="stat-icon teams">groups</mat-icon>
+            <div class="stat-details">
+              <span class="stat-number">{{ dashboardData.stats.teams }}</span>
+              <span class="stat-label">Teams</span>
+            </div>
+          </div>
+        </mat-card>
+      </mat-grid-tile>
+      
+      <mat-grid-tile>
+        <mat-card class="stat-card">
+          <div class="stat-content">
+            <mat-icon class="stat-icon queries">code</mat-icon>
+            <div class="stat-details">
+              <span class="stat-number">{{ dashboardData.stats.queries }}</span>
+              <span class="stat-label">Queries</span>
+            </div>
+          </div>
+        </mat-card>
+      </mat-grid-tile>
+      
+      <mat-grid-tile>
+        <mat-card class="stat-card">
+          <div class="stat-content">
+            <mat-icon class="stat-icon repositories">folder_special</mat-icon>
+            <div class="stat-details">
+              <span class="stat-number">{{ dashboardData.stats.repositories }}</span>
+              <span class="stat-label">Repositories</span>
+            </div>
+          </div>
+        </mat-card>
+      </mat-grid-tile>
+    </mat-grid-list>
+  </div>
+
+  <!-- Recent Activity & Quick Actions -->
+  <div class="preview-content">
+    <div class="recent-section">
+      <h3>Recent Activity</h3>
+      <mat-card class="activity-card">
+        <div class="activity-list">
+          <div class="activity-item" *ngFor="let activity of dashboardData.recentActivity.slice(0, 4)">
+            <mat-icon class="activity-icon">{{ activity.icon || 'update' }}</mat-icon>
+            <div class="activity-details">
+              <span class="activity-text">{{ activity.action }} <strong>{{ activity.item }}</strong></span>
+              <span class="activity-time">{{ activity.time }}</span>
+            </div>
+          </div>
+        </div>
+      </mat-card>
+    </div>
+
+    <div class="recent-section">
+      <h3>Recent Queries</h3>
+      <mat-card class="queries-card">
+        <div class="query-list">
+          <div class="query-item" *ngFor="let query of dashboardData.recentQueries.slice(0, 3)">
+            <div class="query-header">
+              <mat-icon>code</mat-icon>
+              <span class="query-name">{{ query.name }}</span>
+            </div>
+            <p class="query-description">{{ query.description }}</p>
+            <div class="query-tags">
+              <mat-chip-set>
+                <mat-chip *ngFor="let tag of query.tags.slice(0, 3)">{{ tag }}</mat-chip>
+              </mat-chip-set>
+            </div>
+          </div>
+        </div>
+      </mat-card>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="quick-actions">
+    <button mat-raised-button color="primary" routerLink="/dashboard" class="action-button">
+      <mat-icon>dashboard</mat-icon>
+      Go to Dashboard
+    </button>
+    <button mat-stroked-button routerLink="/queries" class="action-button">
+      <mat-icon>code</mat-icon>
+      Browse Queries
+    </button>
+    <button mat-stroked-button routerLink="/teams" class="action-button">
+      <mat-icon>groups</mat-icon>
+      View Teams
+    </button>
+  </div>
+</div>

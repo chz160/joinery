@@ -1,0 +1,28 @@
+<div class="callback-container">
+  <mat-card class="callback-card">
+    <mat-card-content>
+      <div *ngIf="loading" class="loading-state">
+        <mat-spinner diameter="40"></mat-spinner>
+        <h2>Completing authentication...</h2>
+        <p>Please wait while we verify your GitHub credentials.</p>
+      </div>
+
+      <div *ngIf="error" class="error-state">
+        <mat-icon color="warn" class="error-icon">error</mat-icon>
+        <h2>Authentication Failed</h2>
+        <p>{{ error }}</p>
+        
+        <div class="error-actions">
+          <button mat-raised-button color="primary" (click)="retryAuthentication()">
+            <mat-icon>refresh</mat-icon>
+            Try Again
+          </button>
+          <button mat-stroked-button (click)="cancelAuthentication()">
+            <mat-icon>home</mat-icon>
+            Go Home
+          </button>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

@@ -1,0 +1,87 @@
+<div class="settings-step">
+  <div class="step-header">
+    <h2>Organization Settings</h2>
+    <p>Configure your organization's policies and default behaviors.</p>
+  </div>
+
+  <form [formGroup]="settingsForm" class="settings-form">
+    <!-- Default Query Visibility -->
+    <div class="setting-group">
+      <div class="setting-header">
+        <h3>Default Query Visibility</h3>
+        <p>Set the default visibility level for new queries created in your organization.</p>
+      </div>
+      
+      <mat-radio-group formControlName="defaultQueryVisibility" class="visibility-options">
+        <div *ngFor="let option of visibilityOptions" class="visibility-option">
+          <mat-radio-button [value]="option.value">
+            <div class="option-content">
+              <div class="option-label">{{ option.label }}</div>
+              <div class="option-description">{{ option.description }}</div>
+            </div>
+          </mat-radio-button>
+        </div>
+      </mat-radio-group>
+    </div>
+
+    <!-- Repository Integration -->
+    <div class="setting-group">
+      <div class="setting-header">
+        <h3>Repository Integration</h3>
+        <p>Allow team members to connect and sync queries with Git repositories.</p>
+      </div>
+      
+      <mat-slide-toggle formControlName="allowRepositoryIntegration" class="setting-toggle">
+        <span class="toggle-label">Enable repository integration</span>
+        <div class="toggle-description">
+          Teams can link queries to GitHub, GitLab, and other Git repositories for version control.
+        </div>
+      </mat-slide-toggle>
+    </div>
+
+    <!-- Query Approval -->
+    <div class="setting-group">
+      <div class="setting-header">
+        <h3>Query Approval Process</h3>
+        <p>Require administrative approval before queries can be executed.</p>
+      </div>
+      
+      <mat-slide-toggle formControlName="requireApprovalForQueries" class="setting-toggle">
+        <span class="toggle-label">Require approval for new queries</span>
+        <div class="toggle-description">
+          All new queries must be reviewed and approved by an administrator before execution.
+        </div>
+      </mat-slide-toggle>
+    </div>
+
+    <!-- Audit Logging -->
+    <div class="setting-group">
+      <div class="setting-header">
+        <h3>Audit Logging</h3>
+        <p>Track user activity and query execution for compliance and security.</p>
+      </div>
+      
+      <mat-slide-toggle formControlName="enableAuditLogging" class="setting-toggle">
+        <span class="toggle-label">Enable audit logging</span>
+        <div class="toggle-description">
+          Log user actions, query executions, and data access for security and compliance reporting.
+        </div>
+      </mat-slide-toggle>
+    </div>
+
+    <!-- Settings Summary -->
+    <div class="settings-summary">
+      <mat-icon color="primary">settings</mat-icon>
+      <div class="summary-content">
+        <strong>Configuration Summary</strong>
+        <ul>
+          <li>Default query visibility: <strong>{{ getVisibilityDescription(settingsForm.get('defaultQueryVisibility')?.value) }}</strong></li>
+          <li>Repository integration: <strong>{{ settingsForm.get('allowRepositoryIntegration')?.value ? 'Enabled' : 'Disabled' }}</strong></li>
+          <li>Query approval: <strong>{{ settingsForm.get('requireApprovalForQueries')?.value ? 'Required' : 'Not required' }}</strong></li>
+          <li>Audit logging: <strong>{{ settingsForm.get('enableAuditLogging')?.value ? 'Enabled' : 'Disabled' }}</strong></li>
+        </ul>
+        <p class="summary-note">These settings can be modified later from your organization dashboard.</p>
+      </div>
+    </div>
+  </form>
+</div>
