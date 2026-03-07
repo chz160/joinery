@@ -11,7 +11,7 @@ namespace JoineryServer.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/migrations")]
-[Authorize]
+[Authorize(Roles = "Admin")]
 public class MigrationsController : ControllerBase
 {
     private readonly IMigrationService _migrationService;
