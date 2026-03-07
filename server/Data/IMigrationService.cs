@@ -48,3 +48,9 @@ public sealed record ChecksumValidationResult
     public bool IsValid { get; init; }
     public string Message { get; init; } = string.Empty;
 }
+
+public sealed record ChecksumValidationReport
+{
+    public bool IsValid { get; init; }
+    public IReadOnlyList<ChecksumValidationResult> Results { get; init; } = [];
+}

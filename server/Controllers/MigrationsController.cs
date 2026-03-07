@@ -70,14 +70,13 @@ public class MigrationsController : ControllerBase
     /// A mismatch indicates that a migration was modified after it was applied.
     /// </summary>
     [HttpGet("validate")]
-    [ProducesResponseType(typeof(IReadOnlyList<ChecksumValidationResult>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ChecksumValidationReport), StatusCodes.Status200OK)]
     public async Task<IActionResult> Validate()
     {
         var results = await _migrationService.ValidateChecksumsAsync();
-        var allValid = results.All(r => r.IsValid);
-        return Ok(new
+        return Ok(new ChecksumValidationReport
         {
-            IsValid = allValid,
+            IsValid = results.All(r => r.IsValid),
             Results = results
         });
     }
