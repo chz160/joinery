@@ -1,0 +1,81 @@
+<div class="repository-connection-step">
+  <div class="step-header">
+    <h2>Connect Repositories</h2>
+    <p>Connect your GitHub repositories to enable query sharing and version control (optional).</p>
+  </div>
+
+  <div *ngIf="isLoading" class="loading-state">
+    <mat-spinner diameter="40"></mat-spinner>
+    <p>Loading your repositories...</p>
+  </div>
+
+  <div *ngIf="!isLoading" class="repository-content">
+    <!-- Actions -->
+    <div class="repository-actions" *ngIf="repositories.length > 0">
+      <div class="selected-count">
+        <mat-icon>source</mat-icon>
+        <span>{{ selectedCount }} of {{ repositories.length }} repositories selected</span>
+      </div>
+      
+      <div class="action-buttons">
+        <button mat-button (click)="selectAll()">Select All</button>
+        <button mat-button (click)="selectNone()">Select None</button>
+      </div>
+    </div>
+
+    <!-- Repository List -->
+    <div class="repository-list" *ngIf="repositories.length > 0">
+      <div 
+        *ngFor="let repo of repositories" 
+        class="repository-item"
+        [class.selected]="repo.selected">
+        
+        <mat-checkbox 
+          [checked]="repo.selected"
+          (change)="toggleRepository(repo)"
+          class="repo-checkbox">
+        </mat-checkbox>
+        
+        <div class="repo-info">
+          <div class="repo-header">
+            <h3 class="repo-name">{{ repo.name }}</h3>
+            <mat-chip-set>
+              <mat-chip [class]="repo.private ? 'private-repo' : 'public-repo'">
+                <mat-icon>{{ repo.private ? 'lock' : 'public' }}</mat-icon>
+                {{ repo.private ? 'Private' : 'Public' }}
+              </mat-chip>
+            </mat-chip-set>
+          </div>
+          
+          <p class="repo-description" *ngIf="repo.description">{{ repo.description }}</p>
+          <p class="repo-description no-description" *ngIf="!repo.description">No description available</p>
+          
+          <div class="repo-meta">
+            <span class="repo-fullname">{{ repo.full_name }}</span>
+            <a [href]="repo.html_url" target="_blank" class="repo-link">
+              <mat-icon>open_in_new</mat-icon>
+              View on GitHub
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="repositories.length === 0">
+      <mat-icon>source</mat-icon>
+      <h3>No Repositories Found</h3>
+      <p>We couldn't find any GitHub repositories associated with your account.</p>
+      <p>You can skip this step and add repositories later from your organization settings.</p>
+    </div>
+
+    <!-- Skip Info -->
+    <div class="skip-info" *ngIf="selectedCount === 0 && repositories.length > 0">
+      <mat-icon>info</mat-icon>
+      <div class="skip-text">
+        <strong>No repositories selected</strong>
+        <p>You can skip this step and connect repositories later from your organization dashboard.</p>
+      </div>
+    </div>
+  </div>
+</div>

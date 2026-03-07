@@ -1,0 +1,71 @@
+<div class="team-invitation-step">
+  <div class="step-header">
+    <h2>Invite Team Members</h2>
+    <p>Invite your team members to join your organization (optional).</p>
+  </div>
+
+  <form [formGroup]="invitationForm">
+    <div formArrayName="invitations" class="invitations-list">
+      <div *ngFor="let invitation of invitations.controls; let i = index" 
+           [formGroupName]="i" 
+           class="invitation-item">
+        
+        <div class="invitation-fields">
+          <mat-form-field appearance="outline" class="email-field">
+            <mat-label>Email Address *</mat-label>
+            <input matInput formControlName="email" type="email" 
+                   placeholder="colleague@example.com">
+            <mat-error *ngIf="invitation.get('email')?.hasError('required')">
+              Email is required
+            </mat-error>
+            <mat-error *ngIf="invitation.get('email')?.hasError('email')">
+              Please enter a valid email
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="name-field">
+            <mat-label>Name (Optional)</mat-label>
+            <input matInput formControlName="name" 
+                   placeholder="John Doe">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="role-field">
+            <mat-label>Role</mat-label>
+            <mat-select formControlName="role">
+              <mat-option *ngFor="let role of roles" [value]="role.value">
+                <div class="role-option">
+                  <span class="role-label">{{ role.label }}</span>
+                  <span class="role-desc">{{ role.description }}</span>
+                </div>
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="invitation-actions">
+          <button mat-icon-button 
+                  (click)="removeInvitation(i)"
+                  [disabled]="invitations.length <= 1"
+                  type="button">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="add-invitation">
+      <button mat-button (click)="addInvitation()" type="button">
+        <mat-icon>add</mat-icon>
+        Add Another Member
+      </button>
+    </div>
+  </form>
+
+  <div class="skip-info" *ngIf="invitations.length === 1 && !invitations.at(0)?.get('email')?.value">
+    <mat-icon>info</mat-icon>
+    <div class="skip-text">
+      <strong>No team members to invite?</strong>
+      <p>You can skip this step and invite team members later from your organization dashboard.</p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,139 @@
+<div class="review-step" *ngIf="data">
+  <div class="step-header">
+    <h2>Review & Confirm</h2>
+    <p>Please review your organization configuration before proceeding.</p>
+  </div>
+
+  <div class="review-sections">
+    <!-- Organization Details -->
+    <div class="review-section">
+      <div class="section-header">
+        <mat-icon>business</mat-icon>
+        <h3>Organization Details</h3>
+      </div>
+      
+      <div class="section-content">
+        <div class="detail-item">
+          <span class="detail-label">Name:</span>
+          <span class="detail-value">{{ data.organization.name }}</span>
+        </div>
+        
+        <div class="detail-item" *ngIf="data.organization.description">
+          <span class="detail-label">Description:</span>
+          <span class="detail-value">{{ data.organization.description }}</span>
+        </div>
+        
+        <div class="detail-item">
+          <span class="detail-label">Authentication:</span>
+          <span class="detail-value">{{ getAuthProviderName(data.organization.authProvider?.type || '') }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Repository Connections -->
+    <div class="review-section">
+      <div class="section-header">
+        <mat-icon>source</mat-icon>
+        <h3>Repository Connections</h3>
+      </div>
+      
+      <div class="section-content">
+        <div *ngIf="data.repositories.length > 0" class="repositories-list">
+          <div class="detail-item">
+            <span class="detail-label">Connected Repositories:</span>
+            <span class="detail-value">{{ data.repositories.length }} selected</span>
+          </div>
+          
+          <div class="repository-items">
+            <div *ngFor="let repo of data.repositories" class="repository-item">
+              <mat-icon [class]="repo.private ? 'private-icon' : 'public-icon'">
+                {{ repo.private ? 'lock' : 'public' }}
+              </mat-icon>
+              <span class="repo-name">{{ repo.full_name }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div *ngIf="data.repositories.length === 0" class="no-items">
+          <mat-icon>info</mat-icon>
+          <span>No repositories will be connected initially</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Team Members -->
+    <div class="review-section">
+      <div class="section-header">
+        <mat-icon>group_add</mat-icon>
+        <h3>Team Members</h3>
+      </div>
+      
+      <div class="section-content">
+        <div *ngIf="data.teamMembers.length > 0" class="team-members-list">
+          <div class="detail-item">
+            <span class="detail-label">Invitations to send:</span>
+            <span class="detail-value">{{ data.teamMembers.length }}</span>
+          </div>
+          
+          <div class="member-items">
+            <div *ngFor="let member of data.teamMembers" class="member-item">
+              <div class="member-info">
+                <span class="member-email">{{ member.email }}</span>
+                <span class="member-name" *ngIf="member.name">({{ member.name }})</span>
+              </div>
+              <mat-chip [class]="'role-chip-' + member.role">{{ member.role }}</mat-chip>
+            </div>
+          </div>
+        </div>
+        
+        <div *ngIf="data.teamMembers.length === 0" class="no-items">
+          <mat-icon>info</mat-icon>
+          <span>No team member invitations will be sent</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <div class="review-section">
+      <div class="section-header">
+        <mat-icon>settings</mat-icon>
+        <h3>Organization Settings</h3>
+      </div>
+      
+      <div class="section-content">
+        <div class="detail-item">
+          <span class="detail-label">Default Query Visibility:</span>
+          <span class="detail-value">{{ getVisibilityLabel(data.settings.defaultQueryVisibility) }}</span>
+        </div>
+        
+        <div class="detail-item">
+          <span class="detail-label">Repository Integration:</span>
+          <span class="detail-value">{{ data.settings.allowRepositoryIntegration ? 'Enabled' : 'Disabled' }}</span>
+        </div>
+        
+        <div class="detail-item">
+          <span class="detail-label">Query Approval Required:</span>
+          <span class="detail-value">{{ data.settings.requireApprovalForQueries ? 'Yes' : 'No' }}</span>
+        </div>
+        
+        <div class="detail-item">
+          <span class="detail-label">Audit Logging:</span>
+          <span class="detail-value">{{ data.settings.enableAuditLogging ? 'Enabled' : 'Disabled' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation Notice -->
+  <div class="confirmation-notice">
+    <mat-icon color="primary">check_circle</mat-icon>
+    <div class="notice-content">
+      <strong>Ready to Create Organization</strong>
+      <p>
+        Your organization "{{ data.organization.name }}" will be created with the configuration above.
+        {{ data.teamMembers.length > 0 ? 'Team member invitations will be sent automatically.' : '' }}
+        You can modify these settings later from your organization dashboard.
+      </p>
+    </div>
+  </div>
+</div>
