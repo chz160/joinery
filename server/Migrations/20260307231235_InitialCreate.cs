@@ -419,8 +419,8 @@ namespace JoineryServer.Migrations
                 columns: new[] { "Id", "CreatedAt", "CreatedBy", "DatabaseType", "Description", "IsActive", "Name", "SqlQuery", "Tags", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { 1, new DateTime(2026, 3, 7, 23, 12, 35, 434, DateTimeKind.Utc).AddTicks(8415), "system", "PostgreSQL", "Retrieves all active users", true, "Sample User Query", "SELECT * FROM users WHERE active = 1", "users,basic", new DateTime(2026, 3, 7, 23, 12, 35, 434, DateTimeKind.Utc).AddTicks(8416) },
-                    { 2, new DateTime(2026, 3, 7, 23, 12, 35, 434, DateTimeKind.Utc).AddTicks(8425), "system", "MySQL", "Shows user registration counts by date", true, "User Count by Registration Date", "SELECT DATE(created_at) as registration_date, COUNT(*) as user_count FROM users GROUP BY DATE(created_at) ORDER BY registration_date", "analytics,users,count", new DateTime(2026, 3, 7, 23, 12, 35, 434, DateTimeKind.Utc).AddTicks(8425) }
+                    { 1, new DateTime(2026, 3, 7, 23, 12, 35, 434, DateTimeKind.Utc).AddTicks(8415), "system", "PostgreSQL", "Retrieves all active users", true, "Sample User Query", "SELECT * FROM \"Users\" WHERE \"IsActive\" = TRUE", "users,basic", new DateTime(2026, 3, 7, 23, 12, 35, 434, DateTimeKind.Utc).AddTicks(8416) },
+                    { 2, new DateTime(2026, 3, 7, 23, 12, 35, 434, DateTimeKind.Utc).AddTicks(8425), "system", "PostgreSQL", "Shows user registration counts by date", true, "User Count by Registration Date", "SELECT DATE(\"CreatedAt\") AS \"RegistrationDate\", COUNT(*) AS \"UserCount\" FROM \"Users\" GROUP BY DATE(\"CreatedAt\") ORDER BY \"RegistrationDate\"", "analytics,users,count", new DateTime(2026, 3, 7, 23, 12, 35, 434, DateTimeKind.Utc).AddTicks(8425) }
                 });
 
             migrationBuilder.CreateIndex(
