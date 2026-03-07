@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using JoineryServer.Models;
 
@@ -18,6 +19,10 @@ public class DatabaseQueryConfiguration : IEntityTypeConfiguration<DatabaseQuery
             .HasConversion(
                 v => string.Join(',', v ?? new List<string>()),
                 v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList()
-            );
+            )
+            .Metadata.SetValueComparer(new ValueComparer<List<string>>(
+                (a, b) => a != null && b != null && a.SequenceEqual(b),
+                v => v == null ? 0 : v.Aggregate(0, (a, s) => HashCode.Combine(a, s.GetHashCode())),
+                v => v == null ? new List<string>() : v.ToList()));
     }
 }

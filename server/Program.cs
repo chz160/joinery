@@ -15,9 +15,20 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-// Add Entity Framework
+// Add Entity Framework — use PostgreSQL when a connection string is provided,
+// otherwise fall back to the in-memory provider (useful for testing / quick start).
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<JoineryDbContext>(options =>
-    options.UseInMemoryDatabase("JoineryDatabase"));
+{
+    if (!string.IsNullOrWhiteSpace(connectionString))
+        options.UseNpgsql(connectionString,
+            npgsql => npgsql.MigrationsAssembly(typeof(JoineryDbContext).Assembly.GetName().Name));
+    else
+        options.UseInMemoryDatabase("JoineryDatabase");
+});
+
+// Migration management service
+builder.Services.AddScoped<IMigrationService, MigrationService>();
 
 builder.Services.AddControllers();
 
@@ -229,12 +240,11 @@ builder.Services.AddSingleton<IRateLimitingService, RateLimitingService>();
 
 var app = builder.Build();
 
-// Seed database in development
-if (app.Environment.IsDevelopment())
+// Apply / ensure database on startup
+using (var scope = app.Services.CreateScope())
 {
-    using var scope = app.Services.CreateScope();
-    var context = scope.ServiceProvider.GetRequiredService<JoineryDbContext>();
-    await context.Database.EnsureCreatedAsync();
+    var migrationService = scope.ServiceProvider.GetRequiredService<IMigrationService>();
+    await migrationService.ApplyMigrationsAsync(forceProduction: false);
 }
 
 // Configure the HTTP request pipeline.
