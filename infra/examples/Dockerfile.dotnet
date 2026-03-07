@@ -1,0 +1,56 @@
+# Example multi-stage Dockerfile for Joinery Server (.NET 8 Web API)
+# Based on the base image provided in docker/base/Dockerfile.dotnet
+
+# Stage 1: Build environment
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# Copy project files first for better Docker layer caching
+COPY *.csproj ./
+RUN dotnet restore
+
+# Copy source code
+COPY . .
+
+# Build the application
+RUN dotnet build -c Release -o /app/build
+
+# Run tests (optional - uncomment if tests exist)
+# RUN dotnet test --no-build --verbosity normal
+
+# Stage 2: Publish
+FROM build AS publish
+RUN dotnet publish -c Release -o /app/publish --no-restore
+
+# Stage 3: Runtime
+FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS final
+
+# Install curl for health checks and CA certificates
+RUN apk add --no-cache curl ca-certificates
+
+# Create non-root user
+RUN addgroup -g 1001 -S dotnet && \
+    adduser -S joinery -u 1001 -G dotnet
+
+WORKDIR /app
+
+# Copy published application
+COPY --from=publish --chown=joinery:dotnet /app/publish .
+
+# Switch to non-root user
+USER joinery
+
+# Health check - adjust the path based on your application's health endpoint
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD curl -f http://localhost:8080/health || curl -f http://localhost:5000/health || exit 1
+
+# Expose ports (adjust based on your application configuration)
+EXPOSE 8080
+EXPOSE 5000
+
+# Set environment variables
+ENV ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_ENVIRONMENT=Production
+
+# Start the application - replace "JoineryServer.dll" with your actual assembly name
+ENTRYPOINT ["dotnet", "JoineryServer.dll"]

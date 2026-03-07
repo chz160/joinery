@@ -1,0 +1,17 @@
+# Joinery Infrastructure Configuration
+
+# Environment-specific configurations
+environments:
+  dev:
+    domain: dev.joinery.com
+    
+  staging:
+    domain: staging.joinery.com
+  
+  prod:
+    domain: joinery.com
+
+# Docker registry configuration
+docker:
+  registry: registry.pocketfulofdoom.com
+  organization: ""

@@ -1,0 +1,41 @@
+# Infrastructure artifacts
+*.log
+*.tmp
+.env
+.env.local
+.env.*.local
+
+# Docker
+.dockerignore
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+terraform.tfvars.json
+
+# Kubernetes
+*.kubeconfig
+kubeconfig
+secrets/
+
+# CI/CD artifacts
+build/
+dist/
+deploy/tmp/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
