@@ -1,6 +1,0 @@
-@JoineryServer_HostAddress = http://localhost:5256
-
-GET {{JoineryServer_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
