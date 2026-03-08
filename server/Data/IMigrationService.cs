@@ -39,6 +39,7 @@ public sealed record MigrationApplyResult
 {
     public bool Applied { get; init; }
     public IReadOnlyList<string> MigrationsApplied { get; init; } = [];
+    public IReadOnlyList<string> PendingMigrations { get; init; } = [];
     public string Message { get; init; } = string.Empty;
 }
 

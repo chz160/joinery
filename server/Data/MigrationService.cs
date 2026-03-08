@@ -61,18 +61,29 @@ public sealed class MigrationService : IMigrationService
     // Dry run
     // -------------------------------------------------------------------------
 
-    public Task<string> GenerateScriptAsync()
+    public async Task<string> GenerateScriptAsync()
     {
         if (!_context.Database.IsRelational())
-            return Task.FromResult("-- In-memory database: no SQL script available.");
+            return "-- In-memory database: no SQL script available.";
+
+        var pending = (await _context.Database.GetPendingMigrationsAsync()).ToList();
+        if (pending.Count == 0)
+            return "-- No pending migrations.";
+
+        var applied = (await _context.Database.GetAppliedMigrationsAsync()).ToList();
+        var lastApplied = applied.LastOrDefault();
 
         var migrator = _context.Database.GetService<IMigrator>();
         // Idempotent wraps each statement in an existence check so the script
-        // can be safely re-run.
-        var script = migrator.GenerateScript(options: MigrationsSqlGenerationOptions.Idempotent);
-        return Task.FromResult(string.IsNullOrWhiteSpace(script)
+        // can be safely re-run, even if some migrations were applied manually.
+        var script = migrator.GenerateScript(
+            fromMigration: lastApplied,
+            toMigration: null,
+            options: MigrationsSqlGenerationOptions.Idempotent);
+
+        return string.IsNullOrWhiteSpace(script)
             ? "-- No pending migrations."
-            : script);
+            : script;
     }
 
     // -------------------------------------------------------------------------
@@ -110,7 +121,7 @@ public sealed class MigrationService : IMigrationService
             return new MigrationApplyResult
             {
                 Applied = false,
-                MigrationsApplied = pending,
+                PendingMigrations = pending,
                 Message = $"Production safeguard: {pending.Count} migration(s) pending. " +
                           "POST /api/migrations/apply to apply."
             };
