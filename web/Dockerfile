@@ -2,8 +2,8 @@
 FROM node:20-alpine AS builder
 
 # Build arguments for production environment configuration
-ARG API_BASE_URL=https://dr2dbnqvs7.us-east-1.awsapprunner.com/api
-ARG OAUTH_REDIRECT_URI=https://amkj3n4pw9.us-east-1.awsapprunner.com/auth/callback
+ARG API_BASE_URL=https://api.jnry.io
+ARG OAUTH_REDIRECT_URI=https://app.jnry.io/auth/callback
 ARG OAUTH_GITHUB_CLIENT_ID=your-github-client-id-prod
 
 # Set working directory

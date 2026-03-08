@@ -1,8 +1,8 @@
 export const environment = {
   production: true,
-  apiBaseUrl: 'https://dr2dbnqvs7.us-east-1.awsapprunner.com/api',
+  apiBaseUrl: 'https://api.jnry.io',
   oauth: {
-    redirectUri: 'https://amkj3n4pw9.us-east-1.awsapprunner.com/auth/callback',
+    redirectUri: 'https://app.jnry.io/auth/callback',
     github: {
       clientId: 'Ov23liryy80w9sOWPytU',
       scope: 'user:email read:user'
