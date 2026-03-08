@@ -1,5 +1,5 @@
 using JoineryServer.Models;
-using System.Text;
+using System.Net;
 using System.Text.Json;
 
 namespace JoineryServer.Services;
@@ -14,31 +14,51 @@ public interface IGitRepositoryService
 
 public class GitRepositoryService : IGitRepositoryService
 {
-    private readonly HttpClient _httpClient;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<GitRepositoryService> _logger;
 
-    public GitRepositoryService(HttpClient httpClient, ILogger<GitRepositoryService> logger)
+    private const long MaxFileSizeBytes = 1_048_576; // 1 MB
+    private const int MaxDirectoryDepth = 10;
+    private const int MaxRetries = 3;
+
+    private static readonly JsonSerializerOptions CamelCaseOptions =
+        new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+
+    public GitRepositoryService(IHttpClientFactory httpClientFactory, ILogger<GitRepositoryService> logger)
     {
-        _httpClient = httpClient;
+        _httpClientFactory = httpClientFactory;
         _logger = logger;
+    }
+
+    /// <summary>Returns true when <paramref name="url"/> is a recognised GitHub repository URL.</summary>
+    public static bool IsValidRepositoryUrl(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return false;
+        var (owner, repo) = ParseGitHubUrl(url);
+        return !string.IsNullOrEmpty(owner) && !string.IsNullOrEmpty(repo);
     }
 
     public async Task<List<GitQueryFile>> SyncRepositoryAsync(GitRepository repository)
     {
         _logger.LogInformation("Syncing repository {RepositoryUrl}", repository.RepositoryUrl);
 
+        if (!IsValidRepositoryUrl(repository.RepositoryUrl))
+        {
+            _logger.LogError("Invalid or unsupported repository URL: {RepositoryUrl}", repository.RepositoryUrl);
+            return [];
+        }
+
         try
         {
             var queryFiles = new List<GitQueryFile>();
 
-            // For now, we'll support GitHub repositories using the GitHub API
             if (repository.RepositoryUrl.Contains("github.com"))
             {
                 queryFiles = await SyncGitHubRepositoryAsync(repository);
             }
             else
             {
-                _logger.LogWarning("Repository type not supported: {RepositoryUrl}", repository.RepositoryUrl);
+                _logger.LogWarning("Repository provider not yet supported: {RepositoryUrl}", repository.RepositoryUrl);
             }
 
             return queryFiles;
@@ -46,35 +66,24 @@ public class GitRepositoryService : IGitRepositoryService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error syncing repository {RepositoryUrl}", repository.RepositoryUrl);
-            return new List<GitQueryFile>();
+            return [];
         }
     }
 
     private async Task<List<GitQueryFile>> SyncGitHubRepositoryAsync(GitRepository repository)
     {
         var queryFiles = new List<GitQueryFile>();
-
-        // Extract owner and repo name from GitHub URL
         var (owner, repoName) = ParseGitHubUrl(repository.RepositoryUrl);
-        if (string.IsNullOrEmpty(owner) || string.IsNullOrEmpty(repoName))
-        {
-            _logger.LogError("Invalid GitHub URL: {RepositoryUrl}", repository.RepositoryUrl);
-            return queryFiles;
-        }
 
-        // Configure HTTP client for GitHub API
-        _httpClient.DefaultRequestHeaders.Clear();
-        _httpClient.DefaultRequestHeaders.Add("User-Agent", "JoineryServer/1.0");
-
-        if (!string.IsNullOrEmpty(repository.AccessToken))
-        {
-            _httpClient.DefaultRequestHeaders.Add("Authorization", $"token {repository.AccessToken}");
-        }
-
+        var httpClient = _httpClientFactory.CreateClient();
         try
         {
-            // Get repository contents recursively
-            await GetRepositoryContentsRecursive(repository, owner, repoName, "", queryFiles);
+            await GetRepositoryContentsRecursive(httpClient, repository, owner, repoName, "", queryFiles, depth: 0);
+        }
+        catch (GitHubRateLimitException ex)
+        {
+            _logger.LogError(ex, "GitHub API rate limit exceeded for repository {Owner}/{Repo}. Reset at {ResetTime}",
+                owner, repoName, ex.ResetAt?.ToString("O") ?? "unknown");
         }
         catch (Exception ex)
         {
@@ -84,20 +93,36 @@ public class GitRepositoryService : IGitRepositoryService
         return queryFiles;
     }
 
-    private async Task GetRepositoryContentsRecursive(GitRepository repository, string owner, string repoName, string path, List<GitQueryFile> queryFiles)
+    private async Task GetRepositoryContentsRecursive(
+        HttpClient httpClient,
+        GitRepository repository,
+        string owner,
+        string repoName,
+        string path,
+        List<GitQueryFile> queryFiles,
+        int depth)
     {
-        var branch = repository.Branch ?? "main";
-        var url = $"https://api.github.com/repos/{owner}/{repoName}/contents/{path}?ref={branch}";
+        if (depth > MaxDirectoryDepth)
+        {
+            _logger.LogWarning("Maximum directory depth ({MaxDepth}) reached at path '{Path}'; skipping deeper contents",
+                MaxDirectoryDepth, path);
+            return;
+        }
 
-        var response = await _httpClient.GetAsync(url);
+        var branch = repository.Branch ?? "main";
+        var url = $"https://api.github.com/repos/{owner}/{repoName}/contents/{path}?ref={Uri.EscapeDataString(branch)}";
+
+        var response = await ExecuteWithRetryAsync(httpClient, url, repository.AccessToken);
+
         if (!response.IsSuccessStatusCode)
         {
-            _logger.LogWarning("Failed to get contents for path {Path}: {StatusCode}", path, response.StatusCode);
+            ThrowIfRateLimited(response);
+            LogHttpFailure(response.StatusCode, repository.RepositoryUrl, path);
             return;
         }
 
         var jsonContent = await response.Content.ReadAsStringAsync();
-        var contents = JsonSerializer.Deserialize<GitHubContent[]>(jsonContent, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        var contents = JsonSerializer.Deserialize<GitHubContent[]>(jsonContent, CamelCaseOptions);
 
         if (contents == null) return;
 
@@ -105,7 +130,14 @@ public class GitRepositoryService : IGitRepositoryService
         {
             if (content.Type == "file" && IsQueryFile(content.Name))
             {
-                var queryFile = await CreateQueryFileFromContent(repository, content, owner, repoName);
+                if (content.Size > MaxFileSizeBytes)
+                {
+                    _logger.LogWarning("Skipping file '{Path}' ({Size:N0} bytes) — exceeds {LimitMb} MB limit",
+                        content.Path, content.Size, MaxFileSizeBytes / 1_048_576);
+                    continue;
+                }
+
+                var queryFile = await CreateQueryFileFromContent(httpClient, repository, content, owner, repoName);
                 if (queryFile != null)
                 {
                     queryFiles.Add(queryFile);
@@ -113,35 +145,39 @@ public class GitRepositoryService : IGitRepositoryService
             }
             else if (content.Type == "dir")
             {
-                await GetRepositoryContentsRecursive(repository, owner, repoName, content.Path, queryFiles);
+                await GetRepositoryContentsRecursive(httpClient, repository, owner, repoName, content.Path, queryFiles, depth + 1);
             }
         }
     }
 
-    private async Task<GitQueryFile?> CreateQueryFileFromContent(GitRepository repository, GitHubContent content, string owner, string repoName)
+    private async Task<GitQueryFile?> CreateQueryFileFromContent(
+        HttpClient httpClient,
+        GitRepository repository,
+        GitHubContent content,
+        string owner,
+        string repoName)
     {
         try
         {
-            // Get file content
-            var fileResponse = await _httpClient.GetAsync(content.DownloadUrl);
+            var fileResponse = await ExecuteWithRetryAsync(httpClient, content.DownloadUrl, repository.AccessToken);
             if (!fileResponse.IsSuccessStatusCode)
             {
-                _logger.LogWarning("Failed to download file {Path}", content.Path);
+                _logger.LogWarning("Failed to download file '{Path}': {StatusCode}", content.Path, fileResponse.StatusCode);
                 return null;
             }
 
             var sqlContent = await fileResponse.Content.ReadAsStringAsync();
-
-            // Get commit information for the file
-            var commitInfo = await GetLatestCommitForFile(owner, repoName, content.Path, repository.Branch ?? "main");
+            var commitInfo = await GetLatestCommitForFile(httpClient, owner, repoName, content.Path, repository.Branch ?? "main", repository.AccessToken);
 
             return new GitQueryFile
             {
                 GitRepositoryId = repository.Id,
                 FilePath = content.Path,
                 FileName = content.Name,
+                Description = ExtractCommentHeaderValue(sqlContent, "description:"),
                 SqlContent = sqlContent,
-                DatabaseType = ExtractDatabaseTypeFromFileName(content.Name),
+                DatabaseType = ExtractCommentHeaderValue(sqlContent, "database:", "db:")
+                               ?? ExtractDatabaseTypeFromFileName(content.Name),
                 Tags = ExtractTagsFromContent(sqlContent),
                 LastCommitSha = content.Sha,
                 LastCommitAuthor = commitInfo?.Author,
@@ -152,22 +188,28 @@ public class GitRepositoryService : IGitRepositoryService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating query file from content {Path}", content.Path);
+            _logger.LogError(ex, "Error creating query file from content '{Path}'", content.Path);
             return null;
         }
     }
 
-    private async Task<CommitInfo?> GetLatestCommitForFile(string owner, string repoName, string filePath, string branch)
+    private async Task<CommitInfo?> GetLatestCommitForFile(
+        HttpClient httpClient,
+        string owner,
+        string repoName,
+        string filePath,
+        string branch,
+        string? accessToken)
     {
         try
         {
-            var url = $"https://api.github.com/repos/{owner}/{repoName}/commits?path={filePath}&sha={branch}&per_page=1";
-            var response = await _httpClient.GetAsync(url);
+            var url = $"https://api.github.com/repos/{owner}/{repoName}/commits?path={Uri.EscapeDataString(filePath)}&sha={Uri.EscapeDataString(branch)}&per_page=1";
+            var response = await ExecuteWithRetryAsync(httpClient, url, accessToken);
 
             if (!response.IsSuccessStatusCode) return null;
 
             var jsonContent = await response.Content.ReadAsStringAsync();
-            var commits = JsonSerializer.Deserialize<GitHubCommit[]>(jsonContent, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+            var commits = JsonSerializer.Deserialize<GitHubCommit[]>(jsonContent, CamelCaseOptions);
 
             var latestCommit = commits?.FirstOrDefault();
             if (latestCommit?.Commit?.Author != null)
@@ -181,10 +223,114 @@ public class GitRepositoryService : IGitRepositoryService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting commit info for file {FilePath}", filePath);
+            _logger.LogError(ex, "Error getting commit info for file '{FilePath}'", filePath);
         }
 
         return null;
+    }
+
+    /// <summary>Sends a GET request to <paramref name="url"/> with retries for transient failures.</summary>
+    private async Task<HttpResponseMessage> ExecuteWithRetryAsync(HttpClient httpClient, string url, string? accessToken)
+    {
+        for (int attempt = 0; attempt <= MaxRetries; attempt++)
+        {
+            HttpResponseMessage? response = null;
+            try
+            {
+                using var request = BuildGitHubRequest(url, accessToken);
+                response = await httpClient.SendAsync(request);
+
+                // Do not retry on rate-limit or client errors — propagate immediately.
+                if (IsRateLimited(response))
+                {
+                    ThrowIfRateLimited(response);
+                }
+
+                // Success or non-retryable client error — return as-is.
+                if ((int)response.StatusCode < 500 || attempt == MaxRetries)
+                {
+                    return response;
+                }
+
+                // Server error — dispose and retry after exponential back-off.
+                var statusCode = response.StatusCode;
+                response.Dispose();
+                response = null;
+
+                var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt));
+                _logger.LogWarning("Transient server error {StatusCode} for '{Url}'; retrying in {Delay}s (attempt {Attempt}/{MaxRetries})",
+                    statusCode, url, delay.TotalSeconds, attempt + 1, MaxRetries);
+                await Task.Delay(delay);
+            }
+            catch (HttpRequestException ex) when (attempt < MaxRetries)
+            {
+                response?.Dispose();
+                var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt));
+                _logger.LogWarning(ex, "Network error for '{Url}'; retrying in {Delay}s (attempt {Attempt}/{MaxRetries})",
+                    url, delay.TotalSeconds, attempt + 1, MaxRetries);
+                await Task.Delay(delay);
+            }
+        }
+
+        throw new InvalidOperationException($"Failed to GET '{url}' after {MaxRetries} retries.");
+    }
+
+    private static HttpRequestMessage BuildGitHubRequest(string url, string? accessToken)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Add("User-Agent", "JoineryServer/1.0");
+        request.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
+        if (!string.IsNullOrEmpty(accessToken))
+        {
+            request.Headers.Add("Authorization", $"token {accessToken}");
+        }
+        return request;
+    }
+
+    private static bool IsRateLimited(HttpResponseMessage response)
+    {
+        if (response.StatusCode == (HttpStatusCode)429)
+            return true;
+
+        if (response.StatusCode == HttpStatusCode.Forbidden &&
+            response.Headers.TryGetValues("X-RateLimit-Remaining", out var values) &&
+            values.FirstOrDefault() == "0")
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static void ThrowIfRateLimited(HttpResponseMessage response)
+    {
+        if (!IsRateLimited(response)) return;
+
+        DateTime? resetAt = null;
+        if (response.Headers.TryGetValues("X-RateLimit-Reset", out var resetValues) &&
+            long.TryParse(resetValues.FirstOrDefault(), out var resetUnix))
+        {
+            resetAt = DateTimeOffset.FromUnixTimeSeconds(resetUnix).UtcDateTime;
+        }
+
+        throw new GitHubRateLimitException(resetAt);
+    }
+
+    private void LogHttpFailure(HttpStatusCode statusCode, string repositoryUrl, string path)
+    {
+        var message = statusCode switch
+        {
+            HttpStatusCode.Unauthorized =>
+                $"Authentication failed for repository '{repositoryUrl}'. Verify the access token has the required scopes.",
+            HttpStatusCode.Forbidden =>
+                $"Access denied for repository '{repositoryUrl}'. The token may lack sufficient permissions.",
+            HttpStatusCode.NotFound =>
+                $"Repository or path '{path}' not found at '{repositoryUrl}'. Check the URL and branch name.",
+            _ =>
+                $"Failed to get contents for path '{path}' in '{repositoryUrl}': {statusCode}"
+        };
+
+        _logger.LogWarning("{Message}", message);
     }
 
     public async Task<GitQueryFile?> GetQueryFileAsync(GitRepository repository, string filePath)
@@ -196,14 +342,12 @@ public class GitRepositoryService : IGitRepositoryService
     public async Task<List<string>> GetRepositoryFoldersAsync(GitRepository repository)
     {
         var queryFiles = await SyncRepositoryAsync(repository);
-        var folders = queryFiles
+        return queryFiles
             .Select(qf => Path.GetDirectoryName(qf.FilePath)?.Replace("\\", "/") ?? "")
             .Where(folder => !string.IsNullOrEmpty(folder))
             .Distinct()
-            .OrderBy(folder => folder)
+            .Order()
             .ToList();
-
-        return folders;
     }
 
     public async Task<List<GitQueryFile>> GetQueryFilesInFolderAsync(GitRepository repository, string folderPath = "")
@@ -212,7 +356,7 @@ public class GitRepositoryService : IGitRepositoryService
 
         if (string.IsNullOrEmpty(folderPath))
         {
-            return queryFiles.Where(qf => !qf.FilePath.Contains("/")).ToList();
+            return queryFiles.Where(qf => !qf.FilePath.Contains('/')).ToList();
         }
 
         var normalizedFolderPath = folderPath.Replace("\\", "/").TrimEnd('/');
@@ -229,18 +373,19 @@ public class GitRepositoryService : IGitRepositoryService
     {
         try
         {
-            // Support both https://github.com/owner/repo and git@github.com:owner/repo.git formats
-            if (url.StartsWith("https://github.com/"))
+            // https://github.com/owner/repo  or  https://github.com/owner/repo.git
+            if (url.StartsWith("https://github.com/", StringComparison.OrdinalIgnoreCase))
             {
-                var parts = url.Replace("https://github.com/", "").TrimEnd('/').Split('/');
+                var parts = url["https://github.com/".Length..].TrimEnd('/').Split('/');
                 if (parts.Length >= 2)
                 {
-                    return (parts[0], parts[1].Replace(".git", ""));
+                    return (parts[0], parts[1].Replace(".git", "", StringComparison.OrdinalIgnoreCase));
                 }
             }
-            else if (url.StartsWith("git@github.com:"))
+            // git@github.com:owner/repo.git
+            else if (url.StartsWith("git@github.com:", StringComparison.OrdinalIgnoreCase))
             {
-                var repoPath = url.Replace("git@github.com:", "").Replace(".git", "");
+                var repoPath = url["git@github.com:".Length..].Replace(".git", "", StringComparison.OrdinalIgnoreCase);
                 var parts = repoPath.Split('/');
                 if (parts.Length >= 2)
                 {
@@ -275,58 +420,103 @@ public class GitRepositoryService : IGitRepositoryService
         return null;
     }
 
+    /// <summary>
+    /// Scans the first 15 lines of a SQL file for comment headers matching any of the provided
+    /// <paramref name="keys"/> (e.g. <c>"description:"</c>) and returns the trimmed value after the key.
+    /// Returns <see langword="null"/> when no matching header is found.
+    /// </summary>
+    private static string? ExtractCommentHeaderValue(string content, params string[] keys)
+    {
+        var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        foreach (var line in lines.Take(15))
+        {
+            var trimmed = line.Trim();
+            if (!trimmed.StartsWith("--", StringComparison.Ordinal)) continue;
+
+            foreach (var key in keys)
+            {
+                var idx = trimmed.IndexOf(key, StringComparison.OrdinalIgnoreCase);
+                if (idx >= 0)
+                {
+                    var value = trimmed[(idx + key.Length)..].Trim();
+                    if (!string.IsNullOrEmpty(value)) return value;
+                }
+            }
+        }
+
+        return null;
+    }
+
     private static List<string>? ExtractTagsFromContent(string content)
     {
         var tags = new List<string>();
-
-        // Look for comment patterns that might contain tags
         var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-        foreach (var line in lines.Take(10)) // Only check first 10 lines for performance
+
+        foreach (var line in lines.Take(15))
         {
-            var trimmedLine = line.Trim();
-            if (trimmedLine.StartsWith("--") && trimmedLine.Contains("tags:", StringComparison.OrdinalIgnoreCase))
+            var trimmed = line.Trim();
+            if (!trimmed.StartsWith("--", StringComparison.Ordinal)) continue;
+
+            const string key = "tags:";
+            var idx = trimmed.IndexOf(key, StringComparison.OrdinalIgnoreCase);
+            if (idx >= 0)
             {
-                var tagsPart = trimmedLine.Substring(trimmedLine.IndexOf("tags:", StringComparison.OrdinalIgnoreCase) + 5).Trim();
+                var tagsPart = trimmed[(idx + key.Length)..].Trim();
                 var fileTags = tagsPart.Split(',', StringSplitOptions.RemoveEmptyEntries)
                     .Select(t => t.Trim())
-                    .Where(t => !string.IsNullOrEmpty(t))
-                    .ToList();
+                    .Where(t => !string.IsNullOrEmpty(t));
                 tags.AddRange(fileTags);
             }
         }
 
-        return tags.Any() ? tags : null;
+        return tags.Count > 0 ? tags : null;
     }
 
-    // Helper classes for JSON deserialization
-    private class GitHubContent
+    // ── GitHub API response models ────────────────────────────────────────────
+
+    private sealed class GitHubContent
     {
         public string Name { get; set; } = "";
         public string Path { get; set; } = "";
         public string Sha { get; set; } = "";
         public string Type { get; set; } = "";
         public string DownloadUrl { get; set; } = "";
+        public long Size { get; set; }
     }
 
-    private class GitHubCommit
+    private sealed class GitHubCommit
     {
         public GitHubCommitDetails Commit { get; set; } = new();
     }
 
-    private class GitHubCommitDetails
+    private sealed class GitHubCommitDetails
     {
         public GitHubAuthor Author { get; set; } = new();
     }
 
-    private class GitHubAuthor
+    private sealed class GitHubAuthor
     {
         public string Name { get; set; } = "";
         public DateTime Date { get; set; }
     }
 
-    private class CommitInfo
+    private sealed class CommitInfo
     {
         public string Author { get; set; } = "";
         public DateTime Date { get; set; }
+    }
+}
+
+/// <summary>Thrown when the GitHub API rate limit has been exceeded.</summary>
+public sealed class GitHubRateLimitException : Exception
+{
+    public DateTime? ResetAt { get; }
+
+    public GitHubRateLimitException(DateTime? resetAt)
+        : base(resetAt.HasValue
+            ? $"GitHub API rate limit exceeded. Limit resets at {resetAt.Value:O}."
+            : "GitHub API rate limit exceeded.")
+    {
+        ResetAt = resetAt;
     }
 }
