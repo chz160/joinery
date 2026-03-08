@@ -108,13 +108,13 @@ export class Auth {
    * Initiate GitHub OAuth flow
    */
   loginWithGitHub(): void {
-    // Generate PKCE state parameter for security
-    this.oauthState = this.generateRandomString(32);
-    sessionStorage.setItem('oauth_state', this.oauthState);
-
     if (!environment.oauth.github.clientId || environment.oauth.github.clientId === 'your-github-client-id') {
       throw new Error('GitHub OAuth is not configured');
     }
+
+    // Generate PKCE state parameter for security
+    this.oauthState = this.generateRandomString(32);
+    sessionStorage.setItem('oauth_state', this.oauthState);
 
     // Build GitHub OAuth URL
     const params = new URLSearchParams({
