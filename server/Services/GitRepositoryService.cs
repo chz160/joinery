@@ -52,7 +52,7 @@ public class GitRepositoryService : IGitRepositoryService
         {
             var queryFiles = new List<GitQueryFile>();
 
-            if (repository.RepositoryUrl.Contains("github.com"))
+            if (repository.RepositoryUrl.Contains("github.com", StringComparison.OrdinalIgnoreCase))
             {
                 queryFiles = await SyncGitHubRepositoryAsync(repository);
             }
@@ -62,6 +62,10 @@ public class GitRepositoryService : IGitRepositoryService
             }
 
             return queryFiles;
+        }
+        catch (GitHubRateLimitException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -84,6 +88,7 @@ public class GitRepositoryService : IGitRepositoryService
         {
             _logger.LogError(ex, "GitHub API rate limit exceeded for repository {Owner}/{Repo}. Reset at {ResetTime}",
                 owner, repoName, ex.ResetAt?.ToString("O") ?? "unknown");
+            throw;
         }
         catch (Exception ex)
         {
@@ -112,7 +117,7 @@ public class GitRepositoryService : IGitRepositoryService
         var branch = repository.Branch ?? "main";
         var url = $"https://api.github.com/repos/{owner}/{repoName}/contents/{path}?ref={Uri.EscapeDataString(branch)}";
 
-        var response = await ExecuteWithRetryAsync(httpClient, url, repository.AccessToken);
+        using var response = await ExecuteWithRetryAsync(httpClient, url, repository.AccessToken);
 
         if (!response.IsSuccessStatusCode)
         {
@@ -159,7 +164,7 @@ public class GitRepositoryService : IGitRepositoryService
     {
         try
         {
-            var fileResponse = await ExecuteWithRetryAsync(httpClient, content.DownloadUrl, repository.AccessToken);
+            using var fileResponse = await ExecuteWithRetryAsync(httpClient, content.DownloadUrl, repository.AccessToken);
             if (!fileResponse.IsSuccessStatusCode)
             {
                 _logger.LogWarning("Failed to download file '{Path}': {StatusCode}", content.Path, fileResponse.StatusCode);
@@ -204,7 +209,7 @@ public class GitRepositoryService : IGitRepositoryService
         try
         {
             var url = $"https://api.github.com/repos/{owner}/{repoName}/commits?path={Uri.EscapeDataString(filePath)}&sha={Uri.EscapeDataString(branch)}&per_page=1";
-            var response = await ExecuteWithRetryAsync(httpClient, url, accessToken);
+            using var response = await ExecuteWithRetryAsync(httpClient, url, accessToken);
 
             if (!response.IsSuccessStatusCode) return null;
 
@@ -262,9 +267,11 @@ public class GitRepositoryService : IGitRepositoryService
                     statusCode, url, delay.TotalSeconds, attempt + 1, MaxRetries);
                 await Task.Delay(delay);
             }
-            catch (HttpRequestException ex) when (attempt < MaxRetries)
+            catch (HttpRequestException ex)
             {
                 response?.Dispose();
+                if (attempt == MaxRetries)
+                    throw new InvalidOperationException($"Failed to GET '{url}' after {MaxRetries} retries.", ex);
                 var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt));
                 _logger.LogWarning(ex, "Network error for '{Url}'; retrying in {Delay}s (attempt {Attempt}/{MaxRetries})",
                     url, delay.TotalSeconds, attempt + 1, MaxRetries);
@@ -272,6 +279,7 @@ public class GitRepositoryService : IGitRepositoryService
             }
         }
 
+        // Fallback: reached only if MaxRetries < 0 (not possible with a positive constant).
         throw new InvalidOperationException($"Failed to GET '{url}' after {MaxRetries} retries.");
     }
 
@@ -427,7 +435,7 @@ public class GitRepositoryService : IGitRepositoryService
     /// </summary>
     private static string? ExtractCommentHeaderValue(string content, params string[] keys)
     {
-        var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var lines = content.Split('\n');
         foreach (var line in lines.Take(15))
         {
             var trimmed = line.Trim();
