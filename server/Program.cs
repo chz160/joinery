@@ -176,6 +176,10 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+// Add health check services
+builder.Services.Configure<JoineryServer.Models.HealthCheckConfig>(builder.Configuration.GetSection("HealthChecks"));
+builder.Services.AddSingleton<IHealthCheckService, HealthCheckService>();
+
 // Add rate limiting services
 builder.Services.Configure<RateLimitConfig>(builder.Configuration.GetSection("RateLimit"));
 
@@ -245,6 +249,10 @@ builder.Services.AddSingleton<IRateLimitStore>(serviceProvider =>
 builder.Services.AddSingleton<IRateLimitingService, RateLimitingService>();
 
 var app = builder.Build();
+
+// Eagerly instantiate the health check singleton so _startTime reflects actual process start,
+// not the time of the first incoming health probe.
+_ = app.Services.GetRequiredService<IHealthCheckService>();
 
 // Auto-apply pending migrations in Development only.
 // In Production, migrations must be applied intentionally via POST /api/migrations/apply.
