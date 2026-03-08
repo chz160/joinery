@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, of, interval, fromEvent, merge, timer } from 'rxjs';
+import { BehaviorSubject, Observable, fromEvent, merge } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { User } from '../../shared/models';
 import { environment } from '../../../environments/environment';
@@ -20,15 +20,6 @@ export class Auth {
   private sessionTimeout: any = null;
   private sessionWarningShown = false;
   private refreshTokenTimeout: any = null;
-
-  // Mock user for demo purposes - in real app this would come from backend
-  private mockUser: User = {
-    id: '1',
-    email: 'john.doe@example.com',
-    name: 'John Doe',
-    avatar: 'https://github.com/johndoe.png',
-    createdAt: new Date('2024-01-15')
-  };
 
   constructor(private http: HttpClient, private notificationService: NotificationService) {
     // Check for existing authentication state
@@ -121,11 +112,8 @@ export class Auth {
     this.oauthState = this.generateRandomString(32);
     sessionStorage.setItem('oauth_state', this.oauthState);
 
-    // For now, as a fallback when backend is not available, use mock login
     if (!environment.oauth.github.clientId || environment.oauth.github.clientId === 'your-github-client-id') {
-      console.warn('GitHub OAuth not configured, using mock login');
-      this.login().subscribe();
-      return;
+      throw new Error('GitHub OAuth is not configured');
     }
 
     // Build GitHub OAuth URL
@@ -181,35 +169,8 @@ export class Auth {
       
     } catch (error) {
       console.error('OAuth callback error:', error);
-      
-      // If backend is not available, fall back to mock authentication for development
-      if (error instanceof Error && error.message.includes('Failed to fetch')) {
-        console.warn('Backend not available, using mock authentication for development');
-        this.login().subscribe();
-        return;
-      }
-      
       throw error;
     }
-  }
-
-  /**
-   * Mock login for development/demo purposes
-   */
-  login(rememberMe: boolean = false): Observable<User> {
-    // For demo purposes - this would not exist in production
-    const storage = rememberMe ? localStorage : sessionStorage;
-    storage.setItem('demo_auth', 'true');
-    storage.setItem('auth_persistent', rememberMe.toString());
-    
-    // Clear other storage
-    const otherStorage = rememberMe ? sessionStorage : localStorage;
-    otherStorage.removeItem('demo_auth');
-    otherStorage.removeItem('auth_persistent');
-    
-    this.isAuthenticatedSubject.next(true);
-    this.currentUserSubject.next(this.mockUser);
-    return of(this.mockUser);
   }
 
   /**
@@ -262,10 +223,6 @@ export class Auth {
       storage.setItem('refresh_token', refreshToken);
     }
 
-    // Remove old demo auth if present
-    localStorage.removeItem('demo_auth');
-    sessionStorage.removeItem('demo_auth');
-
     // If switching storage types, clear the other storage
     const otherStorage = persistent ? sessionStorage : localStorage;
     this.clearStorageData(otherStorage);
@@ -279,7 +236,6 @@ export class Auth {
     storage.removeItem('jwt_token_expiry');
     storage.removeItem('refresh_token');
     storage.removeItem('current_user');
-    storage.removeItem('demo_auth');
     storage.removeItem('oauth_state');
     storage.removeItem('auth_persistent');
   }
@@ -324,17 +280,6 @@ export class Auth {
   getToken(): string | null {
     const storage = this.getStorage();
     return storage.getItem('jwt_token');
-  }
-
-  /**
-   * Toggle authentication state for demo purposes
-   */
-  toggleAuthForDemo(): void {
-    if (this.isAuthenticated) {
-      this.logout();
-    } else {
-      this.login(false).subscribe();
-    }
   }
 
   /**

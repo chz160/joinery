@@ -45,12 +45,4 @@ export class ConfigService {
   get isProduction(): boolean {
     return environment.production;
   }
-
-  /**
-   * Check if demo mode should be available
-   */
-  get isDemoEnabled(): boolean {
-    // Demo is available in development or when OAuth is not configured
-    return !this.isProduction || !this.isGitHubOAuthConfigured();
-  }
 }

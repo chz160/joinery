@@ -22,7 +22,6 @@ export interface IAuthState {
 export interface IAuthActions {
   loginWithGitHub(): void;
   logout(): Promise<void>;
-  toggleAuthForDemo(): void;
 }
 
 /**
@@ -41,19 +40,11 @@ export interface IOAuthHandler {
 }
 
 /**
- * Demo authentication interface
- */
-export interface IDemoAuth {
-  performDemoLogin(rememberMe?: boolean): Observable<User>;
-}
-
-/**
  * Main authentication service interface combining all concerns
  */
 export interface IAuthService extends 
   IAuthState, 
   IAuthActions, 
   ITokenProvider, 
-  IOAuthHandler, 
-  IDemoAuth {
+  IOAuthHandler {
 }

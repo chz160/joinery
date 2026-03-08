@@ -1,11 +1,4 @@
 <div class="landing-container">
-  <!-- Demo Toggle Button (for testing - remove in production) -->
-  <div class="demo-controls">
-    <button mat-stroked-button (click)="toggleAuthDemo()" class="demo-toggle">
-      <mat-icon>swap_horiz</mat-icon>
-      Toggle Auth State (Demo)
-    </button>
-  </div>
 
   <!-- Authenticated User View -->
   <div *ngIf="isAuthenticated$ | async" class="authenticated-view">
