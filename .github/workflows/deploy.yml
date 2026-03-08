@@ -1,232 +1,152 @@
 name: Deploy Joinery Stack
 
 on:
-  push:
+  workflow_run:
+    workflows:
+      - "Build and Push Server Image"
+      - "Build and Push Web Image"
+    types: [completed]
     branches: [main]
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Environment to deploy to'
-        required: true
-        default: 'prod'
-        type: choice
-        options:
-          - staging
-          - prod
 
 jobs:
-  deploy-stack:
+  deploy:
     runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.environment || 'prod' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+
+    permissions:
+      contents: read
+      id-token: write
+
+    env:
+      SERVER_ARN: ${{ vars.APPRUNNER_SERVER_ARN }}
+      WEB_ARN: ${{ vars.APPRUNNER_WEB_ARN }}
+      SERVER_URL: ${{ vars.APPRUNNER_SERVER_URL }}
+      WEB_URL: ${{ vars.APPRUNNER_WEB_URL }}
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
 
-      - name: Setup SSH
+      - name: Determine which services to check
+        id: services
         run: |
-          mkdir -p ~/.ssh
-          echo "$SSH_KEY" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -p "$SSH_PORT" "$SSH_HOST" >> ~/.ssh/known_hosts
-        env:
-          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
-
-      - name: Test SSH Connection
-        run: |
-          ssh -p "$SSH_PORT" "${SSH_USER}@${SSH_HOST}" 'echo "SSH connection successful"'
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
-
-      - name: Transfer Docker Compose files to server
-        run: |
-          scp -P "$SSH_PORT" \
-            infra/docker-compose.yml \
-            infra/config.yaml \
-            "${SSH_USER}@${SSH_HOST}:~/joinery-stack/"
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
-
-      - name: Deploy Stack via SSH
-        run: |
-          ssh -p "$SSH_PORT" "${SSH_USER}@${SSH_HOST}" << 'DEPLOY_EOF'
-          set -euo pipefail
-
-          cd ~/joinery-stack
-
-          echo "=== Joinery Stack Deployment ==="
-          echo "Timestamp: $(date)"
-          echo "==============================="
-
-          # Login to Docker Hub
-          if [[ -n "${DOCKER_HUB_ACCESS_TOKEN:-}" ]]; then
-            echo "Logging into Docker Hub..."
-            echo "$DOCKER_HUB_ACCESS_TOKEN" | docker login --password-stdin -u "$DOCKER_HUB_USERNAME"
+          TRIGGER="${{ github.event.workflow_run.name }}"
+          if [[ "$TRIGGER" == "Build and Push Server Image" ]]; then
+            echo "check_server=true" >> "$GITHUB_OUTPUT"
+            echo "check_web=false" >> "$GITHUB_OUTPUT"
+            echo "Triggered by server image build"
+          elif [[ "$TRIGGER" == "Build and Push Web Image" ]]; then
+            echo "check_server=false" >> "$GITHUB_OUTPUT"
+            echo "check_web=true" >> "$GITHUB_OUTPUT"
+            echo "Triggered by web image build"
           else
-            echo "Warning: DOCKER_HUB_ACCESS_TOKEN not provided, attempting without authentication"
+            echo "check_server=true" >> "$GITHUB_OUTPUT"
+            echo "check_web=true" >> "$GITHUB_OUTPUT"
+            echo "Manual trigger — checking both services"
           fi
 
-          # Create backup of current running containers
-          echo "Creating backup of current deployment..."
-          if docker-compose ps --services --filter status=running | grep -q .; then
-            docker-compose ps --format json > "backup-containers-$(date +%Y%m%d-%H%M%S).json" || true
-            echo "Current containers backed up"
-          else
-            echo "No running containers to backup"
-          fi
-
-          # Pull latest images
-          echo "Pulling latest images..."
-          docker-compose pull
-
-          # Restart the stack
-          echo "Restarting the Joinery stack..."
-          docker-compose up -d --remove-orphans
-
-          # Wait for services to be ready
-          echo "Waiting for services to start up..."
-          sleep 30
-
-          echo "Deployment completed!"
-          DEPLOY_EOF
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
-          DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
-          DOCKER_HUB_ACCESS_TOKEN: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-
-      - name: Verify Deployment
+      - name: Wait for App Runner deployment (server)
+        if: steps.services.outputs.check_server == 'true'
         run: |
-          ssh -p "$SSH_PORT" "${SSH_USER}@${SSH_HOST}" << 'VERIFY_EOF'
-          set -euo pipefail
-
-          cd ~/joinery-stack
-
-          echo "=== Deployment Verification ==="
-
-          FAILED_SERVICES=""
-
-          if ! docker-compose ps api --format json | jq -r '.[0].State' | grep -q "running"; then
-            echo "API service is not running properly"
-            FAILED_SERVICES="$FAILED_SERVICES api"
-          else
-            echo "API service is running"
-          fi
-
-          if ! docker-compose ps web --format json | jq -r '.[0].State' | grep -q "running"; then
-            echo "Web service is not running properly"
-            FAILED_SERVICES="$FAILED_SERVICES web"
-          else
-            echo "Web service is running"
-          fi
-
-          if ! docker-compose ps db --format json | jq -r '.[0].State' | grep -q "running"; then
-            echo "Database service is not running properly"
-            FAILED_SERVICES="$FAILED_SERVICES db"
-          else
-            echo "Database service is running"
-          fi
-
-          if [[ -n "$FAILED_SERVICES" ]]; then
-            echo "Some services failed to start: $FAILED_SERVICES"
-            for service in $FAILED_SERVICES; do
-              echo "=== Logs for $service ==="
-              docker-compose logs --tail=20 "$service" || echo "Could not retrieve logs for $service"
-            done
+          echo "Waiting for App Runner to deploy joinery-server..."
+          for i in $(seq 1 30); do
+            STATUS=$(aws apprunner describe-service \
+              --service-arn "$SERVER_ARN" \
+              --query 'Service.Status' --output text)
+            echo "  Attempt $i/30: Status = $STATUS"
+            if [[ "$STATUS" == "RUNNING" ]]; then
+              echo "Server service is running."
+              break
+            elif [[ "$STATUS" == *"FAILED"* ]]; then
+              echo "::error::Server deployment failed with status: $STATUS"
+              exit 1
+            fi
+            sleep 20
+          done
+          if [[ "$STATUS" != "RUNNING" ]]; then
+            echo "::error::Timed out waiting for server deployment"
             exit 1
           fi
 
-          echo "All services are running successfully!"
-          VERIFY_EOF
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
-
-      - name: Health Checks
+      - name: Wait for App Runner deployment (web)
+        if: steps.services.outputs.check_web == 'true'
         run: |
-          ssh -p "$SSH_PORT" "${SSH_USER}@${SSH_HOST}" << 'HEALTH_EOF'
-          set -euo pipefail
-
-          echo "=== Health Checks ==="
-
-          WEB_HEALTH_PASSED=false
-          for endpoint in "http://localhost/" "http://localhost/health" "http://localhost:80/"; do
-            if curl -sf --max-time 10 "$endpoint" > /dev/null 2>&1; then
-              echo "Web service health check passed: $endpoint"
-              WEB_HEALTH_PASSED=true
+          echo "Waiting for App Runner to deploy joinery-web..."
+          for i in $(seq 1 30); do
+            STATUS=$(aws apprunner describe-service \
+              --service-arn "$WEB_ARN" \
+              --query 'Service.Status' --output text)
+            echo "  Attempt $i/30: Status = $STATUS"
+            if [[ "$STATUS" == "RUNNING" ]]; then
+              echo "Web service is running."
               break
+            elif [[ "$STATUS" == *"FAILED"* ]]; then
+              echo "::error::Web deployment failed with status: $STATUS"
+              exit 1
             fi
+            sleep 20
           done
-
-          API_HEALTH_PASSED=false
-          for endpoint in "http://localhost:5256/" "http://localhost:5256/health"; do
-            if curl -sf --max-time 10 "$endpoint" > /dev/null 2>&1; then
-              echo "API service health check passed: $endpoint"
-              API_HEALTH_PASSED=true
-              break
-            fi
-          done
-
-          if [[ "$WEB_HEALTH_PASSED" == "true" && "$API_HEALTH_PASSED" == "true" ]]; then
-            echo "All health checks passed!"
-          else
-            echo "Some health checks failed, but containers are running"
-            echo "This might be expected if services are still starting up"
-            docker-compose logs --tail=10 api || true
-            docker-compose logs --tail=10 web || true
-          fi
-          HEALTH_EOF
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
-
-      - name: Show logs on failure
-        if: failure()
-        run: |
-          ssh -p "$SSH_PORT" "${SSH_USER}@${SSH_HOST}" << 'LOGS_EOF'
-          cd ~/joinery-stack
-          echo "=== Docker Compose Logs ==="
-          docker-compose logs --tail=50
-          echo "=== Container Status ==="
-          docker-compose ps
-          echo "=== System Resources ==="
-          docker system df
-          LOGS_EOF
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
-
-      - name: Rollback on failure
-        if: failure()
-        run: |
-          ssh -p "$SSH_PORT" "${SSH_USER}@${SSH_HOST}" << 'ROLLBACK_EOF'
-          cd ~/joinery-stack
-
-          echo "Stopping failed deployment..."
-          docker-compose down || true
-
-          BACKUP_FILE=$(ls -t backup-containers-*.json 2>/dev/null | head -n1 || echo "")
-
-          if [[ -n "$BACKUP_FILE" && -f "$BACKUP_FILE" ]]; then
-            echo "Found backup file: $BACKUP_FILE"
-            echo "Manual rollback may be needed - backup information preserved"
-          else
-            echo "No backup file found for automatic rollback"
+          if [[ "$STATUS" != "RUNNING" ]]; then
+            echo "::error::Timed out waiting for web deployment"
+            exit 1
           fi
 
-          echo "Rollback preparation completed - manual intervention may be required"
-          ROLLBACK_EOF
+      - name: Health check (server)
+        if: steps.services.outputs.check_server == 'true'
+        run: |
+          echo "Running health check on server API..."
+          HTTP_STATUS=$(curl -s -o /tmp/health.json -w "%{http_code}" \
+            --max-time 10 "$SERVER_URL/api/health")
+          if [[ "$HTTP_STATUS" -eq 200 ]]; then
+            echo "Server health check passed (HTTP $HTTP_STATUS)"
+            cat /tmp/health.json
+          else
+            echo "::error::Server health check failed (HTTP $HTTP_STATUS)"
+            cat /tmp/health.json || true
+            exit 1
+          fi
+
+      - name: Health check (web)
+        if: steps.services.outputs.check_web == 'true'
+        run: |
+          echo "Running health check on web frontend..."
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            --max-time 10 "$WEB_URL/")
+          if [[ "$HTTP_STATUS" -eq 200 ]]; then
+            echo "Web health check passed (HTTP $HTTP_STATUS)"
+          else
+            echo "::error::Web health check failed (HTTP $HTTP_STATUS)"
+            exit 1
+          fi
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          echo "## Deployment Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Trigger:** ${{ github.event.workflow_run.name || 'Manual dispatch' }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Service | URL | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---------|-----|--------|" >> "$GITHUB_STEP_SUMMARY"
+
+          if [[ "$CHECK_SERVER" == "true" ]]; then
+            SERVER_STATUS=$(aws apprunner describe-service \
+              --service-arn "$SERVER_ARN" \
+              --query 'Service.Status' --output text 2>/dev/null || echo "UNKNOWN")
+            echo "| Server API | $SERVER_URL | $SERVER_STATUS |" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          if [[ "$CHECK_WEB" == "true" ]]; then
+            WEB_STATUS=$(aws apprunner describe-service \
+              --service-arn "$WEB_ARN" \
+              --query 'Service.Status' --output text 2>/dev/null || echo "UNKNOWN")
+            echo "| Web Frontend | $WEB_URL | $WEB_STATUS |" >> "$GITHUB_STEP_SUMMARY"
+          fi
         env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
+          CHECK_SERVER: ${{ steps.services.outputs.check_server }}
+          CHECK_WEB: ${{ steps.services.outputs.check_web }}
