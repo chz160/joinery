@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="JoineryServer.Tests\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="AspNet.Security.OAuth.GitHub" Version="8.3.0" />
     <PackageReference Include="AWSSDK.IdentityManagement" Version="3.7.500" />
     <PackageReference Include="AWSSDK.SecurityToken" Version="3.7.500" />
