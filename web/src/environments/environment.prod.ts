@@ -1,10 +1,10 @@
 export const environment = {
   production: true,
-  apiBaseUrl: 'https://api.joinery.com',
+  apiBaseUrl: 'https://dr2dbnqvs7.us-east-1.awsapprunner.com',
   oauth: {
-    redirectUri: 'https://app.joinery.com/auth/callback',
+    redirectUri: 'https://amkj3n4pw9.us-east-1.awsapprunner.com/auth/callback',
     github: {
-      clientId: 'your-github-client-id-prod', // Replace with actual GitHub OAuth app client ID for production
+      clientId: 'your-github-client-id-prod',
       scope: 'user:email read:user'
     }
   }

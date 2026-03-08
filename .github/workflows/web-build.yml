@@ -76,6 +76,10 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            API_BASE_URL=${{ vars.APPRUNNER_SERVER_URL }}
+            OAUTH_REDIRECT_URI=${{ vars.APPRUNNER_WEB_URL }}/auth/callback
+            OAUTH_GITHUB_CLIENT_ID=${{ vars.OAUTH_GITHUB_CLIENT_ID }}
 
       - name: Image deployment summary
         if: github.event_name != 'pull_request'

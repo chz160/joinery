@@ -1,6 +1,11 @@
 # Multi-stage build for Angular application
 FROM node:20-alpine AS builder
 
+# Build arguments for production environment configuration
+ARG API_BASE_URL=https://dr2dbnqvs7.us-east-1.awsapprunner.com
+ARG OAUTH_REDIRECT_URI=https://amkj3n4pw9.us-east-1.awsapprunner.com/auth/callback
+ARG OAUTH_GITHUB_CLIENT_ID=your-github-client-id-prod
+
 # Set working directory
 WORKDIR /app
 
@@ -15,6 +20,10 @@ COPY src/ src/
 COPY angular.json ./
 COPY tsconfig*.json ./
 COPY public/ public/
+
+# Inject production environment values from build args
+RUN apk add --no-cache gettext && \
+    envsubst < src/environments/environment.prod.ts.template > src/environments/environment.prod.ts
 
 # Build using npx to directly call Angular CLI
 RUN npx --yes @angular/cli@20.3.2 build
