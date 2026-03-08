@@ -8,7 +8,22 @@
     </button>
   </div>
 
-  <div class="teams-grid">
+  <div *ngIf="isLoading" class="loading-container">
+    <mat-spinner diameter="40"></mat-spinner>
+  </div>
+
+  <div *ngIf="errorMessage" class="error-container">
+    <mat-icon color="warn">error</mat-icon>
+    <span>{{ errorMessage }}</span>
+    <button mat-button color="primary" (click)="loadTeams()">Retry</button>
+  </div>
+
+  <div *ngIf="!isLoading && !errorMessage && teams.length === 0" class="empty-state">
+    <mat-icon>groups</mat-icon>
+    <p>No teams yet. Create your first team to get started.</p>
+  </div>
+
+  <div class="teams-grid" *ngIf="!isLoading && teams.length > 0">
     <mat-card *ngFor="let team of teams" class="team-card">
       <mat-card-header>
         <mat-icon mat-card-avatar>groups</mat-icon>
