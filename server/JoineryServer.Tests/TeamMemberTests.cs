@@ -76,6 +76,30 @@ public class TeamMemberTests
     }
 
     [Fact]
+    public void GetEffectivePermissions_WhenExplicitPermissionsOverrideAdminRole_ReturnsExplicitPermissions()
+    {
+        var member = new TeamMember
+        {
+            Role = TeamRole.Administrator,
+            Permissions = TeamPermission.ReadQueries
+        };
+
+        var result = member.GetEffectivePermissions();
+
+        Assert.Equal(TeamPermission.ReadQueries, result);
+    }
+
+    [Fact]
+    public void None_DoesNotHaveAnyPermissionFlags()
+    {
+        Assert.False(TeamPermission.None.HasFlag(TeamPermission.ReadQueries));
+        Assert.False(TeamPermission.None.HasFlag(TeamPermission.CreateQueries));
+        Assert.False(TeamPermission.None.HasFlag(TeamPermission.EditQueries));
+        Assert.False(TeamPermission.None.HasFlag(TeamPermission.DeleteQueries));
+        Assert.False(TeamPermission.None.HasFlag(TeamPermission.ManageFolders));
+    }
+
+    [Fact]
     public void FullAccess_ContainsAllIndividualPermissions()
     {
         Assert.True(TeamPermission.FullAccess.HasFlag(TeamPermission.ReadQueries));
