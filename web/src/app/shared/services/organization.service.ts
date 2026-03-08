@@ -1,9 +1,48 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, of } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
-import { Organization, OrganizationSetupWizardData, GitHubRepository, TeamInvitation } from '../models';
+import { map } from 'rxjs/operators';
+import { Organization, OrganizationSetupWizardData, TeamInvitation, User } from '../models';
 import { environment } from '../../../environments/environment';
+
+// Internal DTOs matching the actual backend response shapes
+interface OrganizationListApiDto {
+  id: number;
+  name: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: { id: number; username: string; email: string; };
+  memberCount: number;
+  teamCount: number;
+  userRole: number;
+}
+
+interface OrganizationDetailApiDto {
+  id: number;
+  name: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: { id: number; username: string; email: string; };
+  members: {
+    id: number;
+    role: number;
+    joinedAt: string;
+    user: { id: number; username: string; email: string; fullName: string | null; };
+  }[];
+  userRole: number;
+}
+
+export interface CreateOrganizationRequest {
+  name: string;
+  description?: string;
+}
+
+export interface UpdateOrganizationRequest {
+  name: string;
+  description?: string;
+}
 
 /**
  * Service for managing organizations and setup wizard functionality.
@@ -18,6 +57,35 @@ export class OrganizationService {
   public wizardData$ = this.wizardDataSubject.asObservable();
 
   constructor(private http: HttpClient) {}
+
+  private mapListDto(dto: OrganizationListApiDto): Organization {
+    return {
+      id: String(dto.id),
+      name: dto.name,
+      description: dto.description,
+      ownerId: String(dto.createdBy.id),
+      members: [],
+      createdAt: new Date(dto.createdAt),
+      updatedAt: new Date(dto.updatedAt)
+    };
+  }
+
+  private mapDetailDto(dto: OrganizationDetailApiDto): Organization {
+    return {
+      id: String(dto.id),
+      name: dto.name,
+      description: dto.description,
+      ownerId: String(dto.createdBy.id),
+      members: dto.members.map(m => ({
+        id: String(m.user.id),
+        email: m.user.email,
+        name: m.user.fullName || m.user.username,
+        createdAt: new Date(m.joinedAt)
+      } as User)),
+      createdAt: new Date(dto.createdAt),
+      updatedAt: new Date(dto.updatedAt)
+    };
+  }
 
   /**
    * Check if user is a first-time user (has no organizations)
@@ -37,73 +105,33 @@ export class OrganizationService {
    * Get all organizations for the current user
    */
   getOrganizations(): Observable<Organization[]> {
-    // Mock data for development - replace with actual API call
-    return of([
-      {
-        id: '1',
-        name: 'Acme Corp',
-        description: 'Main corporate organization for all data analytics',
-        ownerId: 'user1',
-        members: [],
-        authProvider: {
-          type: 'microsoft',
-          config: { clientId: 'abc123', domain: 'acmecorp.onmicrosoft.com' }
-        },
-        createdAt: new Date('2024-01-15'),
-        updatedAt: new Date('2024-02-01')
-      },
-      {
-        id: '2',
-        name: 'Data Science Division',
-        description: 'Research and analytics team workspace',
-        ownerId: 'user1',
-        members: [],
-        authProvider: {
-          type: 'github',
-          config: { clientId: 'def456' }
-        },
-        createdAt: new Date('2024-01-20'),
-        updatedAt: new Date('2024-01-25')
-      }
-    ]);
-    // TODO: Replace with actual API call
-    // return this.http.get<Organization[]>(this.apiUrl);
+    return this.http.get<OrganizationListApiDto[]>(this.apiUrl).pipe(
+      map(dtos => dtos.map(dto => this.mapListDto(dto)))
+    );
   }
 
   /**
    * Create a new organization
    */
-  createOrganization(organization: Partial<Organization>): Observable<Organization> {
-    // Mock implementation - replace with actual API call
-    const newOrg: Organization = {
-      id: Date.now().toString(),
-      name: organization.name!,
-      description: organization.description,
-      ownerId: 'current-user-id', // This would come from auth service
-      members: [],
-      authProvider: organization.authProvider,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    
-    return of(newOrg);
-    // TODO: Replace with actual API call
-    // return this.http.post<Organization>(this.apiUrl, organization);
+  createOrganization(request: CreateOrganizationRequest): Observable<Organization> {
+    return this.http.post<OrganizationDetailApiDto>(this.apiUrl, request).pipe(
+      map(dto => this.mapDetailDto(dto))
+    );
   }
 
   /**
    * Update an existing organization
    */
-  updateOrganization(id: string, organization: Partial<Organization>): Observable<Organization> {
-    // TODO: Replace with actual API call
-    return this.http.put<Organization>(`${this.apiUrl}/${id}`, organization);
+  updateOrganization(id: string, request: UpdateOrganizationRequest): Observable<Organization> {
+    return this.http.put<OrganizationDetailApiDto>(`${this.apiUrl}/${id}`, request).pipe(
+      map(dto => this.mapDetailDto(dto))
+    );
   }
 
   /**
    * Delete an organization
    */
   deleteOrganization(id: string): Observable<void> {
-    // TODO: Replace with actual API call
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 
@@ -111,7 +139,6 @@ export class OrganizationService {
    * Check if organization name is unique
    */
   checkOrganizationNameUniqueness(name: string): Observable<boolean> {
-    // Mock implementation - replace with actual API call
     return this.getOrganizations().pipe(
       map(orgs => !orgs.some(org => 
         org.name.toLowerCase() === name.toLowerCase()
@@ -176,7 +203,10 @@ export class OrganizationService {
     }
 
     // Create the organization with all collected data
-    return this.createOrganization(wizardData.organization).pipe(
+    return this.createOrganization({
+      name: wizardData.organization.name ?? '',
+      description: wizardData.organization.description
+    }).pipe(
       map(organization => {
         // Mark wizard as completed
         this.updateWizardData({ completed: true });

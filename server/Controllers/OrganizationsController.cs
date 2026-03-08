@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -29,6 +30,23 @@ public class OrganizationsController : ControllerBase
             throw new UnauthorizedAccessException("Invalid user ID in token");
         }
         return userId;
+    }
+
+    private async Task<bool> OrganizationNameExistsAsync(string name, int? excludeId = null)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return false;
+        }
+
+        var normalizedName = name.Trim().ToUpperInvariant();
+
+        return await _context.Organizations
+            .AnyAsync(o =>
+                o.IsActive &&
+                o.Name != null &&
+                o.Name.Trim().ToUpperInvariant() == normalizedName &&
+                (excludeId == null || o.Id != excludeId));
     }
 
     /// <summary>
@@ -90,6 +108,7 @@ public class OrganizationsController : ControllerBase
             .Include(o => o.OrganizationMembers.Where(om => om.IsActive))
                 .ThenInclude(om => om.User)
             .Include(o => o.Teams.Where(t => t.IsActive))
+                .ThenInclude(t => t.TeamMembers.Where(tm => tm.IsActive))
             .FirstOrDefaultAsync();
 
         if (organization == null)
@@ -159,6 +178,18 @@ public class OrganizationsController : ControllerBase
         var currentUserId = GetCurrentUserId();
         _logger.LogInformation("User {UserId} creating organization: {OrganizationName}", currentUserId, request.Name);
 
+        request.Name = request.Name.Trim();
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            return BadRequest("Organization name cannot be blank");
+        }
+
+        // Check for duplicate organization name
+        if (await OrganizationNameExistsAsync(request.Name))
+        {
+            return Conflict("An organization with this name already exists");
+        }
+
         var organization = new Organization
         {
             Name = request.Name,
@@ -170,7 +201,15 @@ public class OrganizationsController : ControllerBase
         };
 
         _context.Organizations.Add(organization);
-        await _context.SaveChangesAsync();
+
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            return Conflict("An organization with this name already exists");
+        }
 
         // Add creator as administrator member
         var creatorMembership = new OrganizationMember
@@ -237,6 +276,12 @@ public class OrganizationsController : ControllerBase
         var currentUserId = GetCurrentUserId();
         _logger.LogInformation("User {UserId} updating organization {OrganizationId}", currentUserId, id);
 
+        request.Name = request.Name.Trim();
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            return BadRequest("Organization name cannot be blank");
+        }
+
         var organization = await _context.Organizations
             .Where(o => o.Id == id && o.IsActive)
             .Include(o => o.OrganizationMembers.Where(om => om.IsActive))
@@ -256,11 +301,24 @@ public class OrganizationsController : ControllerBase
             return Forbid();
         }
 
+        // Check for duplicate organization name (excluding this organization)
+        if (await OrganizationNameExistsAsync(request.Name, id))
+        {
+            return Conflict("An organization with this name already exists");
+        }
+
         organization.Name = request.Name;
         organization.Description = request.Description;
         organization.UpdatedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            return Conflict("An organization with this name already exists");
+        }
 
         return await GetOrganization(id);
     }
@@ -518,13 +576,23 @@ public class OrganizationsController : ControllerBase
 // Request DTOs
 public class CreateOrganizationRequest
 {
+    [Required]
+    [MinLength(2)]
+    [MaxLength(100)]
     public string Name { get; set; } = string.Empty;
+
+    [MaxLength(500)]
     public string? Description { get; set; }
 }
 
 public class UpdateOrganizationRequest
 {
+    [Required]
+    [MinLength(2)]
+    [MaxLength(100)]
     public string Name { get; set; } = string.Empty;
+
+    [MaxLength(500)]
     public string? Description { get; set; }
 }
 
