@@ -2,7 +2,7 @@
 FROM node:20-alpine AS builder
 
 # Build arguments for production environment configuration
-ARG API_BASE_URL=https://dr2dbnqvs7.us-east-1.awsapprunner.com
+ARG API_BASE_URL=https://dr2dbnqvs7.us-east-1.awsapprunner.com/api
 ARG OAUTH_REDIRECT_URI=https://amkj3n4pw9.us-east-1.awsapprunner.com/auth/callback
 ARG OAUTH_GITHUB_CLIENT_ID=your-github-client-id-prod
 

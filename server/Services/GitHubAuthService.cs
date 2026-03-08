@@ -18,10 +18,6 @@ public class GitHubAuthService : IGitHubAuthService
     {
         try
         {
-            _httpClient.DefaultRequestHeaders.Clear();
-            _httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
-            _httpClient.DefaultRequestHeaders.Add("User-Agent", "JoineryServer/1.0");
-
             var payload = new
             {
                 client_id = clientId,
@@ -30,13 +26,18 @@ public class GitHubAuthService : IGitHubAuthService
                 redirect_uri = redirectUri
             };
 
-            var content = new StringContent(
-                JsonSerializer.Serialize(payload),
-                System.Text.Encoding.UTF8,
-                "application/json"
-            );
+            using var request = new HttpRequestMessage(HttpMethod.Post, "https://github.com/login/oauth/access_token")
+            {
+                Content = new StringContent(
+                    JsonSerializer.Serialize(payload),
+                    System.Text.Encoding.UTF8,
+                    "application/json"
+                )
+            };
+            request.Headers.Add("Accept", "application/json");
+            request.Headers.Add("User-Agent", "JoineryServer/1.0");
 
-            var response = await _httpClient.PostAsync("https://github.com/login/oauth/access_token", content);
+            using var response = await _httpClient.SendAsync(request);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -72,11 +73,11 @@ public class GitHubAuthService : IGitHubAuthService
     {
         try
         {
-            _httpClient.DefaultRequestHeaders.Clear();
-            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
-            _httpClient.DefaultRequestHeaders.Add("User-Agent", "JoineryServer/1.0");
+            using var request = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com/user");
+            request.Headers.Add("Authorization", $"Bearer {accessToken}");
+            request.Headers.Add("User-Agent", "JoineryServer/1.0");
 
-            var response = await _httpClient.GetAsync("https://api.github.com/user");
+            using var response = await _httpClient.SendAsync(request);
 
             if (!response.IsSuccessStatusCode)
             {

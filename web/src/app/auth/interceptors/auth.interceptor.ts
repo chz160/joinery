@@ -77,12 +77,19 @@ export class AuthInterceptor implements HttpInterceptor {
             this.refreshTokenSubject.next(newToken);
             return next.handle(this.addAuthHeader(request));
           } else {
+            const refreshError = new Error('Token refresh failed');
+            // Propagate failure to any queued requests and reset subject for future attempts
+            this.refreshTokenSubject.error(refreshError);
+            this.refreshTokenSubject = new BehaviorSubject<string | null>(null);
             this.performLocalLogout();
-            return throwError(() => new Error('Token refresh failed'));
+            return throwError(() => refreshError);
           }
         }),
         catchError((error) => {
           this.isRefreshing = false;
+          // Propagate error to queued requests and reset subject for future attempts
+          this.refreshTokenSubject.error(error);
+          this.refreshTokenSubject = new BehaviorSubject<string | null>(null);
           this.performLocalLogout();
           return throwError(() => error);
         })

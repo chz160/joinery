@@ -247,10 +247,25 @@ public class AuthController : ControllerBase
                 return StatusCode(500, new { message = "GitHub OAuth not configured" });
             }
 
+            // Validate redirect_uri against the server-configured callback URL to prevent
+            // open-redirect attacks and ensure code exchange uses the registered URI.
+            var configuredRedirectUri = _configuration["Authentication:GitHub:CallbackUrl"];
+            if (!string.IsNullOrEmpty(configuredRedirectUri) &&
+                !string.Equals(request.RedirectUri, configuredRedirectUri, StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogWarning("redirect_uri mismatch: received '{Received}', expected '{Expected}'",
+                    request.RedirectUri, configuredRedirectUri);
+                return BadRequest(new { message = "Invalid redirect_uri" });
+            }
+
+            // Use the server-configured redirect URI for the code exchange (fall back to
+            // the client-provided value only when no server-side URI is configured).
+            var redirectUriForExchange = configuredRedirectUri ?? request.RedirectUri;
+
             // Exchange authorization code for GitHub access token
             var githubAccessToken = await _gitHubAuthService.ExchangeCodeForTokenAsync(
                 request.Code,
-                request.RedirectUri,
+                redirectUriForExchange,
                 clientId,
                 clientSecret
             );
