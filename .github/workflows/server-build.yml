@@ -9,13 +9,16 @@ on:
     paths: ['server/**']
 
 env:
-  IMAGE_NAME: chz160/joinery-server
+  DOCKERHUB_IMAGE: chz160/joinery-server
+  ECR_PRIVATE_IMAGE: 832763959711.dkr.ecr.us-east-1.amazonaws.com/joinery-server
+  ECR_PUBLIC_IMAGE: public.ecr.aws/n4s7h4e9/joinery-server
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
 
     steps:
       - name: Checkout repository
@@ -31,11 +34,32 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
+      - name: Configure AWS credentials
+        if: github.event_name != 'pull_request'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Log in to Amazon ECR Private
+        if: github.event_name != 'pull_request'
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Log in to Amazon ECR Public
+        if: github.event_name != 'pull_request'
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          registry-type: public
+
       - name: Extract metadata (tags, labels)
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.IMAGE_NAME }}
+          images: |
+            ${{ env.DOCKERHUB_IMAGE }}
+            ${{ env.ECR_PRIVATE_IMAGE }}
+            ${{ env.ECR_PUBLIC_IMAGE }}
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,prefix=sha-
@@ -58,7 +82,7 @@ jobs:
         run: |
           echo "## Docker Image Published" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Image:** $IMAGE_NAME" >> $GITHUB_STEP_SUMMARY
+          echo "**Registries:** Docker Hub + ECR Private + ECR Public" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Tags:" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
