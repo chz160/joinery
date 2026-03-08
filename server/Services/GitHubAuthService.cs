@@ -14,15 +14,70 @@ public class GitHubAuthService : IGitHubAuthService
         _logger = logger;
     }
 
+    public async Task<string?> ExchangeCodeForTokenAsync(string code, string redirectUri, string clientId, string clientSecret)
+    {
+        try
+        {
+            var payload = new
+            {
+                client_id = clientId,
+                client_secret = clientSecret,
+                code,
+                redirect_uri = redirectUri
+            };
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, "https://github.com/login/oauth/access_token")
+            {
+                Content = new StringContent(
+                    JsonSerializer.Serialize(payload),
+                    System.Text.Encoding.UTF8,
+                    "application/json"
+                )
+            };
+            request.Headers.Add("Accept", "application/json");
+            request.Headers.Add("User-Agent", "JoineryServer/1.0");
+
+            using var response = await _httpClient.SendAsync(request);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("GitHub token exchange returned {StatusCode}", response.StatusCode);
+                return null;
+            }
+
+            var responseContent = await response.Content.ReadAsStringAsync();
+            var tokenData = JsonSerializer.Deserialize<JsonElement>(responseContent);
+
+            if (tokenData.TryGetProperty("error", out var errorElement))
+            {
+                _logger.LogWarning("GitHub token exchange error: {Error}", errorElement.GetString());
+                return null;
+            }
+
+            if (tokenData.TryGetProperty("access_token", out var accessTokenElement))
+            {
+                return accessTokenElement.GetString();
+            }
+
+            _logger.LogWarning("GitHub token exchange response missing access_token");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error exchanging code for GitHub access token");
+            return null;
+        }
+    }
+
     public async Task<GitHubUserInfo?> GetUserInfoAsync(string accessToken)
     {
         try
         {
-            _httpClient.DefaultRequestHeaders.Clear();
-            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
-            _httpClient.DefaultRequestHeaders.Add("User-Agent", "JoineryServer/1.0");
+            using var request = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com/user");
+            request.Headers.Add("Authorization", $"Bearer {accessToken}");
+            request.Headers.Add("User-Agent", "JoineryServer/1.0");
 
-            var response = await _httpClient.GetAsync("https://api.github.com/user");
+            using var response = await _httpClient.SendAsync(request);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -31,10 +86,7 @@ public class GitHubAuthService : IGitHubAuthService
             }
 
             var content = await response.Content.ReadAsStringAsync();
-            var userInfo = JsonSerializer.Deserialize<GitHubUserInfo>(content, new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            });
+            var userInfo = JsonSerializer.Deserialize<GitHubUserInfo>(content);
 
             return userInfo;
         }

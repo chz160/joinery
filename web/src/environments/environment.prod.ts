@@ -4,7 +4,7 @@ export const environment = {
   oauth: {
     redirectUri: 'https://app.jnry.io/auth/callback',
     github: {
-      clientId: 'your-github-client-id-prod',
+      clientId: 'Ov23liryy80w9sOWPytU',
       scope: 'user:email read:user'
     }
   }

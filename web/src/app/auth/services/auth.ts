@@ -119,7 +119,7 @@ export class Auth {
   loginWithGitHub(): void {
     // Generate PKCE state parameter for security
     this.oauthState = this.generateRandomString(32);
-    localStorage.setItem('oauth_state', this.oauthState);
+    sessionStorage.setItem('oauth_state', this.oauthState);
 
     // For now, as a fallback when backend is not available, use mock login
     if (!environment.oauth.github.clientId || environment.oauth.github.clientId === 'your-github-client-id') {
@@ -148,13 +148,13 @@ export class Auth {
    */
   async handleOAuthCallback(code: string, state: string): Promise<void> {
     // Verify state parameter to prevent CSRF attacks
-    const storedState = localStorage.getItem('oauth_state');
+    const storedState = sessionStorage.getItem('oauth_state');
     if (!storedState || storedState !== state) {
       throw new Error('Invalid OAuth state parameter');
     }
 
     // Clean up stored state
-    localStorage.removeItem('oauth_state');
+    sessionStorage.removeItem('oauth_state');
 
     try {
       // Exchange authorization code for access token via backend

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent, HttpErrorResponse } from '@angular/common/http';
-import { Observable, throwError, BehaviorSubject } from 'rxjs';
+import { Observable, throwError, BehaviorSubject, from } from 'rxjs';
 import { catchError, switchMap, filter, take } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { Auth } from '../services/auth';
@@ -8,7 +8,7 @@ import { Auth } from '../services/auth';
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
   private isRefreshing = false;
-  private refreshTokenSubject = new BehaviorSubject<any>(null);
+  private refreshTokenSubject = new BehaviorSubject<string | null>(null);
 
   constructor(
     private auth: Auth,
@@ -21,7 +21,7 @@ export class AuthInterceptor implements HttpInterceptor {
 
     return next.handle(authReq).pipe(
       catchError((error: HttpErrorResponse) => {
-        if (error.status === 401 && this.isApiRequest(req.url)) {
+        if (error.status === 401 && this.isApiRequest(req.url) && !this.isAuthManagementEndpoint(req.url)) {
           return this.handle401Error(authReq, next);
         }
 
@@ -57,8 +57,12 @@ export class AuthInterceptor implements HttpInterceptor {
   }
 
   private isApiRequest(url: string): boolean {
-    // Check if the request is to our API
-    return url.includes('/api/') || url.startsWith('http://localhost:3000/api') || url.startsWith('https://api.joinery.com');
+    return url.includes('/api/');
+  }
+
+  /** Prevent refresh loops on auth management endpoints */
+  private isAuthManagementEndpoint(url: string): boolean {
+    return url.includes('/auth/logout') || url.includes('/auth/refresh');
   }
 
   private handle401Error(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
@@ -66,29 +70,44 @@ export class AuthInterceptor implements HttpInterceptor {
       this.isRefreshing = true;
       this.refreshTokenSubject.next(null);
 
-      const refreshToken = localStorage.getItem('refresh_token');
-      
-      if (refreshToken) {
-        // Try to refresh token - we need to add this method to Auth service
-        console.warn('Token expired, attempting refresh - manual refresh method needed in Auth service');
-        this.isRefreshing = false;
-        this.auth.logout();
-        this.router.navigate(['/auth/login']);
-        return throwError(() => new Error('Token refresh not implemented yet'));
-      } else {
-        // No refresh token, redirect to login
-        this.isRefreshing = false;
-        this.auth.logout();
-        this.router.navigate(['/auth/login']);
-        return throwError(() => new Error('No refresh token available'));
-      }
+      return from(this.auth.refreshTokenManually()).pipe(
+        switchMap((newToken) => {
+          this.isRefreshing = false;
+          if (newToken) {
+            this.refreshTokenSubject.next(newToken);
+            return next.handle(this.addAuthHeader(request));
+          } else {
+            const refreshError = new Error('Token refresh failed');
+            // Propagate failure to any queued requests and reset subject for future attempts
+            this.refreshTokenSubject.error(refreshError);
+            this.refreshTokenSubject = new BehaviorSubject<string | null>(null);
+            this.performLocalLogout();
+            return throwError(() => refreshError);
+          }
+        }),
+        catchError((error) => {
+          this.isRefreshing = false;
+          // Propagate error to queued requests and reset subject for future attempts
+          this.refreshTokenSubject.error(error);
+          this.refreshTokenSubject = new BehaviorSubject<string | null>(null);
+          this.performLocalLogout();
+          return throwError(() => error);
+        })
+      );
     } else {
-      // Token refresh in progress, wait for it to complete
+      // Token refresh in progress — queue request until new token is available
       return this.refreshTokenSubject.pipe(
         filter(token => token !== null),
         take(1),
         switchMap(() => next.handle(this.addAuthHeader(request)))
       );
     }
+  }
+
+  private performLocalLogout(): void {
+    this.auth.logout().catch((error) => {
+      console.warn('Backend logout failed during token refresh error handling:', error);
+    });
+    this.router.navigate(['/auth/login']);
   }
 }
