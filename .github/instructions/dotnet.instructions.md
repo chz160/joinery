@@ -1,3 +1,7 @@
+---
+applyTo: "server/**"
+---
+
 ## Prime Directives (SOLID • DRY • KISS • Evolutionary Change)
 
 You are contributing to a C#/.NET codebase. Follow these rules in this order of priority:
@@ -16,18 +20,18 @@ You are contributing to a C#/.NET codebase. Follow these rules in this order of 
    - **S**ingle Responsibility: Each class has one reason to change. If a class does logging + parsing, split them.
    - **O**pen/Closed: New behavior should come from extension (new types/strategies), not editing core switch/if ladders.
    - **L**iskov: No surprising pre/postcondition changes. Subtypes must be substitutable.
-   - **I**nterface Segregation: Prefer small, focused interfaces. Avoid “fat” god interfaces.
+   - **I**nterface Segregation: Prefer small, focused interfaces. Avoid "fat" god interfaces.
    - **D**ependency Inversion: Depend on interfaces/abstractions. Inject via constructors; avoid hardwired statics/singletons.
 
 4) **KISS: Keep It Simple, Stupid**
    - Simplicity beats cleverness. **Prefer the smallest, clearest solution that solves the problem well.**
-   - If a solution needs a diagram to explain, it’s probably too complex.
-   - Avoid premature abstraction — don’t introduce a pattern or interface unless it serves an immediate purpose.
-   - Eliminate unnecessary indirection, inheritance, and “magic.” Code should be self-evident to future maintainers.
+   - If a solution needs a diagram to explain, it's probably too complex.
+   - Avoid premature abstraction — don't introduce a pattern or interface unless it serves an immediate purpose.
+   - Eliminate unnecessary indirection, inheritance, and "magic." Code should be self-evident to future maintainers.
    - Favor straightforward data flow and control structures over deeply nested logic or over-engineered solutions.
    - Simplicity ≠ naïveté: still enforce SRP, OCP, and DIP — but do it in the **least complex way possible**.
 
-5) **Evolve, Don’t Mutate**
+5) **Evolve, Don't Mutate**
    - Prefer **additive paths** (new types/adapters) over editing existing core code. Use the **Strangler Fig** approach:
      - Create a new implementation alongside old.
      - Write adapters/facades to route traffic.
@@ -86,9 +90,9 @@ You are contributing to a C#/.NET codebase. Follow these rules in this order of 
 - **No long switch/if ladders** for behavior: use Strategy/State/Specification/Visitor if needed — but **only if needed** (KISS).
 - **Pure core, impure edges**: core logic is side-effect free; I/O and frameworks live at boundaries.
 - **Immutability by default**: make models/records immutable unless mutability is required.
-- **CQS**: query methods don’t mutate; command methods don’t return domain data.
+- **CQS**: query methods don't mutate; command methods don't return domain data.
 - **Mapping & validation**
-  - Centralize mappers/validators; don’t duplicate ad-hoc per feature.
+  - Centralize mappers/validators; don't duplicate ad-hoc per feature.
   - Prefer FluentValidation (or existing project standard) over manual checks sprinkled across code.
 
 ---
@@ -98,7 +102,7 @@ You are contributing to a C#/.NET codebase. Follow these rules in this order of 
 1) Search for similar method names/semantics: `<Verb><Noun>`, `<Try|Ensure|Validate|Parse|Map>`
 2) Search for near-dup logic by shape (conditions/loops) and domain keywords.
 3) If ≥2 similar spots exist, propose a shared abstraction (helper, policy, strategy).
-4) If domains differ, keep call-site adapters thin; don’t force leaky base classes.
+4) If domains differ, keep call-site adapters thin; don't force leaky base classes.
 
 ---
 
@@ -119,7 +123,7 @@ You are contributing to a C#/.NET codebase. Follow these rules in this order of 
 
 - **Tests** (unit + integration for new edges).
 - **ADR** (Architecture Decision Record) if adding an abstraction or changing direction.
-- **Deprecation note** in the replacing type’s XML doc with link to ADR.
+- **Deprecation note** in the replacing type's XML doc with link to ADR.
 - **Mermaid diagram** of the affected slice.
 
 ---
