@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json.Serialization;
 using JoineryServer.Data;
 using JoineryServer.Models;
 using JoineryServer.Services;
@@ -112,7 +113,7 @@ public class AuthController : ControllerBase
                 access_token = token,
                 refresh_token = refreshToken.Token,
                 token_type = "Bearer",
-                expires_in = _configuration.GetSection("JWT")["AccessTokenExpirationMinutes"] != null ? int.Parse(_configuration.GetSection("JWT")["AccessTokenExpirationMinutes"]!) * 60 : 15 * 60,
+                expires_in = GetAccessTokenExpiresInSeconds(),
                 session_id = session.SessionId,
                 user = new
                 {
@@ -159,7 +160,7 @@ public class AuthController : ControllerBase
                 access_token = newAccessToken,
                 refresh_token = newRefreshToken.Token,
                 token_type = "Bearer",
-                expires_in = _configuration.GetSection("JWT")["AccessTokenExpirationMinutes"] != null ? int.Parse(_configuration.GetSection("JWT")["AccessTokenExpirationMinutes"]!) * 60 : 15 * 60
+                expires_in = GetAccessTokenExpiresInSeconds()
             });
         }
         catch (Exception ex)
@@ -220,6 +221,136 @@ public class AuthController : ControllerBase
         {
             _logger.LogError(ex, "Error during token revocation");
             return StatusCode(500, new { message = "Internal server error during token revocation" });
+        }
+    }
+
+    /// <summary>
+    /// Exchange GitHub OAuth authorization code for JWT token (client-side flow)
+    /// </summary>
+    [HttpPost("github/callback")]
+    public async Task<IActionResult> GitHubCallbackPost([FromBody] GitHubCallbackRequest request)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(request.Code))
+            {
+                return BadRequest(new { message = "Authorization code is required" });
+            }
+
+            var githubConfig = _configuration.GetSection("Authentication:GitHub");
+            var clientId = githubConfig["ClientId"];
+            var clientSecret = githubConfig["ClientSecret"];
+
+            if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(clientSecret))
+            {
+                _logger.LogError("GitHub OAuth credentials not configured");
+                return StatusCode(500, new { message = "GitHub OAuth not configured" });
+            }
+
+            // Exchange authorization code for GitHub access token
+            var githubAccessToken = await _gitHubAuthService.ExchangeCodeForTokenAsync(
+                request.Code,
+                request.RedirectUri,
+                clientId,
+                clientSecret
+            );
+
+            if (string.IsNullOrEmpty(githubAccessToken))
+            {
+                return BadRequest(new { message = "Failed to exchange authorization code with GitHub" });
+            }
+
+            // Get user info from GitHub
+            var githubUserInfo = await _gitHubAuthService.GetUserInfoAsync(githubAccessToken);
+            if (githubUserInfo == null)
+            {
+                return BadRequest(new { message = "Failed to retrieve GitHub user information" });
+            }
+
+            // Get or create user in our system.
+            // GitHub users with private emails won't have a public email address in the API
+            // response; use the noreply address provided by GitHub in that case.
+            var fallbackEmail = $"{githubUserInfo.Login}@users.noreply.github.com";
+            var user = await _userService.GetOrCreateUserAsync(
+                githubUserInfo.Id.ToString(),
+                githubUserInfo.Login,
+                githubUserInfo.Email ?? fallbackEmail,
+                "GitHub",
+                githubUserInfo.Name
+            );
+
+            // Create session
+            var ipAddress = GetClientIpAddress();
+            var userAgent = Request.Headers["User-Agent"].ToString();
+            var session = await _sessionService.CreateSessionAsync(user.Id, ipAddress, userAgent, "GitHub");
+
+            var token = _tokenService.GenerateAccessToken(user, session.SessionId);
+            var refreshToken = await _tokenService.GenerateRefreshTokenAsync(user.Id);
+
+            _logger.LogInformation("User {Username} authenticated via GitHub (client-side flow)", user.Username);
+
+            return Ok(new
+            {
+                access_token = token,
+                refresh_token = refreshToken.Token,
+                token_type = "Bearer",
+                expires_in = GetAccessTokenExpiresInSeconds(),
+                session_id = session.SessionId,
+                user = new
+                {
+                    user.Id,
+                    user.Username,
+                    user.Email,
+                    user.FullName,
+                    user.AuthProvider
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during GitHub callback (client-side flow)");
+            return StatusCode(500, new { message = "Internal server error during authentication" });
+        }
+    }
+
+    /// <summary>
+    /// Logout user and invalidate current session tokens
+    /// </summary>
+    [HttpPost("logout")]
+    [Authorize]
+    public async Task<IActionResult> Logout()
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            {
+                return Unauthorized(new { message = "Invalid user token" });
+            }
+
+            // Blacklist the current access token
+            var authHeader = Request.Headers["Authorization"].FirstOrDefault();
+            var token = authHeader?.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) == true
+                ? authHeader[7..]
+                : null;
+
+            var clientIp = GetClientIpAddress();
+
+            if (!string.IsNullOrEmpty(token))
+            {
+                await _tokenService.BlacklistTokenAsync(token, "access", userId, "User logout", clientIp);
+            }
+
+            // Revoke all refresh tokens for this user
+            await _tokenService.RevokeAllUserTokensAsync(userId, "User logout", clientIp);
+
+            _logger.LogInformation("User {UserId} logged out", userId);
+            return Ok(new { message = "Logout successful" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during logout");
+            return StatusCode(500, new { message = "Internal server error during logout" });
         }
     }
 
@@ -460,11 +591,30 @@ public class AuthController : ControllerBase
 
         return HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
     }
+
+    /// <summary>
+    /// Returns the access token lifetime in seconds from configuration (default: 15 minutes).
+    /// </summary>
+    private int GetAccessTokenExpiresInSeconds()
+    {
+        var raw = _configuration.GetSection("JWT")["AccessTokenExpirationMinutes"];
+        return int.TryParse(raw, out var minutes) ? minutes * 60 : 15 * 60;
+    }
 }
 
 public class RefreshTokenRequest
 {
+    [JsonPropertyName("refresh_token")]
     public string RefreshToken { get; set; } = string.Empty;
+}
+
+public class GitHubCallbackRequest
+{
+    [JsonPropertyName("code")]
+    public string Code { get; set; } = string.Empty;
+
+    [JsonPropertyName("redirect_uri")]
+    public string RedirectUri { get; set; } = string.Empty;
 }
 
 public class AwsLoginRequest

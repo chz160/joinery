@@ -11,6 +11,7 @@ export interface OAuthTokenResponse {
   access_token: string;
   refresh_token?: string;
   expires_in: number;
+  session_id?: string;
   user: User;
 }
 
@@ -41,7 +42,7 @@ export class OAuthService {
 
     // Generate PKCE state parameter for security
     this.oauthState = this.generateRandomString(32);
-    localStorage.setItem('oauth_state', this.oauthState);
+    sessionStorage.setItem('oauth_state', this.oauthState);
 
     // Build GitHub OAuth URL
     const params = new URLSearchParams({
@@ -67,13 +68,13 @@ export class OAuthService {
    */
   async handleOAuthCallback(code: string, state: string): Promise<OAuthTokenResponse> {
     // Verify state parameter to prevent CSRF attacks
-    const storedState = localStorage.getItem('oauth_state');
+    const storedState = sessionStorage.getItem('oauth_state');
     if (!storedState || storedState !== state) {
       throw new Error('Invalid OAuth state parameter');
     }
 
     // Clean up stored state
-    localStorage.removeItem('oauth_state');
+    sessionStorage.removeItem('oauth_state');
 
     // Exchange authorization code for access token via backend
     const tokenResponse = await this.http.post<OAuthTokenResponse>(
