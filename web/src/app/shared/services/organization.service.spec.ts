@@ -9,6 +9,8 @@ describe('OrganizationService', () => {
   let service: OrganizationService;
   let httpMock: HttpTestingController;
 
+  const apiUrl = `${environment.apiBaseUrl}/organizations`;
+
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
@@ -28,14 +30,29 @@ describe('OrganizationService', () => {
     expect(service).toBeTruthy();
   });
 
-  it('should return mock organizations', () => {
+  it('should fetch organizations from the API', () => {
+    const mockOrganizations: Organization[] = [
+      {
+        id: '1',
+        name: 'Acme Corp',
+        description: 'Main corporate organization',
+        ownerId: 'user1',
+        members: [],
+        createdAt: new Date('2024-01-15'),
+        updatedAt: new Date('2024-02-01')
+      }
+    ];
+
     service.getOrganizations().subscribe(organizations => {
       expect(organizations).toBeDefined();
       expect(organizations.length).toBeGreaterThan(0);
-      expect(organizations[0]).toBeTruthy();
       expect(organizations[0].name).toBeDefined();
       expect(organizations[0].id).toBeDefined();
     });
+
+    const req = httpMock.expectOne(apiUrl);
+    expect(req.request.method).toBe('GET');
+    req.flush(mockOrganizations);
   });
 
   it('should detect first-time user correctly', () => {
@@ -83,7 +100,7 @@ describe('OrganizationService', () => {
     service.updateWizardData(updates);
   });
 
-  it('should create organization with wizard data', () => {
+  it('should create organization via the API', () => {
     const mockOrg: Partial<Organization> = {
       name: 'Test Org',
       description: 'Test Description',
@@ -102,10 +119,14 @@ describe('OrganizationService', () => {
     };
 
     service.createOrganization(mockOrg).subscribe(org => {
-      expect(org).toEqual(mockCreatedOrg);
-      expect(org.id).toBeDefined();
+      expect(org.id).toBe('123');
+      expect(org.name).toBe('Test Org');
       expect(org.createdAt).toBeDefined();
     });
+
+    const req = httpMock.expectOne(apiUrl);
+    expect(req.request.method).toBe('POST');
+    req.flush(mockCreatedOrg);
   });
 
   it('should complete wizard successfully', () => {
@@ -113,12 +134,26 @@ describe('OrganizationService', () => {
     const wizardData = service.initializeWizardData();
     wizardData.organization.name = 'Test Organization';
     service.updateWizardData(wizardData);
-    
+
+    const mockCreatedOrg: Organization = {
+      id: '456',
+      name: 'Test Organization',
+      description: '',
+      ownerId: 'user1',
+      members: [],
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
     service.completeWizard().subscribe(organization => {
       expect(organization).toBeDefined();
       expect(organization.name).toBe('Test Organization');
       expect(localStorage.getItem('userHasCompletedSetup')).toBe('true');
     });
+
+    const req = httpMock.expectOne(apiUrl);
+    expect(req.request.method).toBe('POST');
+    req.flush(mockCreatedOrg);
   });
 
   it('should throw error when completing wizard without data', () => {
@@ -129,12 +164,27 @@ describe('OrganizationService', () => {
     }).toThrow();
   });
 
-  it('should check organization name uniqueness', () => {
+  it('should check organization name uniqueness via the API', () => {
     const testName = 'Unique Organization';
-    
+    const mockOrganizations: Organization[] = [
+      {
+        id: '1',
+        name: 'Existing Org',
+        description: '',
+        ownerId: 'user1',
+        members: [],
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    ];
+
     service.checkOrganizationNameUniqueness(testName).subscribe(isUnique => {
-      expect(typeof isUnique).toBe('boolean');
+      expect(isUnique).toBeTrue();
     });
+
+    const req = httpMock.expectOne(apiUrl);
+    expect(req.request.method).toBe('GET');
+    req.flush(mockOrganizations);
   });
 
   it('should clear wizard data', () => {
@@ -153,10 +203,10 @@ describe('OrganizationService', () => {
     expect(retrievedData).toEqual(wizardData);
   });
 
-  it('should update organization', () => {
-    const mockOrg: Organization = {
+  it('should update organization via the API', () => {
+    const updatedOrg: Organization = {
       id: '123',
-      name: 'Test Org',
+      name: 'Updated Org Name',
       description: 'Test Description',
       ownerId: 'user1',
       members: [],
@@ -167,9 +217,13 @@ describe('OrganizationService', () => {
 
     const updates = { name: 'Updated Org Name' };
 
-    service.updateOrganization('123', updates).subscribe(updatedOrg => {
-      expect(updatedOrg.name).toBe('Updated Org Name');
-      expect(updatedOrg.id).toBe('123');
+    service.updateOrganization('123', updates).subscribe(org => {
+      expect(org.name).toBe('Updated Org Name');
+      expect(org.id).toBe('123');
     });
+
+    const req = httpMock.expectOne(`${apiUrl}/123`);
+    expect(req.request.method).toBe('PUT');
+    req.flush(updatedOrg);
   });
 });

@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -29,6 +30,13 @@ public class OrganizationsController : ControllerBase
             throw new UnauthorizedAccessException("Invalid user ID in token");
         }
         return userId;
+    }
+
+    private async Task<bool> OrganizationNameExistsAsync(string name, int? excludeId = null)
+    {
+        var nameLower = name.ToLower();
+        return await _context.Organizations
+            .AnyAsync(o => o.IsActive && o.Name.ToLower() == nameLower && (excludeId == null || o.Id != excludeId));
     }
 
     /// <summary>
@@ -90,6 +98,7 @@ public class OrganizationsController : ControllerBase
             .Include(o => o.OrganizationMembers.Where(om => om.IsActive))
                 .ThenInclude(om => om.User)
             .Include(o => o.Teams.Where(t => t.IsActive))
+                .ThenInclude(t => t.TeamMembers.Where(tm => tm.IsActive))
             .FirstOrDefaultAsync();
 
         if (organization == null)
@@ -158,6 +167,12 @@ public class OrganizationsController : ControllerBase
     {
         var currentUserId = GetCurrentUserId();
         _logger.LogInformation("User {UserId} creating organization: {OrganizationName}", currentUserId, request.Name);
+
+        // Check for duplicate organization name
+        if (await OrganizationNameExistsAsync(request.Name))
+        {
+            return Conflict("An organization with this name already exists");
+        }
 
         var organization = new Organization
         {
@@ -254,6 +269,12 @@ public class OrganizationsController : ControllerBase
         if (!isCreator && !isAdmin)
         {
             return Forbid();
+        }
+
+        // Check for duplicate organization name (excluding this organization)
+        if (await OrganizationNameExistsAsync(request.Name, id))
+        {
+            return Conflict("An organization with this name already exists");
         }
 
         organization.Name = request.Name;
@@ -518,13 +539,23 @@ public class OrganizationsController : ControllerBase
 // Request DTOs
 public class CreateOrganizationRequest
 {
+    [Required]
+    [MinLength(2)]
+    [MaxLength(100)]
     public string Name { get; set; } = string.Empty;
+
+    [MaxLength(500)]
     public string? Description { get; set; }
 }
 
 public class UpdateOrganizationRequest
 {
+    [Required]
+    [MinLength(2)]
+    [MaxLength(100)]
     public string Name { get; set; } = string.Empty;
+
+    [MaxLength(500)]
     public string? Description { get; set; }
 }
 

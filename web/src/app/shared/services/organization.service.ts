@@ -37,58 +37,14 @@ export class OrganizationService {
    * Get all organizations for the current user
    */
   getOrganizations(): Observable<Organization[]> {
-    // Mock data for development - replace with actual API call
-    return of([
-      {
-        id: '1',
-        name: 'Acme Corp',
-        description: 'Main corporate organization for all data analytics',
-        ownerId: 'user1',
-        members: [],
-        authProvider: {
-          type: 'microsoft',
-          config: { clientId: 'abc123', domain: 'acmecorp.onmicrosoft.com' }
-        },
-        createdAt: new Date('2024-01-15'),
-        updatedAt: new Date('2024-02-01')
-      },
-      {
-        id: '2',
-        name: 'Data Science Division',
-        description: 'Research and analytics team workspace',
-        ownerId: 'user1',
-        members: [],
-        authProvider: {
-          type: 'github',
-          config: { clientId: 'def456' }
-        },
-        createdAt: new Date('2024-01-20'),
-        updatedAt: new Date('2024-01-25')
-      }
-    ]);
-    // TODO: Replace with actual API call
-    // return this.http.get<Organization[]>(this.apiUrl);
+    return this.http.get<Organization[]>(this.apiUrl);
   }
 
   /**
    * Create a new organization
    */
   createOrganization(organization: Partial<Organization>): Observable<Organization> {
-    // Mock implementation - replace with actual API call
-    const newOrg: Organization = {
-      id: Date.now().toString(),
-      name: organization.name!,
-      description: organization.description,
-      ownerId: 'current-user-id', // This would come from auth service
-      members: [],
-      authProvider: organization.authProvider,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    
-    return of(newOrg);
-    // TODO: Replace with actual API call
-    // return this.http.post<Organization>(this.apiUrl, organization);
+    return this.http.post<Organization>(this.apiUrl, organization);
   }
 
   /**
