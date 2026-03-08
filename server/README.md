@@ -59,8 +59,8 @@ The server-side portion of Joinery - a platform for sharing and managing databas
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/chz160/joinery-server.git
-cd joinery-server
+git clone https://github.com/chz160/joinery.git
+cd joinery/server
 ```
 
 ### 2. Configure Authentication
@@ -592,7 +592,7 @@ The `Dockerfile` for Joinery Server lives in this application repository, **not 
 - **Atomic Updates**: Application updates and build configuration changes happen atomically in a single commit/PR
 
 #### Infrastructure Repository Responsibilities
-The [joinery-infra](https://github.com/chz160/joinery-infra) repository handles:
+The [infra](https://github.com/chz160/joinery/tree/main/infra) directory handles:
 - **Orchestration**: Docker Compose files for full stack deployment
 - **CI/CD Pipelines**: Build automation, testing, and deployment workflows  
 - **Environment Configuration**: Production, staging, and development environment setups
@@ -805,19 +805,19 @@ jobs:
 
 1. **Clone this repository** and build locally:
    ```bash
-   git clone https://github.com/chz160/joinery-server.git
-   cd joinery-server
+   git clone https://github.com/chz160/joinery.git
+   cd joinery/server
    docker build -t joinery-server .
    ```
 
-2. **For full stack development**, clone the infrastructure repository:
+2. **For full stack development**, use the infrastructure directory:
    ```bash
-   git clone https://github.com/chz160/joinery-infra.git
-   cd joinery-infra
+   git clone https://github.com/chz160/joinery.git
+   cd joinery/infra
    docker-compose up -d
    ```
 
-3. **For production deployment**, see the [joinery-infra repository](https://github.com/chz160/joinery-infra) for detailed orchestration and deployment instructions.
+3. **For production deployment**, see the [infra directory](https://github.com/chz160/joinery/tree/main/infra) for detailed orchestration and deployment instructions.
 
 ## Production Deployment
 

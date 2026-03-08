@@ -363,7 +363,7 @@ return this.http.get(url).pipe(
 - **CORS Issues**: Ensure backend allows frontend origin
 - **Proxy Setup**: Use Angular proxy for local development
 
-For detailed backend setup instructions, refer to the [Joinery Server documentation](https://github.com/your-org/joinery-server).
+For detailed backend setup instructions, refer to the [Joinery Server documentation](https://github.com/chz160/joinery/tree/main/server).
 
 ## Docker & Infrastructure
 
@@ -377,7 +377,7 @@ This repository contains the `Dockerfile` for building the joinery-web container
 - **Atomic Changes**: Application changes and their corresponding build/deployment requirements can be updated together in a single commit
 - **Simplified Debugging**: Build issues can be reproduced and debugged locally with the exact same configuration
 
-**Infrastructure Separation**: While the Dockerfile lives here, orchestration, deployment workflows, and infrastructure configuration are managed in the separate [joinery-infra](https://github.com/chz160/joinery-infra) repository.
+**Infrastructure Separation**: While the Dockerfile lives here, orchestration, deployment workflows, and infrastructure configuration are managed in the [infra](https://github.com/chz160/joinery/tree/main/infra) directory.
 
 ### Repository Structure & Responsibilities
 
@@ -487,9 +487,9 @@ git push origin main
 For local development using Docker:
 
 ```bash
-# Option 1: Use docker-compose from joinery-infra
-git clone https://github.com/chz160/joinery-infra
-cd joinery-infra
+# Option 1: Use docker-compose from the infra directory
+git clone https://github.com/chz160/joinery
+cd joinery/infra
 docker-compose up
 
 # Option 2: Build and run locally
@@ -508,7 +508,7 @@ The containerized application accepts environment variables for runtime configur
 | `OAUTH_REDIRECT_URI` | OAuth callback URL | `http://localhost:4200/auth/callback` |
 | `NODE_ENV` | Runtime environment | `production` |
 
-For comprehensive infrastructure setup, deployment guides, and orchestration examples, see the [joinery-infra repository](https://github.com/chz160/joinery-infra).
+For comprehensive infrastructure setup, deployment guides, and orchestration examples, see the [infra directory](https://github.com/chz160/joinery/tree/main/infra).
 
 ## CI/CD and Docker Hub Integration
 
