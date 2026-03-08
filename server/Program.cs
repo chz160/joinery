@@ -176,6 +176,10 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+// Add health check services
+builder.Services.Configure<JoineryServer.Models.HealthCheckConfig>(builder.Configuration.GetSection("HealthChecks"));
+builder.Services.AddSingleton<IHealthCheckService, HealthCheckService>();
+
 // Add rate limiting services
 builder.Services.Configure<RateLimitConfig>(builder.Configuration.GetSection("RateLimit"));
 

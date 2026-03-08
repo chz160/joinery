@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using JoineryServer.Models;
+using JoineryServer.Services;
 
 namespace JoineryServer.Controllers;
 
@@ -6,45 +8,69 @@ namespace JoineryServer.Controllers;
 [Route("api/[controller]")]
 public class HealthController : ControllerBase
 {
+    private readonly IHealthCheckService _healthCheckService;
     private readonly ILogger<HealthController> _logger;
 
-    public HealthController(ILogger<HealthController> logger)
+    public HealthController(IHealthCheckService healthCheckService, ILogger<HealthController> logger)
     {
+        _healthCheckService = healthCheckService;
         _logger = logger;
     }
 
     /// <summary>
-    /// Health check endpoint
+    /// Liveness probe: confirms the process is alive and responsive.
     /// </summary>
-    /// <returns>Health status</returns>
     [HttpGet]
-    public ActionResult<object> GetHealth()
+    public async Task<IActionResult> GetLiveness()
     {
-        _logger.LogInformation("Health check requested");
-
-        return Ok(new
-        {
-            Status = "Healthy",
-            Timestamp = DateTime.UtcNow,
-            Version = "1.0.0",
-            Service = "Joinery Server"
-        });
+        _logger.LogInformation("Liveness check requested");
+        var report = await _healthCheckService.GetLivenessAsync();
+        return UnhealthyOr200(report);
     }
 
     /// <summary>
-    /// Readiness check endpoint
+    /// Readiness probe: confirms all required components (database, memory) are available.
+    /// Returns 200 when Healthy, 503 when Degraded or Unhealthy.
     /// </summary>
-    /// <returns>Readiness status</returns>
     [HttpGet("ready")]
-    public ActionResult<object> GetReadiness()
+    public async Task<IActionResult> GetReadiness()
     {
         _logger.LogInformation("Readiness check requested");
-
-        return Ok(new
-        {
-            Status = "Ready",
-            Timestamp = DateTime.UtcNow,
-            Message = "Service is ready to accept requests"
-        });
+        var report = await _healthCheckService.GetReadinessAsync();
+        return NotHealthyOr200(report);
     }
+
+    /// <summary>
+    /// Startup probe: returns 200 once the startup grace period has elapsed, 503 during startup.
+    /// </summary>
+    [HttpGet("startup")]
+    public async Task<IActionResult> GetStartup()
+    {
+        _logger.LogInformation("Startup probe requested");
+        var report = await _healthCheckService.GetStartupAsync();
+        return NotHealthyOr200(report);
+    }
+
+    /// <summary>
+    /// Deep health check: full diagnostics including GC metrics, thread count, and uptime.
+    /// </summary>
+    [HttpGet("deep")]
+    public async Task<IActionResult> GetDeep()
+    {
+        _logger.LogInformation("Deep health check requested");
+        var report = await _healthCheckService.GetDeepAsync();
+        return UnhealthyOr200(report);
+    }
+
+    /// <summary>Returns 503 only when Unhealthy (used for liveness and deep).</summary>
+    private IActionResult UnhealthyOr200(HealthReport report) =>
+        report.Status == HealthStatus.Unhealthy
+            ? StatusCode(StatusCodes.Status503ServiceUnavailable, report)
+            : Ok(report);
+
+    /// <summary>Returns 503 when Degraded or Unhealthy (used for readiness and startup).</summary>
+    private IActionResult NotHealthyOr200(HealthReport report) =>
+        report.Status != HealthStatus.Healthy
+            ? StatusCode(StatusCodes.Status503ServiceUnavailable, report)
+            : Ok(report);
 }
