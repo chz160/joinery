@@ -15,9 +15,20 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-// Add Entity Framework
+// Add Entity Framework — use PostgreSQL when a connection string is provided,
+// otherwise fall back to the in-memory provider (useful for testing / quick start).
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<JoineryDbContext>(options =>
-    options.UseInMemoryDatabase("JoineryDatabase"));
+{
+    if (!string.IsNullOrWhiteSpace(connectionString))
+        options.UseNpgsql(connectionString,
+            npgsql => npgsql.MigrationsAssembly(typeof(JoineryDbContext).Assembly.GetName().Name));
+    else
+        options.UseInMemoryDatabase("JoineryDatabase");
+});
+
+// Migration management service
+builder.Services.AddScoped<IMigrationService, MigrationService>();
 
 builder.Services.AddControllers();
 
@@ -78,7 +89,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddMicrosoftIdentityWebApp(builder.Configuration.GetSection("Authentication:Microsoft"));
 
 // Configure authorization
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    // "Admin" policy: JWT users automatically succeed (full access);
+    // API key users must have the "admin" scope claim.
+    options.AddPolicy("Admin", policy =>
+        policy.AddRequirements(new JoineryServer.Authorization.RequireScopeAttribute("admin")));
+});
 builder.Services.AddSingleton<IAuthorizationHandler, JoineryServer.Authorization.ScopeAuthorizationHandler>();
 
 // Configure Swagger/OpenAPI with security definitions
@@ -229,12 +246,21 @@ builder.Services.AddSingleton<IRateLimitingService, RateLimitingService>();
 
 var app = builder.Build();
 
-// Seed database in development
+// Auto-apply pending migrations in Development only.
+// In Production, migrations must be applied intentionally via POST /api/migrations/apply.
 if (app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();
-    var context = scope.ServiceProvider.GetRequiredService<JoineryDbContext>();
-    await context.Database.EnsureCreatedAsync();
+    var migrationService = scope.ServiceProvider.GetRequiredService<IMigrationService>();
+    try
+    {
+        await migrationService.ApplyMigrationsAsync(forceProduction: false);
+    }
+    catch (Exception ex)
+    {
+        var startupLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        startupLogger.LogError(ex, "An error occurred while applying database migrations on startup.");
+    }
 }
 
 // Configure the HTTP request pipeline.
