@@ -34,9 +34,19 @@ public class OrganizationsController : ControllerBase
 
     private async Task<bool> OrganizationNameExistsAsync(string name, int? excludeId = null)
     {
-        var nameLower = name.ToLower();
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return false;
+        }
+
+        var normalizedName = name.Trim().ToUpperInvariant();
+
         return await _context.Organizations
-            .AnyAsync(o => o.IsActive && o.Name.ToLower() == nameLower && (excludeId == null || o.Id != excludeId));
+            .AnyAsync(o =>
+                o.IsActive &&
+                o.Name != null &&
+                o.Name.Trim().ToUpperInvariant() == normalizedName &&
+                (excludeId == null || o.Id != excludeId));
     }
 
     /// <summary>

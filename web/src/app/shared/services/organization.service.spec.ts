@@ -5,6 +5,35 @@ import { OrganizationService } from './organization.service';
 import { Organization, OrganizationSetupWizardData } from '../models';
 import { environment } from '../../../environments/environment';
 
+// Mirror the backend response shapes used for flushing HTTP mocks
+interface OrganizationListApiDto {
+  id: number;
+  name: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: { id: number; username: string; email: string; };
+  memberCount: number;
+  teamCount: number;
+  userRole: number;
+}
+
+interface OrganizationDetailApiDto {
+  id: number;
+  name: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: { id: number; username: string; email: string; };
+  members: {
+    id: number;
+    role: number;
+    joinedAt: string;
+    user: { id: number; username: string; email: string; fullName: string; };
+  }[];
+  userRole: number;
+}
+
 describe('OrganizationService', () => {
   let service: OrganizationService;
   let httpMock: HttpTestingController;
@@ -30,29 +59,35 @@ describe('OrganizationService', () => {
     expect(service).toBeTruthy();
   });
 
-  it('should fetch organizations from the API', () => {
-    const mockOrganizations: Organization[] = [
+  it('should fetch organizations from the API and map to UI model', () => {
+    const apiResponse: OrganizationListApiDto[] = [
       {
-        id: '1',
+        id: 1,
         name: 'Acme Corp',
         description: 'Main corporate organization',
-        ownerId: 'user1',
-        members: [],
-        createdAt: new Date('2024-01-15'),
-        updatedAt: new Date('2024-02-01')
+        createdAt: '2024-01-15T00:00:00Z',
+        updatedAt: '2024-02-01T00:00:00Z',
+        createdBy: { id: 42, username: 'admin', email: 'admin@acme.com' },
+        memberCount: 3,
+        teamCount: 2,
+        userRole: 1
       }
     ];
 
     service.getOrganizations().subscribe(organizations => {
-      expect(organizations).toBeDefined();
-      expect(organizations.length).toBeGreaterThan(0);
-      expect(organizations[0].name).toBeDefined();
-      expect(organizations[0].id).toBeDefined();
+      expect(organizations.length).toBe(1);
+      const org = organizations[0];
+      expect(org.id).toBe('1');
+      expect(org.name).toBe('Acme Corp');
+      expect(org.ownerId).toBe('42');
+      expect(org.members).toEqual([]);
+      expect(org.createdAt).toEqual(new Date('2024-01-15T00:00:00Z'));
+      expect(org.updatedAt).toEqual(new Date('2024-02-01T00:00:00Z'));
     });
 
     const req = httpMock.expectOne(apiUrl);
     expect(req.request.method).toBe('GET');
-    req.flush(mockOrganizations);
+    req.flush(apiResponse);
   });
 
   it('should detect first-time user correctly', () => {
@@ -65,9 +100,6 @@ describe('OrganizationService', () => {
   });
 
   it('should detect first-time user when setup not completed', () => {
-    // Don't set userHasCompletedSetup flag, so it should check organizations
-    // Since we're using mock data that returns existing organizations,
-    // we need to mock the method return
     spyOn(service, 'isFirstTimeUser').and.returnValue(of(true));
     
     service.isFirstTimeUser().subscribe(isFirstTime => {
@@ -100,60 +132,74 @@ describe('OrganizationService', () => {
     service.updateWizardData(updates);
   });
 
-  it('should create organization via the API', () => {
-    const mockOrg: Partial<Organization> = {
+  it('should post only name/description and map backend response to UI model', () => {
+    const input: Partial<Organization> = {
       name: 'Test Org',
       description: 'Test Description',
       authProvider: { type: 'github', config: { clientId: 'test' } }
     };
 
-    const mockCreatedOrg: Organization = {
-      id: '123',
+    const apiResponse: OrganizationDetailApiDto = {
+      id: 123,
       name: 'Test Org',
       description: 'Test Description',
-      ownerId: 'user1',
-      members: [],
-      authProvider: { type: 'github', config: { clientId: 'test' } },
-      createdAt: new Date(),
-      updatedAt: new Date()
+      createdAt: '2024-03-01T10:00:00Z',
+      updatedAt: '2024-03-01T10:00:00Z',
+      createdBy: { id: 7, username: 'alice', email: 'alice@example.com' },
+      members: [
+        {
+          id: 1,
+          role: 1,
+          joinedAt: '2024-03-01T10:00:00Z',
+          user: { id: 7, username: 'alice', email: 'alice@example.com', fullName: 'Alice Smith' }
+        }
+      ],
+      userRole: 1
     };
 
-    service.createOrganization(mockOrg).subscribe(org => {
+    service.createOrganization(input).subscribe(org => {
       expect(org.id).toBe('123');
       expect(org.name).toBe('Test Org');
-      expect(org.createdAt).toBeDefined();
+      expect(org.ownerId).toBe('7');
+      expect(org.members.length).toBe(1);
+      expect(org.members[0].id).toBe('7');
+      expect(org.members[0].name).toBe('Alice Smith');
+      expect(org.members[0].createdAt).toEqual(new Date('2024-03-01T10:00:00Z'));
+      expect(org.createdAt).toEqual(new Date('2024-03-01T10:00:00Z'));
     });
 
     const req = httpMock.expectOne(apiUrl);
     expect(req.request.method).toBe('POST');
-    req.flush(mockCreatedOrg);
+    // Verify only name and description are sent (not authProvider, members, etc.)
+    expect(req.request.body).toEqual({ name: 'Test Org', description: 'Test Description' });
+    req.flush(apiResponse);
   });
 
   it('should complete wizard successfully', () => {
-    // Initialize wizard data first
     const wizardData = service.initializeWizardData();
     wizardData.organization.name = 'Test Organization';
     service.updateWizardData(wizardData);
 
-    const mockCreatedOrg: Organization = {
-      id: '456',
+    const apiResponse: OrganizationDetailApiDto = {
+      id: 456,
       name: 'Test Organization',
       description: '',
-      ownerId: 'user1',
+      createdAt: '2024-03-01T10:00:00Z',
+      updatedAt: '2024-03-01T10:00:00Z',
+      createdBy: { id: 7, username: 'alice', email: 'alice@example.com' },
       members: [],
-      createdAt: new Date(),
-      updatedAt: new Date()
+      userRole: 1
     };
 
     service.completeWizard().subscribe(organization => {
-      expect(organization).toBeDefined();
+      expect(organization.id).toBe('456');
       expect(organization.name).toBe('Test Organization');
       expect(localStorage.getItem('userHasCompletedSetup')).toBe('true');
     });
 
     const req = httpMock.expectOne(apiUrl);
     expect(req.request.method).toBe('POST');
-    req.flush(mockCreatedOrg);
+    req.flush(apiResponse);
   });
 
   it('should throw error when completing wizard without data', () => {
@@ -166,15 +212,17 @@ describe('OrganizationService', () => {
 
   it('should check organization name uniqueness via the API', () => {
     const testName = 'Unique Organization';
-    const mockOrganizations: Organization[] = [
+    const apiResponse: OrganizationListApiDto[] = [
       {
-        id: '1',
+        id: 1,
         name: 'Existing Org',
         description: '',
-        ownerId: 'user1',
-        members: [],
-        createdAt: new Date(),
-        updatedAt: new Date()
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+        createdBy: { id: 1, username: 'user1', email: 'user1@example.com' },
+        memberCount: 1,
+        teamCount: 0,
+        userRole: 1
       }
     ];
 
@@ -184,7 +232,7 @@ describe('OrganizationService', () => {
 
     const req = httpMock.expectOne(apiUrl);
     expect(req.request.method).toBe('GET');
-    req.flush(mockOrganizations);
+    req.flush(apiResponse);
   });
 
   it('should clear wizard data', () => {
@@ -203,27 +251,28 @@ describe('OrganizationService', () => {
     expect(retrievedData).toEqual(wizardData);
   });
 
-  it('should update organization via the API', () => {
-    const updatedOrg: Organization = {
-      id: '123',
+  it('should update organization via the API and map backend response', () => {
+    const apiResponse: OrganizationDetailApiDto = {
+      id: 123,
       name: 'Updated Org Name',
       description: 'Test Description',
-      ownerId: 'user1',
+      createdAt: '2024-01-01T00:00:00Z',
+      updatedAt: '2024-03-08T00:00:00Z',
+      createdBy: { id: 1, username: 'user1', email: 'user1@example.com' },
       members: [],
-      authProvider: { type: 'github', config: { clientId: 'test' } },
-      createdAt: new Date(),
-      updatedAt: new Date()
+      userRole: 1
     };
 
-    const updates = { name: 'Updated Org Name' };
-
-    service.updateOrganization('123', updates).subscribe(org => {
-      expect(org.name).toBe('Updated Org Name');
+    service.updateOrganization('123', { name: 'Updated Org Name' }).subscribe(org => {
       expect(org.id).toBe('123');
+      expect(org.name).toBe('Updated Org Name');
+      expect(org.updatedAt).toEqual(new Date('2024-03-08T00:00:00Z'));
     });
 
     const req = httpMock.expectOne(`${apiUrl}/123`);
     expect(req.request.method).toBe('PUT');
-    req.flush(updatedOrg);
+    // Verify only name and description are sent
+    expect(req.request.body).toEqual({ name: 'Updated Org Name', description: undefined });
+    req.flush(apiResponse);
   });
 });
