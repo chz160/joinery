@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { of } from 'rxjs';
 import { OrganizationService } from './organization.service';
-import { Organization, OrganizationSetupWizardData } from '../models';
+import { Organization } from '../models';
 import { environment } from '../../../environments/environment';
 
 // Mirror the backend response shapes used for flushing HTTP mocks
@@ -133,10 +133,9 @@ describe('OrganizationService', () => {
   });
 
   it('should post only name/description and map backend response to UI model', () => {
-    const input: Partial<Organization> = {
+    const input = {
       name: 'Test Org',
-      description: 'Test Description',
-      authProvider: { type: 'github', config: { clientId: 'test' } }
+      description: 'Test Description'
     };
 
     const apiResponse: OrganizationDetailApiDto = {
@@ -271,8 +270,8 @@ describe('OrganizationService', () => {
 
     const req = httpMock.expectOne(`${apiUrl}/123`);
     expect(req.request.method).toBe('PUT');
-    // Verify only name and description are sent
-    expect(req.request.body).toEqual({ name: 'Updated Org Name', description: undefined });
+    // Verify only name is sent (no description since it was omitted)
+    expect(req.request.body).toEqual({ name: 'Updated Org Name' });
     req.flush(apiResponse);
   });
 });

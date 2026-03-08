@@ -13,6 +13,12 @@ public class OrganizationConfiguration : IEntityTypeConfiguration<Organization>
         entity.Property(e => e.Description).HasMaxLength(500);
         entity.Property(e => e.CreatedByUserId).IsRequired();
 
+        // Unique index on Name scoped to active organizations; prevents duplicate names
+        // at the database level and provides race-condition protection.
+        entity.HasIndex(e => e.Name)
+              .IsUnique()
+              .HasFilter("\"IsActive\" = true");
+
         // Relationship: Organization -> User (CreatedBy)
         entity.HasOne(e => e.CreatedByUser)
               .WithMany(u => u.CreatedOrganizations)

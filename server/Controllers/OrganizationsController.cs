@@ -178,6 +178,12 @@ public class OrganizationsController : ControllerBase
         var currentUserId = GetCurrentUserId();
         _logger.LogInformation("User {UserId} creating organization: {OrganizationName}", currentUserId, request.Name);
 
+        request.Name = request.Name.Trim();
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            return BadRequest("Organization name cannot be blank");
+        }
+
         // Check for duplicate organization name
         if (await OrganizationNameExistsAsync(request.Name))
         {
@@ -195,7 +201,15 @@ public class OrganizationsController : ControllerBase
         };
 
         _context.Organizations.Add(organization);
-        await _context.SaveChangesAsync();
+
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            return Conflict("An organization with this name already exists");
+        }
 
         // Add creator as administrator member
         var creatorMembership = new OrganizationMember
@@ -262,6 +276,12 @@ public class OrganizationsController : ControllerBase
         var currentUserId = GetCurrentUserId();
         _logger.LogInformation("User {UserId} updating organization {OrganizationId}", currentUserId, id);
 
+        request.Name = request.Name.Trim();
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            return BadRequest("Organization name cannot be blank");
+        }
+
         var organization = await _context.Organizations
             .Where(o => o.Id == id && o.IsActive)
             .Include(o => o.OrganizationMembers.Where(om => om.IsActive))
@@ -291,7 +311,14 @@ public class OrganizationsController : ControllerBase
         organization.Description = request.Description;
         organization.UpdatedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            return Conflict("An organization with this name already exists");
+        }
 
         return await GetOrganization(id);
     }

@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, of } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
-import { Organization, OrganizationSetupWizardData, GitHubRepository, TeamInvitation, User } from '../models';
+import { map } from 'rxjs/operators';
+import { Organization, OrganizationSetupWizardData, TeamInvitation, User } from '../models';
 import { environment } from '../../../environments/environment';
 
 // Internal DTOs matching the actual backend response shapes
@@ -29,9 +29,19 @@ interface OrganizationDetailApiDto {
     id: number;
     role: number;
     joinedAt: string;
-    user: { id: number; username: string; email: string; fullName: string; };
+    user: { id: number; username: string; email: string; fullName: string | null; };
   }[];
   userRole: number;
+}
+
+export interface CreateOrganizationRequest {
+  name: string;
+  description?: string;
+}
+
+export interface UpdateOrganizationRequest {
+  name: string;
+  description?: string;
 }
 
 /**
@@ -103,12 +113,8 @@ export class OrganizationService {
   /**
    * Create a new organization
    */
-  createOrganization(organization: Partial<Organization>): Observable<Organization> {
-    const payload = {
-      name: organization.name,
-      description: organization.description
-    };
-    return this.http.post<OrganizationDetailApiDto>(this.apiUrl, payload).pipe(
+  createOrganization(request: CreateOrganizationRequest): Observable<Organization> {
+    return this.http.post<OrganizationDetailApiDto>(this.apiUrl, request).pipe(
       map(dto => this.mapDetailDto(dto))
     );
   }
@@ -116,12 +122,8 @@ export class OrganizationService {
   /**
    * Update an existing organization
    */
-  updateOrganization(id: string, organization: Partial<Organization>): Observable<Organization> {
-    const payload = {
-      name: organization.name,
-      description: organization.description
-    };
-    return this.http.put<OrganizationDetailApiDto>(`${this.apiUrl}/${id}`, payload).pipe(
+  updateOrganization(id: string, request: UpdateOrganizationRequest): Observable<Organization> {
+    return this.http.put<OrganizationDetailApiDto>(`${this.apiUrl}/${id}`, request).pipe(
       map(dto => this.mapDetailDto(dto))
     );
   }
@@ -201,7 +203,10 @@ export class OrganizationService {
     }
 
     // Create the organization with all collected data
-    return this.createOrganization(wizardData.organization).pipe(
+    return this.createOrganization({
+      name: wizardData.organization.name ?? '',
+      description: wizardData.organization.description
+    }).pipe(
       map(organization => {
         // Mark wizard as completed
         this.updateWizardData({ completed: true });
