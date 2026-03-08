@@ -50,6 +50,8 @@ npm start
 # App available at http://localhost:4200
 ```
 
+> For full local dev instructions including GitHub OAuth App setup, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## CI/CD
 
 GitHub Actions workflows in `.github/workflows/`:
@@ -82,6 +84,7 @@ Each build pushes to three registries:
 
 ## Documentation
 
+- [Contributing Guide](CONTRIBUTING.md) — Local development setup, GitHub OAuth App configuration
 - [Server README](server/README.md) — API setup, endpoints, authentication configuration
 - [Server Database Guide](server/DATABASE.md) — Schema and data model documentation
 - [Server Git Integration](server/GIT_INTEGRATION.md) — Git repository integration for SQL queries

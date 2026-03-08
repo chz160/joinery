@@ -106,7 +106,7 @@ Configure the backend API base URL in your environment:
 // src/environments/environment.ts
 export const environment = {
   production: false,
-  apiBaseUrl: 'http://localhost:3000/api' // Development
+  apiBaseUrl: 'http://localhost:5256/api' // Development
 };
 
 // src/environments/environment.prod.ts  
@@ -212,7 +212,7 @@ DELETE /api/repositories/{id}     # Unlink repository
    // src/environments/environment.ts
    export const environment = {
      production: false,
-     apiBaseUrl: 'http://localhost:3000/api',
+     apiBaseUrl: 'http://localhost:5256/api',
      oauth: {
        redirectUri: 'http://localhost:4200/auth/callback'
      }
@@ -229,7 +229,7 @@ DELETE /api/repositories/{id}     # Unlink repository
    ```json
    {
      "/api/*": {
-       "target": "http://localhost:3000",
+       "target": "http://localhost:5256",
        "secure": false,
        "changeOrigin": true,
        "logLevel": "debug"
@@ -336,9 +336,9 @@ return this.http.get(url).pipe(
 
 1. **Start Joinery Server**
    ```bash
-   # In your joinery-server directory
-   npm start
-   # Server typically runs on http://localhost:3000
+   # In the server/ directory
+   dotnet run
+   # Server runs on http://localhost:5256
    ```
 
 2. **Configure Frontend**
@@ -419,7 +419,7 @@ docker build -t chz160/joinery-web:latest .
 
 # Run the container locally
 docker run -p 8080:80 \
-  -e API_URL=http://localhost:3000 \
+  -e API_URL=http://localhost:5256 \
   chz160/joinery-web:latest
 ```
 
