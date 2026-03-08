@@ -35,11 +35,6 @@ export class LandingPage extends BaseAuthComponent implements OnInit {
     }
   }
 
-  // Demo method to toggle authentication state
-  toggleAuthDemo(): void {
-    this.auth.toggleAuthForDemo();
-  }
-
   // Method to initiate GitHub OAuth login
   loginWithGitHub(): void {
     this.auth.loginWithGitHub();

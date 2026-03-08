@@ -41,10 +41,6 @@ export class TokenService {
       storage.setItem('refresh_token', refreshToken);
     }
 
-    // Remove old demo auth if present
-    localStorage.removeItem('demo_auth');
-    sessionStorage.removeItem('demo_auth');
-
     // If switching storage types, clear the other storage
     const otherStorage = persistent ? sessionStorage : localStorage;
     this.clearStorageData(otherStorage);
@@ -163,7 +159,6 @@ export class TokenService {
     storage.removeItem('jwt_token_expiry');
     storage.removeItem('refresh_token');
     storage.removeItem('current_user');
-    storage.removeItem('demo_auth');
     storage.removeItem('oauth_state');
     storage.removeItem('auth_persistent');
   }
