@@ -48,12 +48,12 @@ RUN mkdir -p /tmp/client_temp \
 # Add non-root user for security
 USER nginx
 
-# Expose port 80
-EXPOSE 80
+# Expose port 8080 (non-root user cannot bind to ports below 1024)
+EXPOSE 8080
 
 # Add health check  
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost/health || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
 
 # Start nginx
 CMD ["nginx", "-g", "daemon off;"]
