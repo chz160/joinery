@@ -113,6 +113,7 @@ public class TeamsController : ControllerBase
         var teams = await _context.Teams
             .Where(t => t.OrganizationId == organizationId && t.IsActive)
             .Include(t => t.CreatedByUser)
+            .Include(t => t.Organization)
             .Include(t => t.TeamMembers.Where(tm => tm.IsActive))
             .Select(t => new
             {
@@ -126,6 +127,11 @@ public class TeamsController : ControllerBase
                     t.CreatedByUser.Id,
                     t.CreatedByUser.Username,
                     t.CreatedByUser.Email
+                },
+                Organization = new
+                {
+                    t.Organization.Id,
+                    t.Organization.Name
                 },
                 MemberCount = t.TeamMembers.Count(tm => tm.IsActive),
                 UserRole = t.CreatedByUserId == currentUserId ? TeamRole.Administrator :

@@ -11,6 +11,7 @@ interface TeamListApiDto {
   createdAt: string;
   updatedAt: string;
   createdBy: { id: number; username: string; email: string; };
+  organization: { id: number; name: string; };
   memberCount: number;
   userRole: number;
 }
@@ -47,6 +48,7 @@ describe('TeamService', () => {
     createdAt: '2024-01-15T00:00:00Z',
     updatedAt: '2024-02-01T00:00:00Z',
     createdBy: { id: 42, username: 'admin', email: 'admin@example.com' },
+    organization: { id: 10, name: 'Acme Corp' },
     memberCount: 3,
     userRole: 1
   };
@@ -95,6 +97,7 @@ describe('TeamService', () => {
       expect(team.id).toBe('1');
       expect(team.name).toBe('Backend Engineering');
       expect(team.description).toBe('API development');
+      expect(team.organizationId).toBe('10');
       expect(team.members).toEqual([]);
       expect(team.repositories).toEqual([]);
       expect(team.createdAt).toEqual(new Date('2024-01-15T00:00:00Z'));
