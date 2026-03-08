@@ -176,7 +176,7 @@ describe('LandingPage', () => {
     const compiled = fixture.nativeElement;
     const repoLink = compiled.querySelector('.repo-link');
     expect(repoLink).toBeTruthy();
-    expect(repoLink.getAttribute('href')).toBe('https://github.com/chz160/joinery-web');
+    expect(repoLink.getAttribute('href')).toBe('https://github.com/chz160/joinery');
     expect(repoLink.getAttribute('target')).toBe('_blank');
     expect(repoLink.getAttribute('rel')).toBe('noopener noreferrer');
     expect(repoLink.textContent).toContain('View on GitHub');
@@ -259,17 +259,17 @@ describe('LandingPage', () => {
     const compiled = fixture.nativeElement;
     
     // Documentation link
-    const docLink = compiled.querySelector('a[href="https://github.com/chz160/joinery-web/wiki"]');
+    const docLink = compiled.querySelector('a[href="https://github.com/chz160/joinery/wiki"]');
     expect(docLink).toBeTruthy();
     expect(docLink.textContent).toContain('Documentation');
     
     // Support link
-    const supportLink = compiled.querySelector('a[href="https://github.com/chz160/joinery-web/issues"]');
+    const supportLink = compiled.querySelector('a[href="https://github.com/chz160/joinery/issues"]');
     expect(supportLink).toBeTruthy();
     expect(supportLink.textContent).toContain('Support');
     
     // GitHub link
-    const githubLink = compiled.querySelector('a[href="https://github.com/chz160/joinery-web"]');
+    const githubLink = compiled.querySelector('a[href="https://github.com/chz160/joinery"]');
     expect(githubLink).toBeTruthy();
     expect(githubLink.textContent).toContain('GitHub');
     

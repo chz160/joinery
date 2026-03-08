@@ -64,8 +64,8 @@ joinery-infra/
 #### Local Development
 1. Clone this repository:
 ```bash
-git clone https://github.com/chz160/joinery-infra.git
-cd joinery-infra
+git clone https://github.com/chz160/joinery.git
+cd joinery/infra
 ```
 
 2. Start the complete stack:
@@ -120,7 +120,7 @@ on:
 
 jobs:
   build:
-    uses: chz160/joinery-infra/.github/workflows/build.yml@main
+    uses: chz160/joinery/.github/workflows/build.yml@main
     with:
       app_name: your-app-name
       registry_url: registry.pocketfulofdoom.com
@@ -131,7 +131,7 @@ jobs:
   deploy-dev:
     if: github.ref == 'refs/heads/develop'
     needs: build
-    uses: chz160/joinery-infra/.github/workflows/ssh-deploy.yml@main
+    uses: chz160/joinery/.github/workflows/ssh-deploy.yml@main
     with:
       app_name: your-app-name
       environment: dev
@@ -147,7 +147,7 @@ jobs:
   deploy-prod:
     if: github.ref == 'refs/heads/main'
     needs: build
-    uses: chz160/joinery-infra/.github/workflows/ssh-deploy.yml@main
+    uses: chz160/joinery/.github/workflows/ssh-deploy.yml@main
     with:
       app_name: your-app-name
       environment: prod
@@ -242,10 +242,10 @@ Example environment-specific secrets:
 
 ## Application Repositories
 
-The following repositories work with this infrastructure:
+The following directories work with this infrastructure:
 
-- [joinery-server](https://github.com/chz160/joinery-server) - .NET API backend
-- [joinery-web](https://github.com/chz160/joinery-web) - React frontend application
+- [server](https://github.com/chz160/joinery/tree/main/server) - .NET API backend
+- [web](https://github.com/chz160/joinery/tree/main/web) - Angular frontend application
 
 Each application repository should include:
 - A `Dockerfile` (can use base images from `docker/base/`)
