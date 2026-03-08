@@ -1,14 +1,16 @@
+using System.Text.Json.Serialization;
+
 namespace JoineryServer.Models;
 
 public class HealthCheckConfig
 {
     public int StartupGracePeriodSeconds { get; set; } = 30;
     public int DatabaseTimeoutSeconds { get; set; } = 5;
-    public int ExternalServiceTimeoutSeconds { get; set; } = 10;
     public long MemoryUnhealthyThresholdBytes { get; set; } = 1_073_741_824; // 1 GB
     public long MemoryDegradedThresholdBytes { get; set; } = 536_870_912;    // 512 MB
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum HealthStatus
 {
     Healthy,

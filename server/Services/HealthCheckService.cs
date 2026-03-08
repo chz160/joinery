@@ -8,7 +8,7 @@ namespace JoineryServer.Services;
 
 public class HealthCheckService : IHealthCheckService
 {
-    private readonly DateTime _startTime = DateTime.UtcNow;
+    private readonly DateTime _startTime;
 
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly HealthCheckConfig _config;
@@ -22,6 +22,9 @@ public class HealthCheckService : IHealthCheckService
         _scopeFactory = scopeFactory;
         _config = config.Value;
         _logger = logger;
+
+        using var process = Process.GetCurrentProcess();
+        _startTime = process.StartTime.ToUniversalTime();
     }
 
     public Task<HealthReport> GetLivenessAsync()
@@ -83,14 +86,21 @@ public class HealthCheckService : IHealthCheckService
 
         sw.Stop();
 
-        var process = Process.GetCurrentProcess();
+        long workingSetBytes;
+        int threadCount;
+        using (var process = Process.GetCurrentProcess())
+        {
+            workingSetBytes = process.WorkingSet64;
+            threadCount = process.Threads.Count;
+        }
+
         var metrics = new Dictionary<string, object>
         {
             ["uptimeSeconds"] = (int)(DateTime.UtcNow - _startTime).TotalSeconds,
             ["totalCheckDurationMs"] = sw.ElapsedMilliseconds,
-            ["workingSetBytes"] = process.WorkingSet64,
+            ["workingSetBytes"] = workingSetBytes,
             ["gcTotalMemoryBytes"] = GC.GetTotalMemory(forceFullCollection: false),
-            ["threadCount"] = process.Threads.Count,
+            ["threadCount"] = threadCount,
             ["gen0Collections"] = GC.CollectionCount(0),
             ["gen1Collections"] = GC.CollectionCount(1),
             ["gen2Collections"] = GC.CollectionCount(2)
@@ -129,7 +139,7 @@ public class HealthCheckService : IHealthCheckService
             return new ComponentHealth(
                 "database",
                 HealthStatus.Unhealthy,
-                $"Database connection failed: {ex.Message}",
+                "Database connection failed",
                 new Dictionary<string, object> { ["responseTimeMs"] = sw.ElapsedMilliseconds },
                 sw.Elapsed
             );

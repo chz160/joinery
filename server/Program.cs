@@ -250,6 +250,10 @@ builder.Services.AddSingleton<IRateLimitingService, RateLimitingService>();
 
 var app = builder.Build();
 
+// Eagerly instantiate the health check singleton so _startTime reflects actual process start,
+// not the time of the first incoming health probe.
+_ = app.Services.GetRequiredService<IHealthCheckService>();
+
 // Auto-apply pending migrations in Development only.
 // In Production, migrations must be applied intentionally via POST /api/migrations/apply.
 if (app.Environment.IsDevelopment())
