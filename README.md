@@ -54,9 +54,18 @@ npm start
 
 GitHub Actions workflows in `.github/workflows/`:
 
-- **`server-build.yml`** — Builds and pushes `chz160/joinery-server` to Docker Hub on `server/**` changes
-- **`web-build.yml`** — Builds and pushes `chz160/joinery-web` to Docker Hub on `web/**` changes
+- **`server-build.yml`** — Builds and pushes the server image on `server/**` changes
+- **`web-build.yml`** — Builds and pushes the web image on `web/**` changes
 - **`deploy.yml`** — Deploys the full stack via SSH and docker-compose
+
+### Docker Images
+
+Each build pushes to three registries:
+
+| Image | Docker Hub | ECR Public |
+|-------|-----------|------------|
+| **Server** | `chz160/joinery-server` | `public.ecr.aws/n4s7h4e9/joinery-server` |
+| **Web** | `chz160/joinery-web` | `public.ecr.aws/n4s7h4e9/joinery-web` |
 
 ### Required GitHub Secrets
 
@@ -64,6 +73,8 @@ GitHub Actions workflows in `.github/workflows/`:
 |--------|---------|
 | `DOCKER_HUB_USERNAME` | Docker Hub login |
 | `DOCKER_HUB_ACCESS_TOKEN` | Docker Hub access token |
+| `AWS_ACCESS_KEY_ID` | AWS credentials for ECR push |
+| `AWS_SECRET_ACCESS_KEY` | AWS credentials for ECR push |
 | `SSH_PRIVATE_KEY` | SSH key for deployment server |
 | `SSH_HOST` | Deployment server hostname |
 | `SSH_USER` | SSH username |
