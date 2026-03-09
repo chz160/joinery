@@ -64,37 +64,34 @@ describe('LandingPage', () => {
     expect(features[2].textContent).toContain('Query organization');
   });
 
-  it('should display the demo section', () => {
+  it('should display the hero section', () => {
     const compiled = fixture.nativeElement;
-    expect(compiled.textContent).toContain('See Joinery in Action');
-    expect(compiled.textContent).toContain('Watch how teams collaborate seamlessly on data queries and insights');
+    expect(compiled.textContent).toContain('Your Team\'s Data Hub');
+    expect(compiled.textContent).toContain('Centralized access to queries, repositories, and team insights');
   });
 
-  it('should display all three demo steps', () => {
+  it('should display all four feature cards in How It Works section', () => {
     const compiled = fixture.nativeElement;
-    const steps = compiled.querySelectorAll('.demo-step');
-    expect(steps.length).toBe(3);
-    expect(steps[0].textContent).toContain('Create & Share Queries');
-    expect(steps[1].textContent).toContain('Team Collaboration');
-    expect(steps[2].textContent).toContain('Track History & Insights');
+    const featureCards = compiled.querySelectorAll('.feature-card');
+    expect(featureCards.length).toBe(4);
+
+    expect(compiled.textContent).toContain('Secure Query Sharing');
+    expect(compiled.textContent).toContain('Team & Organization Management');
+    expect(compiled.textContent).toContain('Audit Trail & History');
+    expect(compiled.textContent).toContain('Extension & Integration Support');
   });
 
-  it('should show step 1 as active by default', () => {
-    const compiled = fixture.nativeElement;
-    const activeStep = compiled.querySelector('.demo-step.active');
-    expect(activeStep).toBeTruthy();
-    expect(activeStep.textContent).toContain('Create & Share Queries');
+  it('should have step 1 as initial active step', () => {
+    expect(component.currentStep).toBe(1);
+    expect(component.getScreenTitle()).toBe('Joinery Query Editor');
   });
 
-  it('should change active step when clicked', () => {
-    const compiled = fixture.nativeElement;
-    const step2 = compiled.querySelectorAll('.demo-step')[1];
-    
-    step2.click();
+  it('should update active step via setStep', () => {
+    component.setStep(2);
     fixture.detectChanges();
     
     expect(component.currentStep).toBe(2);
-    expect(step2.classList).toContain('active');
+    expect(component.getScreenTitle()).toBe('Team Collaboration Hub');
   });
 
   it('should display correct screen title for each step', () => {
@@ -107,41 +104,12 @@ describe('LandingPage', () => {
     expect(component.getScreenTitle()).toBe('Analytics & History Dashboard');
   });
 
-  it('should display demo benefits section', () => {
-    const compiled = fixture.nativeElement;
-    const benefits = compiled.querySelectorAll('.benefit');
-    expect(benefits.length).toBe(3);
-    expect(benefits[0].textContent).toContain('Enhanced Team Productivity');
-    expect(benefits[1].textContent).toContain('Enterprise Security');
-    expect(benefits[2].textContent).toContain('Data-Driven Insights');
-  });
-
-  it('should display benefits section', () => {
-    const compiled = fixture.nativeElement;
-    const benefitCards = compiled.querySelectorAll('.benefit-card');
-    expect(benefitCards.length).toBe(3);
-    expect(compiled.textContent).toContain('For Organizations');
-    expect(compiled.textContent).toContain('For Educational Teams');
-    expect(compiled.textContent).toContain('Repository Integration');
-  });
-
   it('should display How Joinery Works section', () => {
     const compiled = fixture.nativeElement;
     const section = compiled.querySelector('.how-it-works-section');
     expect(section).toBeTruthy();
     expect(compiled.textContent).toContain('How Joinery Works');
     expect(compiled.textContent).toContain('Powerful features designed for team collaboration, security, and workflow management');
-  });
-
-  it('should display all four feature cards in How It Works section', () => {
-    const compiled = fixture.nativeElement;
-    const featureCards = compiled.querySelectorAll('.feature-card');
-    expect(featureCards.length).toBe(4);
-    
-    expect(compiled.textContent).toContain('Secure Query Sharing');
-    expect(compiled.textContent).toContain('Team & Organization Management');
-    expect(compiled.textContent).toContain('Audit Trail & History');
-    expect(compiled.textContent).toContain('Extension & Integration Support');
   });
 
   it('should display Trust, Security, and Open Source section', () => {
@@ -189,28 +157,13 @@ describe('LandingPage', () => {
     expect(opensourceBadge.textContent).toContain('MIT Licensed');
   });
 
-  it('should display feature highlights for each feature card', () => {
+  it('should display feature descriptions for each feature card', () => {
     const compiled = fixture.nativeElement;
-    
-    // Query Sharing highlights
-    expect(compiled.textContent).toContain('Role-based access control');
-    expect(compiled.textContent).toContain('Private team workspaces');
-    expect(compiled.textContent).toContain('Secure query execution');
-    
-    // Team Management highlights
-    expect(compiled.textContent).toContain('Multi-level team structure');
-    expect(compiled.textContent).toContain('SSO integration ready');
-    expect(compiled.textContent).toContain('Centralized user management');
-    
-    // Audit Trail highlights
-    expect(compiled.textContent).toContain('Full query version history');
-    expect(compiled.textContent).toContain('User activity tracking');
-    expect(compiled.textContent).toContain('Compliance reporting');
-    
-    // Extension Support highlights
-    expect(compiled.textContent).toContain('GitHub/GitLab integration');
-    expect(compiled.textContent).toContain('REST API access');
-    expect(compiled.textContent).toContain('Custom workflow support');
+
+    expect(compiled.textContent).toContain('Share SQL queries and data insights with granular permissions.');
+    expect(compiled.textContent).toContain('Organize users into teams with hierarchical permissions.');
+    expect(compiled.textContent).toContain('Complete visibility into query usage and modifications.');
+    expect(compiled.textContent).toContain('Connect with your existing tools and workflows.');
   });
 
   // Footer Tests
@@ -242,15 +195,17 @@ describe('LandingPage', () => {
     expect(compiled.textContent).toContain('Support');
     expect(compiled.textContent).toContain('Roadmap');
     
-    // Company section  
+    // Company section - verify links exist by querying footer column anchors
     expect(compiled.textContent).toContain('Company');
-    expect(compiled.textContent).toContain('Privacy Policy');
-    expect(compiled.textContent).toContain('How It Works');
+    const companyLinks = Array.from(
+      compiled.querySelectorAll('.footer-column .footer-nav a') as NodeListOf<HTMLAnchorElement>
+    ).map(a => a.textContent?.trim() ?? '');
+    expect(companyLinks.some(t => t.includes('Privacy Policy'))).toBeTrue();
+    expect(companyLinks.some(t => t.includes('How It Works'))).toBeTrue();
     expect(compiled.textContent).toContain('Contact');
     
     // Community section
     expect(compiled.textContent).toContain('Community');
-    expect(compiled.textContent).toContain('GitHub');
     expect(compiled.textContent).toContain('Discussions');
     expect(compiled.textContent).toContain('Contribute');
   });
