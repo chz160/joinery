@@ -5,9 +5,19 @@ using System.Text.Json.Serialization;
 
 namespace JoineryServer.Services;
 
+/// <summary>Result of an incremental repository sync operation.</summary>
+public record IncrementalSyncResult(
+    string? HeadCommitSha,
+    IReadOnlyList<GitQueryFile> Added,
+    IReadOnlyList<GitQueryFile> Modified,
+    IReadOnlyList<string> DeletedFilePaths,
+    bool IsNoOp,
+    bool IsFullSync = false);
+
 public interface IGitRepositoryService
 {
     Task<List<GitQueryFile>> SyncRepositoryAsync(GitRepository repository);
+    Task<IncrementalSyncResult> IncrementalSyncRepositoryAsync(GitRepository repository, IReadOnlyList<GitQueryFile> existingFiles);
     Task<GitQueryFile?> GetQueryFileAsync(GitRepository repository, string filePath);
     Task<List<string>> GetRepositoryFoldersAsync(GitRepository repository);
     Task<List<GitQueryFile>> GetQueryFilesInFolderAsync(GitRepository repository, string folderPath = "");
@@ -62,6 +72,229 @@ public class GitRepositoryService : IGitRepositoryService
         {
             _logger.LogError(ex, "Error syncing repository {RepositoryUrl}", repository.RepositoryUrl);
             return [];
+        }
+    }
+
+    /// <summary>
+    /// Performs an incremental sync by comparing the current branch HEAD with
+    /// <see cref="GitRepository.LastHeadCommitSha"/>. Falls back to a full sync when
+    /// <paramref name="repository"/>.<see cref="GitRepository.LastHeadCommitSha"/> is
+    /// <see langword="null"/> (first sync) or when the compare delta is too large (&gt;250 files).
+    /// </summary>
+    public async Task<IncrementalSyncResult> IncrementalSyncRepositoryAsync(
+        GitRepository repository,
+        IReadOnlyList<GitQueryFile> existingFiles)
+    {
+        if (!IsValidRepositoryUrl(repository.RepositoryUrl))
+            throw new ArgumentException($"Invalid or unsupported repository URL: {repository.RepositoryUrl}", nameof(repository));
+
+        var (owner, repoName) = ParseGitHubUrl(repository.RepositoryUrl);
+        var branch = repository.Branch ?? "main";
+        var httpClient = _httpClientFactory.CreateClient();
+
+        try
+        {
+            var headSha = await GetBranchHeadShaAsync(httpClient, owner, repoName, branch, repository.AccessToken);
+            if (headSha == null)
+            {
+                _logger.LogWarning("Could not resolve HEAD SHA for {Owner}/{Repo}@{Branch}; falling back to full sync",
+                    owner, repoName, branch);
+                return await FullSyncAsIncrementalResultAsync(repository, headSha);
+            }
+
+            // Nothing changed since last sync.
+            if (headSha == repository.LastHeadCommitSha)
+            {
+                _logger.LogInformation("Repository {Owner}/{Repo} is already up to date at {Sha}",
+                    owner, repoName, headSha);
+                return new IncrementalSyncResult(headSha, [], [], [], IsNoOp: true);
+            }
+
+            // First sync or base SHA not available → full sync.
+            if (string.IsNullOrEmpty(repository.LastHeadCommitSha))
+            {
+                _logger.LogInformation("No prior sync point for {Owner}/{Repo}; performing full sync", owner, repoName);
+                return await FullSyncAsIncrementalResultAsync(repository, headSha);
+            }
+
+            var compareResult = await GetCompareResultAsync(
+                httpClient, owner, repoName,
+                repository.LastHeadCommitSha, headSha,
+                repository.AccessToken);
+
+            if (compareResult == null)
+            {
+                _logger.LogWarning("Compare API failed for {Owner}/{Repo}; falling back to full sync", owner, repoName);
+                return await FullSyncAsIncrementalResultAsync(repository, headSha);
+            }
+
+            return await ProcessCompareResultAsync(httpClient, repository, owner, repoName, headSha, compareResult, existingFiles);
+        }
+        catch (GitHubRateLimitException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during incremental sync for {Owner}/{Repo}", owner, repoName);
+            return await FullSyncAsIncrementalResultAsync(repository, null);
+        }
+    }
+
+    private async Task<IncrementalSyncResult> FullSyncAsIncrementalResultAsync(
+        GitRepository repository,
+        string? headSha)
+    {
+        var files = await SyncRepositoryAsync(repository);
+        return new IncrementalSyncResult(headSha, files, [], [], IsNoOp: false, IsFullSync: true);
+    }
+
+    private async Task<string?> GetBranchHeadShaAsync(
+        HttpClient httpClient, string owner, string repoName, string branch, string? accessToken)
+    {
+        var url = $"https://api.github.com/repos/{owner}/{repoName}/commits?sha={Uri.EscapeDataString(branch)}&per_page=1";
+        using var response = await ExecuteWithRetryAsync(httpClient, url, accessToken);
+
+        if (!response.IsSuccessStatusCode) return null;
+
+        var json = await response.Content.ReadAsStringAsync();
+        var commits = JsonSerializer.Deserialize<GitHubCommit[]>(json, CamelCaseOptions);
+        return commits?.FirstOrDefault()?.Sha;
+    }
+
+    private async Task<GitHubCompareResult?> GetCompareResultAsync(
+        HttpClient httpClient, string owner, string repoName,
+        string baseSha, string headSha, string? accessToken)
+    {
+        var url = $"https://api.github.com/repos/{owner}/{repoName}/compare/{Uri.EscapeDataString(baseSha)}...{Uri.EscapeDataString(headSha)}";
+        using var response = await ExecuteWithRetryAsync(httpClient, url, accessToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogWarning("Compare API returned {StatusCode} for {Owner}/{Repo}", response.StatusCode, owner, repoName);
+            return null;
+        }
+
+        var json = await response.Content.ReadAsStringAsync();
+        return JsonSerializer.Deserialize<GitHubCompareResult>(json, CamelCaseOptions);
+    }
+
+    private async Task<IncrementalSyncResult> ProcessCompareResultAsync(
+        HttpClient httpClient,
+        GitRepository repository,
+        string owner,
+        string repoName,
+        string headSha,
+        GitHubCompareResult compareResult,
+        IReadOnlyList<GitQueryFile> existingFiles)
+    {
+        // GitHub caps /compare at 250 files. If the diff is too large, fall back to full sync.
+        if (compareResult.Files.Count >= 250)
+        {
+            _logger.LogWarning("Compare diff for {Owner}/{Repo} has {Count} files (≥250); falling back to full sync",
+                owner, repoName, compareResult.Files.Count);
+            return await FullSyncAsIncrementalResultAsync(repository, headSha);
+        }
+
+        var added = new List<GitQueryFile>();
+        var modified = new List<GitQueryFile>();
+        var deleted = new List<string>();
+
+        var existingByPath = existingFiles.ToDictionary(f => f.FilePath, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var file in compareResult.Files)
+        {
+            switch (file.Status)
+            {
+                case "removed":
+                    if (IsQueryFile(file.Filename))
+                        deleted.Add(file.Filename);
+                    break;
+
+                case "renamed":
+                    // Remove old path, add new path.
+                    if (IsQueryFile(file.PreviousFilename ?? ""))
+                        deleted.Add(file.PreviousFilename!);
+                    if (IsQueryFile(file.Filename))
+                    {
+                        var qf = await FetchQueryFileAsync(httpClient, repository, owner, repoName, file);
+                        if (qf != null) added.Add(qf);
+                    }
+                    break;
+
+                case "added":
+                    if (IsQueryFile(file.Filename))
+                    {
+                        var qf = await FetchQueryFileAsync(httpClient, repository, owner, repoName, file);
+                        if (qf != null) added.Add(qf);
+                    }
+                    break;
+
+                case "modified":
+                case "changed":
+                case "copied":
+                    if (IsQueryFile(file.Filename))
+                    {
+                        var qf = await FetchQueryFileAsync(httpClient, repository, owner, repoName, file);
+                        if (qf != null)
+                        {
+                            if (existingByPath.TryGetValue(file.Filename, out var existing))
+                            {
+                                qf.Id = existing.Id; // preserve DB id so EF treats it as Update
+                                modified.Add(qf);
+                            }
+                            else
+                            {
+                                added.Add(qf);
+                            }
+                        }
+                    }
+                    break;
+            }
+        }
+
+        return new IncrementalSyncResult(headSha, added, modified, deleted, IsNoOp: false);
+    }
+
+    private async Task<GitQueryFile?> FetchQueryFileAsync(
+        HttpClient httpClient,
+        GitRepository repository,
+        string owner,
+        string repoName,
+        GitHubCompareFile file)
+    {
+        try
+        {
+            // Use the Contents API to download the file at the new HEAD.
+            // Forward slashes in the path must not be percent-encoded — the GitHub Contents
+            // API interprets each path segment separately, so encoding slashes breaks
+            // sub-directory lookups (e.g. "queries%2Ffile.sql" → 404).
+            var branch = repository.Branch ?? "main";
+            var contentsUrl = $"https://api.github.com/repos/{owner}/{repoName}/contents/{file.Filename}?ref={Uri.EscapeDataString(branch)}";
+            using var metaResponse = await ExecuteWithRetryAsync(httpClient, contentsUrl, repository.AccessToken);
+            if (!metaResponse.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Could not fetch metadata for '{Path}': {StatusCode}", file.Filename, metaResponse.StatusCode);
+                return null;
+            }
+
+            var metaJson = await metaResponse.Content.ReadAsStringAsync();
+            var content = JsonSerializer.Deserialize<GitHubContent>(metaJson, CamelCaseOptions);
+            if (content == null) return null;
+
+            if (content.Size > MaxFileSizeBytes)
+            {
+                _logger.LogWarning("Skipping '{Path}' ({Size:N0} bytes) — exceeds {LimitMb} MB limit",
+                    file.Filename, content.Size, MaxFileSizeBytes / 1_048_576);
+                return null;
+            }
+
+            return await CreateQueryFileFromContent(httpClient, repository, content, owner, repoName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching changed file '{Path}'", file.Filename);
+            return null;
         }
     }
 
@@ -381,7 +614,7 @@ public class GitRepositoryService : IGitRepositoryService
             .ToList();
     }
 
-    private static (string owner, string repoName) ParseGitHubUrl(string url)
+    internal static (string owner, string repoName) ParseGitHubUrl(string url)
     {
         if (string.IsNullOrWhiteSpace(url)) return ("", "");
 
@@ -514,6 +747,7 @@ public class GitRepositoryService : IGitRepositoryService
 
     private sealed class GitHubCommit
     {
+        public string Sha { get; set; } = "";
         public GitHubCommitDetails Commit { get; set; } = new();
     }
 
@@ -532,6 +766,21 @@ public class GitRepositoryService : IGitRepositoryService
     {
         public string Author { get; set; } = "";
         public DateTime Date { get; set; }
+    }
+
+    private sealed class GitHubCompareResult
+    {
+        public string Status { get; set; } = "";
+        public List<GitHubCompareFile> Files { get; set; } = [];
+    }
+
+    private sealed class GitHubCompareFile
+    {
+        public string Filename { get; set; } = "";
+        public string Status { get; set; } = "";
+        [JsonPropertyName("previous_filename")]
+        public string? PreviousFilename { get; set; }
+        public long Size { get; set; }
     }
 }
 
