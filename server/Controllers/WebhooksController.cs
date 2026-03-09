@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using JoineryServer.Data;
+using JoineryServer.Models;
 using JoineryServer.Services;
 using System.Security.Cryptography;
 using System.Text;
@@ -16,25 +16,25 @@ namespace JoineryServer.Controllers;
 public class WebhooksController : ControllerBase
 {
     private readonly JoineryDbContext _context;
-    private readonly IGitRepositoryService _gitService;
+    private readonly IWebhookEventQueue _queue;
     private readonly IConfiguration _configuration;
     private readonly ILogger<WebhooksController> _logger;
 
     public WebhooksController(
         JoineryDbContext context,
-        IGitRepositoryService gitService,
+        IWebhookEventQueue queue,
         IConfiguration configuration,
         ILogger<WebhooksController> logger)
     {
         _context = context;
-        _gitService = gitService;
+        _queue = queue;
         _configuration = configuration;
         _logger = logger;
     }
 
     /// <summary>
-    /// Receives GitHub webhook push events and triggers an incremental sync
-    /// for the affected repository.
+    /// Receives GitHub webhook events and queues them for background processing.
+    /// Supports push and pull_request events.
     /// </summary>
     [HttpPost("github")]
     public async Task<IActionResult> GitHubWebhook()
@@ -46,104 +46,126 @@ public class WebhooksController : ControllerBase
             return StatusCode(503, new { message = "Webhook processing is not configured." });
         }
 
-        // Buffer the raw body so we can verify the signature.
         string rawBody;
         using (var reader = new StreamReader(Request.Body, Encoding.UTF8, leaveOpen: true))
         {
             rawBody = await reader.ReadToEndAsync();
         }
 
-        if (!ValidateSignature(rawBody, secret, Request.Headers["X-Hub-Signature-256"].FirstOrDefault()))
+        if (!ValidateGitHubSignature(rawBody, secret, Request.Headers["X-Hub-Signature-256"].FirstOrDefault()))
         {
             _logger.LogWarning("GitHub webhook signature validation failed");
             return Unauthorized(new { message = "Invalid webhook signature." });
         }
 
-        var eventType = Request.Headers["X-GitHub-Event"].FirstOrDefault();
-        _logger.LogInformation("GitHub webhook received: event={Event}", eventType);
+        var eventType = Request.Headers["X-GitHub-Event"].FirstOrDefault() ?? "";
+        var deliveryId = Request.Headers["X-GitHub-Delivery"].FirstOrDefault();
+        _logger.LogInformation("GitHub webhook received: event={Event}, delivery={DeliveryId}", eventType, deliveryId);
 
-        if (eventType != "push")
+        var (repoFullName, branch) = ParseGitHubPayload(eventType, rawBody);
+
+        var webhookEvent = new WebhookEvent
         {
-            // Accept but ignore non-push events.
-            return Ok(new { message = $"Event '{eventType}' acknowledged but not processed." });
-        }
+            Provider = "github",
+            EventType = eventType,
+            DeliveryId = deliveryId,
+            Payload = rawBody,
+            RepositoryFullName = repoFullName,
+            Branch = branch,
+            ReceivedAt = DateTime.UtcNow
+        };
 
-        GitHubPushEvent? pushEvent;
+        _context.WebhookEvents.Add(webhookEvent);
+        await _context.SaveChangesAsync(HttpContext.RequestAborted);
+
         try
         {
-            pushEvent = JsonSerializer.Deserialize<GitHubPushEvent>(rawBody, JsonOptions);
+            await _queue.QueueAsync(webhookEvent.Id, HttpContext.RequestAborted);
         }
-        catch (JsonException ex)
+        catch (InvalidOperationException)
         {
-            _logger.LogWarning(ex, "Failed to deserialize GitHub push event");
-            return BadRequest(new { message = "Invalid push event payload." });
-        }
-
-        if (pushEvent?.Repository == null)
-        {
-            return BadRequest(new { message = "Missing repository in push event payload." });
+            _logger.LogWarning("Webhook event queue is full; GitHub event {EventId} persisted but not queued", webhookEvent.Id);
+            return StatusCode(503, new { message = "Webhook event queue is saturated. Event was persisted but could not be queued for processing.", eventId = webhookEvent.Id });
         }
 
-        var pushedBranch = pushEvent.Ref?.Replace("refs/heads/", "") ?? "";
-        var repoFullName = pushEvent.Repository.FullName; // "owner/repo"
+        _logger.LogInformation("GitHub webhook event {EventId} queued for processing (type={EventType})",
+            webhookEvent.Id, eventType);
 
-        _logger.LogInformation("Push event for repository {FullName} on branch {Branch}",
-            repoFullName, pushedBranch);
-
-        // Pre-filter in the database using a URL substring match to avoid loading every
-        // repository into memory, then apply exact matching via the canonical URL parser.
-        var candidates = await _context.GitRepositories
-            .Where(r => r.IsActive && r.RepositoryUrl.Contains(repoFullName))
-            .Include(r => r.QueryFiles.Where(qf => qf.IsActive))
-            .ToListAsync();
-
-        var matched = candidates.Where(r =>
-        {
-            var (owner, repo) = GitRepositoryService.ParseGitHubUrl(r.RepositoryUrl);
-            return string.Equals($"{owner}/{repo}", repoFullName, StringComparison.OrdinalIgnoreCase) &&
-                   string.Equals(r.Branch ?? "main", pushedBranch, StringComparison.OrdinalIgnoreCase);
-        }).ToList();
-
-        if (matched.Count == 0)
-        {
-            _logger.LogInformation("No tracked repositories match {FullName}@{Branch}", repoFullName, pushedBranch);
-            return Ok(new { message = "No matching repository found." });
-        }
-
-        var syncedCount = 0;
-        foreach (var repository in matched)
-        {
-            try
-            {
-                var existingFiles = repository.QueryFiles.Where(f => f.IsActive).ToList();
-                var syncResult = await _gitService.IncrementalSyncRepositoryAsync(repository, existingFiles);
-
-                _context.ApplyIncrementalSyncResult(repository, syncResult);
-
-                repository.LastSyncAt = DateTime.UtcNow;
-                repository.LastHeadCommitSha = syncResult.HeadCommitSha ?? repository.LastHeadCommitSha;
-                await _context.SaveChangesAsync();
-                syncedCount++;
-
-                _logger.LogInformation(
-                    "Webhook sync for repository {Id}: +{Added} ~{Modified} -{Deleted} (noOp={NoOp}, fullSync={FullSync})",
-                    repository.Id, syncResult.Added.Count, syncResult.Modified.Count,
-                    syncResult.DeletedFilePaths.Count, syncResult.IsNoOp, syncResult.IsFullSync);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Webhook sync failed for repository {RepositoryId}", repository.Id);
-            }
-        }
-
-        return Ok(new { message = $"Sync triggered for {syncedCount} repository/repositories." });
+        return Ok(new { message = $"Event '{eventType}' received and queued for processing.", eventId = webhookEvent.Id });
     }
+
+    /// <summary>
+    /// Receives GitLab webhook events and queues them for background processing.
+    /// Validates the shared secret via the <c>X-Gitlab-Token</c> header.
+    /// Supports push and merge_request events.
+    /// </summary>
+    [HttpPost("gitlab")]
+    public async Task<IActionResult> GitLabWebhook()
+    {
+        var secret = _configuration["GitLab:WebhookSecret"];
+        if (string.IsNullOrEmpty(secret))
+        {
+            _logger.LogWarning("GitLab webhook received but GitLab:WebhookSecret is not configured; rejecting request");
+            return StatusCode(503, new { message = "Webhook processing is not configured." });
+        }
+
+        var token = Request.Headers["X-Gitlab-Token"].FirstOrDefault();
+        if (!ValidateGitLabToken(secret, token))
+        {
+            _logger.LogWarning("GitLab webhook token validation failed");
+            return Unauthorized(new { message = "Invalid webhook token." });
+        }
+
+        string rawBody;
+        using (var reader = new StreamReader(Request.Body, Encoding.UTF8, leaveOpen: true))
+        {
+            rawBody = await reader.ReadToEndAsync();
+        }
+
+        var eventType = Request.Headers["X-Gitlab-Event"].FirstOrDefault() ?? "";
+        // Normalise: "Push Hook" → "push", "Merge Request Hook" → "merge_request"
+        var normalisedEventType = NormaliseGitLabEvent(eventType);
+
+        _logger.LogInformation("GitLab webhook received: event={Event}", eventType);
+
+        var (repoFullName, branch) = ParseGitLabPayload(normalisedEventType, rawBody);
+
+        var webhookEvent = new WebhookEvent
+        {
+            Provider = "gitlab",
+            EventType = normalisedEventType,
+            Payload = rawBody,
+            RepositoryFullName = repoFullName,
+            Branch = branch,
+            ReceivedAt = DateTime.UtcNow
+        };
+
+        _context.WebhookEvents.Add(webhookEvent);
+        await _context.SaveChangesAsync(HttpContext.RequestAborted);
+
+        try
+        {
+            await _queue.QueueAsync(webhookEvent.Id, HttpContext.RequestAborted);
+        }
+        catch (InvalidOperationException)
+        {
+            _logger.LogWarning("Webhook event queue is full; GitLab event {EventId} persisted but not queued", webhookEvent.Id);
+            return StatusCode(503, new { message = "Webhook event queue is saturated. Event was persisted but could not be queued for processing.", eventId = webhookEvent.Id });
+        }
+
+        _logger.LogInformation("GitLab webhook event {EventId} queued for processing (type={EventType})",
+            webhookEvent.Id, normalisedEventType);
+
+        return Ok(new { message = $"Event '{normalisedEventType}' received and queued for processing.", eventId = webhookEvent.Id });
+    }
+
+    // ── GitHub signature validation ──────────────────────────────────────────
 
     /// <summary>
     /// Validates the HMAC-SHA256 signature from GitHub.
     /// Expected header format: <c>sha256=&lt;hex-digest&gt;</c>
     /// </summary>
-    public static bool ValidateSignature(string rawBody, string secret, string? signatureHeader)
+    public static bool ValidateGitHubSignature(string rawBody, string secret, string? signatureHeader)
     {
         if (string.IsNullOrEmpty(signatureHeader) ||
             !signatureHeader.StartsWith("sha256=", StringComparison.OrdinalIgnoreCase))
@@ -155,8 +177,6 @@ public class WebhooksController : ControllerBase
 
         var expectedBytes = HMACSHA256.HashData(secretBytes, bodyBytes);
 
-        // Guard: return false immediately for any invalid hex rather than letting
-        // Convert.FromHexString throw a FormatException at comparison time.
         byte[] receivedBytes;
         try
         {
@@ -170,22 +190,100 @@ public class WebhooksController : ControllerBase
         return CryptographicOperations.FixedTimeEquals(receivedBytes, expectedBytes);
     }
 
-    private static readonly JsonSerializerOptions JsonOptions =
-        new() { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
-
-    private sealed class GitHubPushEvent
+    /// <summary>
+    /// Validates the <c>X-Gitlab-Token</c> header against the configured secret.
+    /// Both values are hashed with SHA-256 before comparison so that
+    /// <see cref="CryptographicOperations.FixedTimeEquals"/> always compares
+    /// equal-length byte arrays, preventing length-based timing leaks.
+    /// </summary>
+    public static bool ValidateGitLabToken(string secret, string? tokenHeader)
     {
-        [JsonPropertyName("ref")]
-        public string? Ref { get; set; }
+        if (string.IsNullOrEmpty(tokenHeader))
+            return false;
 
-        [JsonPropertyName("repository")]
-        public GitHubPushRepository? Repository { get; set; }
+        var expectedHash = SHA256.HashData(Encoding.UTF8.GetBytes(secret));
+        var receivedHash = SHA256.HashData(Encoding.UTF8.GetBytes(tokenHeader));
+
+        return CryptographicOperations.FixedTimeEquals(receivedHash, expectedHash);
     }
 
-    private sealed class GitHubPushRepository
+    // ── Payload parsing ──────────────────────────────────────────────────────
+
+    private static (string? repoFullName, string? branch) ParseGitHubPayload(string eventType, string rawBody)
     {
-        [JsonPropertyName("full_name")]
-        public string FullName { get; set; } = "";
+        try
+        {
+            using var doc = JsonDocument.Parse(rawBody);
+            var root = doc.RootElement;
+
+            var repoFullName = root.TryGetProperty("repository", out var repo) &&
+                               repo.TryGetProperty("full_name", out var fn)
+                ? fn.GetString()
+                : null;
+
+            string? branch = null;
+            if (eventType == "push" && root.TryGetProperty("ref", out var refProp))
+            {
+                branch = refProp.GetString()?.Replace("refs/heads/", "");
+            }
+            else if (eventType == "pull_request" && root.TryGetProperty("pull_request", out var pr) &&
+                     pr.TryGetProperty("base", out var baseProp) &&
+                     baseProp.TryGetProperty("ref", out var baseRef))
+            {
+                branch = baseRef.GetString();
+            }
+
+            return (repoFullName, branch);
+        }
+        catch (JsonException)
+        {
+            return (null, null);
+        }
+    }
+
+    private static (string? repoFullName, string? branch) ParseGitLabPayload(string normalisedEventType, string rawBody)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(rawBody);
+            var root = doc.RootElement;
+
+            var repoFullName = root.TryGetProperty("project", out var project) &&
+                               project.TryGetProperty("path_with_namespace", out var ns)
+                ? ns.GetString()
+                : null;
+
+            string? branch = null;
+            if (normalisedEventType == "push" && root.TryGetProperty("ref", out var refProp))
+            {
+                branch = refProp.GetString()?.Replace("refs/heads/", "");
+            }
+            else if (normalisedEventType == "merge_request" &&
+                     root.TryGetProperty("object_attributes", out var attrs) &&
+                     attrs.TryGetProperty("target_branch", out var targetBranch))
+            {
+                branch = targetBranch.GetString();
+            }
+
+            return (repoFullName, branch);
+        }
+        catch (JsonException)
+        {
+            return (null, null);
+        }
+    }
+
+    private static string NormaliseGitLabEvent(string gitlabEvent)
+    {
+        var lower = gitlabEvent.ToLowerInvariant();
+        return lower switch
+        {
+            "push hook" => "push",
+            "merge request hook" => "merge_request",
+            "tag push hook" => "tag_push",
+            "note hook" => "note",
+            "issue hook" => "issue",
+            _ => lower.Replace(" hook", "").Replace(" ", "_")
+        };
     }
 }
-
