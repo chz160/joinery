@@ -4,13 +4,37 @@
   align-items: center;
   min-height: 100vh;
   padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--color-base);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+  }
 }
 
-.login-card {
+mat-card.login-card {
   width: 100%;
   max-width: 400px;
   padding: 20px;
+  position: relative;
+  background: var(--color-surface-card);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+mat-card-title.login-heading {
+  font-family: var(--font-display);
+  color: var(--color-text-dark);
+}
+
+mat-card-subtitle.login-subtitle {
+  font-family: var(--font-body);
+  color: var(--color-text-muted);
 }
 
 .full-width {
@@ -21,11 +45,18 @@
 .remember-me-container {
   margin-bottom: 16px;
   padding-left: 4px;
+  font-family: var(--font-body);
 }
 
 .login-button {
   margin-top: 16px;
   margin-bottom: 20px;
+  background-color: var(--color-accent-primary) !important;
+  color: var(--color-text-light) !important;
+
+  &:hover:not([disabled]) {
+    background-color: var(--color-accent-primary-hover) !important;
+  }
 }
 
 .divider {
@@ -35,8 +66,9 @@
 .oauth-text {
   text-align: center;
   margin: 16px 0;
-  color: rgba(0, 0, 0, 0.6);
+  color: var(--color-text-muted);
   font-size: 14px;
+  font-family: var(--font-body);
 }
 
 .oauth-buttons {
@@ -52,6 +84,9 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
+  font-family: var(--font-body) !important;
+  border-color: var(--color-accent-primary) !important;
+  color: var(--color-accent-primary) !important;
 
   &.github-button {
     .button-content {
@@ -61,7 +96,7 @@
 
       .spinner {
         ::ng-deep circle {
-          stroke: #1976d2;
+          stroke: var(--color-accent-primary);
         }
       }
     }
@@ -70,5 +105,11 @@
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+  }
+}
+
+@media (max-width: 375px) {
+  mat-card.login-card {
+    padding: 16px;
   }
 }
