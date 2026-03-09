@@ -81,7 +81,7 @@ describe('TeamDashboardService', () => {
         timestamp: '2024-01-10T12:00:00Z'
       }];
 
-      service.getTeamActivity('1').subscribe(activities => {
+      service.getTeamActivity('1', '30d').subscribe(activities => {
         expect(activities.length).toBe(1);
         expect(activities[0].id).toBe('1');
         expect(activities[0].userId).toBe('2');
@@ -92,19 +92,20 @@ describe('TeamDashboardService', () => {
         expect(activities[0].timestamp).toEqual(new Date('2024-01-10T12:00:00Z'));
       });
 
-      const req = httpMock.expectOne(`${apiUrl}/1/activity`);
+      const req = httpMock.expectOne(r => r.url === `${apiUrl}/1/activity`);
       expect(req.request.method).toBe('GET');
+      expect(req.request.params.get('timeRange')).toBe('30d');
       req.flush(dto);
     });
 
     it('should fall back to mock data on HTTP error', () => {
       let resolved = false;
-      service.getTeamActivity('1').subscribe(activities => {
+      service.getTeamActivity('1', '7d').subscribe(activities => {
         expect(activities.length).toBeGreaterThan(0);
         resolved = true;
       });
 
-      const req = httpMock.expectOne(`${apiUrl}/1/activity`);
+      const req = httpMock.expectOne(r => r.url === `${apiUrl}/1/activity`);
       req.error(new ProgressEvent('error'));
       expect(resolved).toBeTrue();
     });

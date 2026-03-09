@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
@@ -155,5 +155,9 @@ describe('TeamDashboard', () => {
 
   it('trackByContribution should return userId', () => {
     expect(component.trackByContribution(0, mockMetrics.memberContributions[0])).toBe('1');
+  });
+
+  it('trackByTimeRangeOption should return option value', () => {
+    expect(component.trackByTimeRangeOption(0, { value: '7d', label: 'Last 7 days' })).toBe('7d');
   });
 });

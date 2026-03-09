@@ -18,7 +18,7 @@
           [matTooltip]="day.date + ': ' + day.runs + ' runs'"
         >
           <div class="bar" [style.height.%]="barHeight(day.runs)"></div>
-          <div class="bar-label">{{ day.date | date:'d' }}</div>
+          <div class="bar-label">{{ (day.date + 'T00:00:00') | date:'d' }}</div>
         </div>
       </div>
     </mat-card-content>

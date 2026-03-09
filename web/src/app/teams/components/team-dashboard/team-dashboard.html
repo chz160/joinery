@@ -15,7 +15,7 @@
       <mat-form-field appearance="outline" class="time-range-select">
         <mat-label>Time Range</mat-label>
         <mat-select [(ngModel)]="selectedTimeRange" (ngModelChange)="onTimeRangeChange()">
-          <mat-option *ngFor="let opt of timeRangeOptions" [value]="opt.value">
+          <mat-option *ngFor="let opt of timeRangeOptions; trackBy: trackByTimeRangeOption" [value]="opt.value">
             {{ opt.label }}
           </mat-option>
         </mat-select>

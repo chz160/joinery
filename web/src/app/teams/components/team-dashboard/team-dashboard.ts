@@ -2,8 +2,8 @@ import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { Subject, combineLatest, interval } from 'rxjs';
-import { takeUntil, switchMap, startWith } from 'rxjs/operators';
+import { Subject, interval } from 'rxjs';
+import { takeUntil, startWith } from 'rxjs/operators';
 import { SharedMaterialModule } from '../../../shared/modules/material.module';
 import { TeamDashboardService } from '../../services/team-dashboard.service';
 import { TeamService } from '../../../shared/services/team.service';
@@ -68,6 +68,10 @@ export class TeamDashboard implements OnInit, OnDestroy {
     return item.userId;
   }
 
+  trackByTimeRangeOption(_: number, item: { value: TeamDashboardTimeRange; label: string }): string {
+    return item.value;
+  }
+
   ngOnInit(): void {
     const teamId = this.route.snapshot.paramMap.get('id');
     if (!teamId) {
@@ -130,30 +134,19 @@ export class TeamDashboard implements OnInit, OnDestroy {
     this.isLoadingMetrics = true;
     this.dashboardService.getTeamMetrics(teamId, this.selectedTimeRange)
       .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: metrics => {
-          this.metrics = metrics;
-          this.isLoadingMetrics = false;
-        },
-        error: () => {
-          this.errorMessage = 'Failed to load team metrics.';
-          this.isLoadingMetrics = false;
-        }
+      .subscribe(metrics => {
+        this.metrics = metrics;
+        this.isLoadingMetrics = false;
       });
   }
 
   private loadActivity(teamId: string): void {
     this.isLoadingActivity = true;
-    this.dashboardService.getTeamActivity(teamId)
+    this.dashboardService.getTeamActivity(teamId, this.selectedTimeRange)
       .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: activities => {
-          this.activities = activities;
-          this.isLoadingActivity = false;
-        },
-        error: () => {
-          this.isLoadingActivity = false;
-        }
+      .subscribe(activities => {
+        this.activities = activities;
+        this.isLoadingActivity = false;
       });
   }
 
@@ -161,14 +154,9 @@ export class TeamDashboard implements OnInit, OnDestroy {
     this.isLoadingUsage = true;
     this.dashboardService.getTeamUsage(teamId, this.selectedTimeRange)
       .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: stats => {
-          this.usageStats = stats;
-          this.isLoadingUsage = false;
-        },
-        error: () => {
-          this.isLoadingUsage = false;
-        }
+      .subscribe(stats => {
+        this.usageStats = stats;
+        this.isLoadingUsage = false;
       });
   }
 }

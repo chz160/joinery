@@ -54,11 +54,11 @@ export class TeamDashboardService {
   }
 
   /**
-   * Get the recent activity feed for a team.
+   * Get the recent activity feed for a team over a given time range.
    */
-  getTeamActivity(teamId: string): Observable<TeamActivity[]> {
+  getTeamActivity(teamId: string, timeRange: TeamDashboardTimeRange): Observable<TeamActivity[]> {
     return this.http
-      .get<TeamActivityApiDto[]>(`${this.apiUrl}/${teamId}/activity`)
+      .get<TeamActivityApiDto[]>(`${this.apiUrl}/${teamId}/activity`, { params: { timeRange } })
       .pipe(
         map(dtos => dtos.map(dto => this.mapActivity(dto))),
         catchError(() => of(this.mockActivity()))
