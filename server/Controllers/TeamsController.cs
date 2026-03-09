@@ -112,9 +112,6 @@ public class TeamsController : ControllerBase
 
         var teams = await _context.Teams
             .Where(t => t.OrganizationId == organizationId && t.IsActive)
-            .Include(t => t.CreatedByUser)
-            .Include(t => t.Organization)
-            .Include(t => t.TeamMembers.Where(tm => tm.IsActive))
             .Select(t => new
             {
                 t.Id,
