@@ -1,3 +1,13 @@
+:host {
+  display: block;
+  margin: -20px;
+  overflow-x: hidden;
+
+  /* Accessible muted text — split for dark vs light surfaces to meet WCAG AA 4.5:1 */
+  --color-text-muted-on-dark: #9a9a9a;
+  --color-text-muted-on-light: #666666;
+}
+
 .landing-container {
   min-height: 100vh;
 }
@@ -45,7 +55,7 @@
 .hero-subtitle {
   font-family: var(--font-body);
   font-size: 1.25rem;
-  color: var(--color-text-muted);
+  color: var(--color-text-muted-on-dark);
   margin: 0 0 2.5rem 0;
   line-height: 1.6;
 }
@@ -183,7 +193,7 @@
 .step-detail {
   font-family: var(--font-body);
   font-size: 0.875rem;
-  color: var(--color-text-muted);
+  color: var(--color-text-muted-on-light);
 }
 
 .workflow-connector {
@@ -249,7 +259,7 @@
 
   p {
     font-family: var(--font-body);
-    color: var(--color-text-muted);
+    color: var(--color-text-muted-on-dark);
     line-height: 1.6;
     margin: 0 0 1rem 0;
   }
@@ -273,6 +283,12 @@
 
   &:hover {
     color: var(--color-accent-primary-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-accent-primary);
+    outline-offset: 2px;
+    border-radius: 4px;
   }
 }
 
