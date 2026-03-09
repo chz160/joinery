@@ -1,6 +1,7 @@
 using JoineryServer.Models;
 using System.Net;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace JoineryServer.Services;
 
@@ -19,7 +20,7 @@ public class GitRepositoryService : IGitRepositoryService
 
     private const long MaxFileSizeBytes = 1_048_576; // 1 MB
     private const int MaxDirectoryDepth = 10;
-    private const int MaxRetries = 3;
+    private const int MaxAttempts = 4; // 1 initial attempt + 3 retries
 
     private static readonly JsonSerializerOptions CamelCaseOptions =
         new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
@@ -45,7 +46,7 @@ public class GitRepositoryService : IGitRepositoryService
         if (!IsValidRepositoryUrl(repository.RepositoryUrl))
         {
             _logger.LogError("Invalid or unsupported repository URL: {RepositoryUrl}", repository.RepositoryUrl);
-            return [];
+            throw new ArgumentException($"Invalid or unsupported repository URL: {repository.RepositoryUrl}", nameof(repository));
         }
 
         try
@@ -164,6 +165,12 @@ public class GitRepositoryService : IGitRepositoryService
     {
         try
         {
+            if (string.IsNullOrEmpty(content.DownloadUrl))
+            {
+                _logger.LogWarning("No download URL for file '{Path}'; skipping", content.Path);
+                return null;
+            }
+
             using var fileResponse = await ExecuteWithRetryAsync(httpClient, content.DownloadUrl, repository.AccessToken);
             if (!fileResponse.IsSuccessStatusCode)
             {
@@ -237,7 +244,7 @@ public class GitRepositoryService : IGitRepositoryService
     /// <summary>Sends a GET request to <paramref name="url"/> with retries for transient failures.</summary>
     private async Task<HttpResponseMessage> ExecuteWithRetryAsync(HttpClient httpClient, string url, string? accessToken)
     {
-        for (int attempt = 0; attempt <= MaxRetries; attempt++)
+        for (int attempt = 0; attempt < MaxAttempts; attempt++)
         {
             HttpResponseMessage? response = null;
             try
@@ -259,7 +266,7 @@ public class GitRepositoryService : IGitRepositoryService
                 }
 
                 // Success or non-retryable client error — return as-is.
-                if ((int)response.StatusCode < 500 || attempt == MaxRetries)
+                if ((int)response.StatusCode < 500 || attempt == MaxAttempts - 1)
                 {
                     return response;
                 }
@@ -270,24 +277,24 @@ public class GitRepositoryService : IGitRepositoryService
                 response = null;
 
                 var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt));
-                _logger.LogWarning("Transient server error {StatusCode} for '{Url}'; retrying in {Delay}s (attempt {Attempt}/{MaxRetries})",
-                    statusCode, url, delay.TotalSeconds, attempt + 1, MaxRetries);
+                _logger.LogWarning("Transient server error {StatusCode} for '{Url}'; retrying in {Delay}s (retry {Retry}/{MaxRetries})",
+                    statusCode, url, delay.TotalSeconds, attempt + 1, MaxAttempts - 1);
                 await Task.Delay(delay);
             }
             catch (HttpRequestException ex)
             {
                 response?.Dispose();
-                if (attempt == MaxRetries)
-                    throw new InvalidOperationException($"Failed to GET '{url}' after {MaxRetries} retries.", ex);
+                if (attempt == MaxAttempts - 1)
+                    throw new InvalidOperationException($"Failed to GET '{url}' after {MaxAttempts} attempts.", ex);
                 var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt));
-                _logger.LogWarning(ex, "Network error for '{Url}'; retrying in {Delay}s (attempt {Attempt}/{MaxRetries})",
-                    url, delay.TotalSeconds, attempt + 1, MaxRetries);
+                _logger.LogWarning(ex, "Network error for '{Url}'; retrying in {Delay}s (retry {Retry}/{MaxRetries})",
+                    url, delay.TotalSeconds, attempt + 1, MaxAttempts - 1);
                 await Task.Delay(delay);
             }
         }
 
-        // Fallback: reached only if MaxRetries < 0 (not possible with a positive constant).
-        throw new InvalidOperationException($"Failed to GET '{url}' after {MaxRetries} retries.");
+        // Fallback: reached only if MaxAttempts <= 0 (not possible with a positive constant).
+        throw new InvalidOperationException($"Failed to GET '{url}' after {MaxAttempts} attempts.");
     }
 
     private static HttpRequestMessage BuildGitHubRequest(string url, string? accessToken)
@@ -391,14 +398,16 @@ public class GitRepositoryService : IGitRepositoryService
         try
         {
             // https://github.com/owner/repo  or  https://github.com/owner/repo.git
+            // Only HTTPS is accepted (not plain HTTP) for security.
             if (Uri.TryCreate(url, UriKind.Absolute, out var uri) &&
-                (uri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase) ||
-                 uri.Scheme.Equals("http", StringComparison.OrdinalIgnoreCase)) &&
-                uri.Host.Equals("github.com", StringComparison.OrdinalIgnoreCase))
+                uri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase) &&
+                uri.Host.Equals("github.com", StringComparison.OrdinalIgnoreCase) &&
+                string.IsNullOrEmpty(uri.Query) &&
+                string.IsNullOrEmpty(uri.Fragment))
             {
-                // AbsolutePath strips query and fragment; split into clean path segments.
+                // AbsolutePath must contain exactly owner + repo (no extra segments).
                 var segments = uri.AbsolutePath.Trim('/').Split('/');
-                if (segments.Length >= 2 &&
+                if (segments.Length == 2 &&
                     !string.IsNullOrEmpty(segments[0]) &&
                     !string.IsNullOrEmpty(segments[1]))
                 {
@@ -409,12 +418,11 @@ public class GitRepositoryService : IGitRepositoryService
             else if (url.StartsWith("git@github.com:", StringComparison.OrdinalIgnoreCase))
             {
                 var repoPath = url["git@github.com:".Length..];
-                // Strip any accidental query string or fragment.
-                var extraIdx = repoPath.IndexOfAny(['?', '#']);
-                if (extraIdx >= 0) repoPath = repoPath[..extraIdx];
+                // Reject any accidental query string or fragment.
+                if (repoPath.IndexOfAny(['?', '#']) >= 0) return ("", "");
                 repoPath = repoPath.Replace(".git", "", StringComparison.OrdinalIgnoreCase);
                 var parts = repoPath.Split('/');
-                if (parts.Length >= 2 &&
+                if (parts.Length == 2 &&
                     !string.IsNullOrEmpty(parts[0]) &&
                     !string.IsNullOrEmpty(parts[1]))
                 {
@@ -509,7 +517,8 @@ public class GitRepositoryService : IGitRepositoryService
         public string Path { get; set; } = "";
         public string Sha { get; set; } = "";
         public string Type { get; set; } = "";
-        public string DownloadUrl { get; set; } = "";
+        [JsonPropertyName("download_url")]
+        public string? DownloadUrl { get; set; }
         public long Size { get; set; }
     }
 
