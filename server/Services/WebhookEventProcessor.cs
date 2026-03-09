@@ -76,7 +76,7 @@ public sealed class WebhookEventProcessor : BackgroundService
                 catch (InvalidOperationException)
                 {
                     _logger.LogWarning("Queue full during rehydration; skipping remaining {Count} events",
-                        strandedIds.Count - strandedIds.IndexOf(id));
+                        strandedIds.Count - strandedIds.IndexOf(id) - 1);
                     break;
                 }
             }
@@ -270,7 +270,8 @@ public sealed class WebhookEventProcessor : BackgroundService
         }
         catch
         {
-            // Fall through
+            // Malformed URLs are expected for user-supplied repository links;
+            // return empty to indicate no match rather than propagating the error.
         }
 
         return "";
