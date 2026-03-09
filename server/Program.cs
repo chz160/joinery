@@ -59,6 +59,10 @@ builder.Services.AddScoped<ISessionRepository, SessionRepository>();
 builder.Services.AddScoped<ISessionService, SessionService>();
 builder.Services.AddHostedService<SessionCleanupService>();
 
+// Add webhook event processing services
+builder.Services.AddSingleton<IWebhookEventQueue, WebhookEventQueue>();
+builder.Services.AddHostedService<WebhookEventProcessor>();
+
 // Configure authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>

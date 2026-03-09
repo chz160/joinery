@@ -23,6 +23,7 @@ public class JoineryDbContext : DbContext
     public DbSet<BlacklistedToken> BlacklistedTokens { get; set; }
     public DbSet<Session> Sessions { get; set; }
     public DbSet<ApiKey> ApiKeys { get; set; }
+    public DbSet<WebhookEvent> WebhookEvents { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
