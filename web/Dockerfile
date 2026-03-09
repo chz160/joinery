@@ -4,7 +4,7 @@ FROM node:20-alpine AS builder
 # Build arguments for production environment configuration
 ARG API_BASE_URL=https://api.jnry.io
 ARG OAUTH_REDIRECT_URI=https://app.jnry.io/auth/callback
-ARG OAUTH_GITHUB_CLIENT_ID=your-github-client-id-prod
+ARG OAUTH_GITHUB_CLIENT_ID=your-github-client-id
 
 # Set working directory
 WORKDIR /app
@@ -20,6 +20,11 @@ COPY src/ src/
 COPY angular.json ./
 COPY tsconfig*.json ./
 COPY public/ public/
+
+# Re-declare build args to bust Docker layer cache when values change
+ARG API_BASE_URL
+ARG OAUTH_REDIRECT_URI
+ARG OAUTH_GITHUB_CLIENT_ID
 
 # Inject production environment values from build args
 RUN apk add --no-cache gettext && \
