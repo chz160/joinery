@@ -123,6 +123,10 @@ export class TeamMemberList implements OnInit, OnDestroy {
   removeMember(member: TeamMember): void {
     if (!this.teamId || member.role === 'owner') return;
 
+    if (!confirm(`Are you sure you want to remove ${member.name} from the team?`)) {
+      return;
+    }
+
     this.teamService.removeTeamMember(this.teamId, member.userId).pipe(
       takeUntil(this.destroy$)
     ).subscribe({
@@ -148,30 +152,23 @@ export class TeamMemberList implements OnInit, OnDestroy {
     return option.value;
   }
 
-  private loadTeamAndMembers(teamId: string): void {
+  private loadTeamAndMembers(teamId: string, preserveError = false): void {
     this.isLoading = true;
-    this.errorMessage = null;
+    if (!preserveError) {
+      this.errorMessage = null;
+    }
 
-    this.teamService.getTeam(teamId).pipe(
+    this.teamService.getTeamWithMembers(teamId).pipe(
       takeUntil(this.destroy$)
     ).subscribe({
-      next: team => { this.team = team; },
-      error: () => {
-        this.errorMessage = 'Failed to load team information.';
-        this.isLoading = false;
-      }
-    });
-
-    this.teamService.getTeamMembers(teamId).pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: members => {
+      next: ({ team, members }) => {
+        this.team = team;
         this.members = members;
         this.applyFilters();
         this.isLoading = false;
       },
       error: () => {
-        this.errorMessage = 'Failed to load team members.';
+        this.errorMessage = 'Failed to load team data.';
         this.isLoading = false;
       }
     });
@@ -182,7 +179,7 @@ export class TeamMemberList implements OnInit, OnDestroy {
 
     const roleNum = TeamService.mapRoleToApi(result.role);
     const invites$ = result.emails.map(email =>
-      this.teamService.inviteTeamMember(this.teamId!, { email, role: roleNum }).pipe(
+      this.teamService.addTeamMember(this.teamId!, { userId: 0, role: roleNum }).pipe(
         catchError(() => of({ error: true, email }))
       )
     );
@@ -191,12 +188,12 @@ export class TeamMemberList implements OnInit, OnDestroy {
       takeUntil(this.destroy$)
     ).subscribe(results => {
       const failed = results.filter(r => r && typeof r === 'object' && 'error' in r);
+      if (this.teamId) {
+        this.loadTeamAndMembers(this.teamId, failed.length > 0);
+      }
       if (failed.length > 0) {
         const failedEmails = failed.map(f => (f as { email: string }).email).join(', ');
         this.errorMessage = `Failed to invite: ${failedEmails}. Please try again.`;
-      }
-      if (this.teamId) {
-        this.loadTeamAndMembers(this.teamId);
       }
     });
   }

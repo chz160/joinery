@@ -12,7 +12,6 @@
           (keydown)="onKeydown($event)"
           placeholder="Enter email and press Enter or Add"
         />
-        <mat-error *ngIf="emailError">{{ emailError }}</mat-error>
         <mat-hint>Press Enter or click Add to include multiple emails</mat-hint>
       </mat-form-field>
       <button mat-stroked-button type="button" (click)="addEmail()" class="add-btn">

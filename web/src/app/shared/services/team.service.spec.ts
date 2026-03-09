@@ -273,6 +273,34 @@ describe('TeamService', () => {
     req.flush(detailDto);
   });
 
+  it('should map status from API DTO when present', () => {
+    const dtoWithStatus = {
+      ...detailDto,
+      members: [{ ...detailDto.members[0], status: 'pending' }]
+    };
+
+    service.getTeamMembers('1').subscribe(members => {
+      expect(members[0].status).toBe('pending');
+    });
+
+    const req = httpMock.expectOne(`${apiUrl}/1`);
+    req.flush(dtoWithStatus);
+  });
+
+  it('should fetch team with members in a single call', () => {
+    service.getTeamWithMembers('1').subscribe(result => {
+      expect(result.team.id).toBe('1');
+      expect(result.team.name).toBe('Backend Engineering');
+      expect(result.members.length).toBe(1);
+      expect(result.members[0].name).toBe('Admin User');
+      expect(result.members[0].role).toBe('admin');
+    });
+
+    const req = httpMock.expectOne(`${apiUrl}/1`);
+    expect(req.request.method).toBe('GET');
+    req.flush(detailDto);
+  });
+
   it('mapRoleFromApi should map numeric roles to string roles', () => {
     expect(TeamService.mapRoleFromApi(2)).toBe('owner');
     expect(TeamService.mapRoleFromApi(1)).toBe('admin');
@@ -286,16 +314,5 @@ describe('TeamService', () => {
     expect(TeamService.mapRoleToApi('admin')).toBe(1);
     expect(TeamService.mapRoleToApi('member')).toBe(0);
     expect(TeamService.mapRoleToApi('viewer')).toBe(-1);
-  });
-
-  it('should invite a team member by email', () => {
-    const request = { email: 'alice@example.com', role: 0 };
-
-    service.inviteTeamMember('1', request).subscribe();
-
-    const req = httpMock.expectOne(`${apiUrl}/1/members/invite`);
-    expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual(request);
-    req.flush({});
   });
 });

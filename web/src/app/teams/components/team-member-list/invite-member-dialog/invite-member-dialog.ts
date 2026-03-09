@@ -1,4 +1,4 @@
-import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -20,8 +20,7 @@ export interface InviteMemberResult {
   standalone: true,
   imports: [CommonModule, FormsModule, SharedMaterialModule],
   templateUrl: './invite-member-dialog.html',
-  styleUrl: './invite-member-dialog.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  styleUrl: './invite-member-dialog.scss'
 })
 export class InviteMemberDialog {
   private readonly dialogRef = inject(MatDialogRef<InviteMemberDialog>);

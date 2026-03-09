@@ -42,11 +42,11 @@ describe('TeamMemberList', () => {
 
   beforeEach(async () => {
     teamServiceSpy = jasmine.createSpyObj('TeamService', [
-      'getTeam', 'getTeamMembers', 'removeTeamMember', 'addTeamMember', 'updateMemberRole'
+      'getTeamWithMembers', 'removeTeamMember', 'addTeamMember', 'updateMemberRole'
     ]);
-    teamServiceSpy.getTeam.and.returnValue(of(mockTeam));
-    teamServiceSpy.getTeamMembers.and.returnValue(of(mockMembers));
+    teamServiceSpy.getTeamWithMembers.and.returnValue(of({ team: mockTeam, members: mockMembers }));
     teamServiceSpy.removeTeamMember.and.returnValue(of(void 0));
+    teamServiceSpy.addTeamMember.and.returnValue(of({}));
     teamServiceSpy.updateMemberRole.and.returnValue(of({}));
 
     routerSpy = jasmine.createSpyObj('Router', ['navigate']);
@@ -72,9 +72,8 @@ describe('TeamMemberList', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should load team and members on init', () => {
-    expect(teamServiceSpy.getTeam).toHaveBeenCalledWith('1');
-    expect(teamServiceSpy.getTeamMembers).toHaveBeenCalledWith('1');
+  it('should load team and members on init via single API call', () => {
+    expect(teamServiceSpy.getTeamWithMembers).toHaveBeenCalledWith('1');
     expect(component.team).toEqual(mockTeam);
     expect(component.members).toEqual(mockMembers);
   });
@@ -122,10 +121,18 @@ describe('TeamMemberList', () => {
     expect(component.filteredMembers.length).toBe(3);
   });
 
-  it('should remove a member on removeMember', () => {
+  it('should confirm before removing a member', () => {
+    spyOn(window, 'confirm').and.returnValue(true);
     component.removeMember(mockMembers[2]); // Bob (member role)
+    expect(window.confirm).toHaveBeenCalled();
     expect(teamServiceSpy.removeTeamMember).toHaveBeenCalledWith('1', '44');
     expect(component.members.length).toBe(2);
+  });
+
+  it('should not remove a member when confirm is cancelled', () => {
+    spyOn(window, 'confirm').and.returnValue(false);
+    component.removeMember(mockMembers[2]);
+    expect(teamServiceSpy.removeTeamMember).not.toHaveBeenCalled();
   });
 
   it('should not remove an owner', () => {
@@ -134,6 +141,7 @@ describe('TeamMemberList', () => {
   });
 
   it('should set errorMessage on remove failure', () => {
+    spyOn(window, 'confirm').and.returnValue(true);
     teamServiceSpy.removeTeamMember.and.returnValue(throwError(() => new Error('fail')));
     component.removeMember(mockMembers[2]);
     expect(component.errorMessage).toBeTruthy();
@@ -168,16 +176,8 @@ describe('TeamMemberList', () => {
     expect(routerSpy.navigate).toHaveBeenCalledWith(['/teams']);
   });
 
-  it('should set errorMessage when team loading fails', () => {
-    teamServiceSpy.getTeam.and.returnValue(throwError(() => new Error('fail')));
-    teamServiceSpy.getTeamMembers.and.returnValue(of(mockMembers));
-    component.ngOnInit();
-    expect(component.errorMessage).toBeTruthy();
-  });
-
-  it('should set errorMessage when members loading fails', () => {
-    teamServiceSpy.getTeam.and.returnValue(of(mockTeam));
-    teamServiceSpy.getTeamMembers.and.returnValue(throwError(() => new Error('fail')));
+  it('should set errorMessage when loading fails', () => {
+    teamServiceSpy.getTeamWithMembers.and.returnValue(throwError(() => new Error('fail')));
     component.ngOnInit();
     expect(component.errorMessage).toBeTruthy();
   });
@@ -215,5 +215,59 @@ describe('TeamMemberList', () => {
 
     component.openRoleDialog(mockMembers[1]); // Alice (admin)
     expect(openSpy).toHaveBeenCalled();
+  });
+
+  it('processInvites should reload members when all invites succeed', () => {
+    const componentDialog = fixture.debugElement.injector.get(MatDialog);
+    const dialogRefSpy = jasmine.createSpyObj('MatDialogRef', ['afterClosed', 'close']);
+    dialogRefSpy.afterClosed.and.returnValue(of({ emails: ['new@example.com'], role: 'member' }));
+    spyOn(componentDialog, 'open').and.returnValue(dialogRefSpy);
+    teamServiceSpy.addTeamMember.and.returnValue(of({}));
+    teamServiceSpy.getTeamWithMembers.calls.reset();
+
+    component.openInviteDialog();
+    expect(teamServiceSpy.addTeamMember).toHaveBeenCalled();
+    expect(teamServiceSpy.getTeamWithMembers).toHaveBeenCalledWith('1');
+    expect(component.errorMessage).toBeNull();
+  });
+
+  it('processInvites should show error with failed emails on partial failure', () => {
+    const componentDialog = fixture.debugElement.injector.get(MatDialog);
+    const dialogRefSpy = jasmine.createSpyObj('MatDialogRef', ['afterClosed', 'close']);
+    dialogRefSpy.afterClosed.and.returnValue(of({
+      emails: ['ok@example.com', 'fail@example.com'],
+      role: 'member'
+    }));
+    spyOn(componentDialog, 'open').and.returnValue(dialogRefSpy);
+
+    let callCount = 0;
+    teamServiceSpy.addTeamMember.and.callFake(() => {
+      callCount++;
+      return callCount === 2
+        ? throwError(() => new Error('fail'))
+        : of({});
+    });
+    teamServiceSpy.getTeamWithMembers.calls.reset();
+
+    component.openInviteDialog();
+    expect(teamServiceSpy.getTeamWithMembers).toHaveBeenCalled();
+    expect(component.errorMessage).toContain('fail@example.com');
+  });
+
+  it('processInvites should show error when all invites fail', () => {
+    const componentDialog = fixture.debugElement.injector.get(MatDialog);
+    const dialogRefSpy = jasmine.createSpyObj('MatDialogRef', ['afterClosed', 'close']);
+    dialogRefSpy.afterClosed.and.returnValue(of({
+      emails: ['a@example.com', 'b@example.com'],
+      role: 'admin'
+    }));
+    spyOn(componentDialog, 'open').and.returnValue(dialogRefSpy);
+    teamServiceSpy.addTeamMember.and.returnValue(throwError(() => new Error('fail')));
+    teamServiceSpy.getTeamWithMembers.calls.reset();
+
+    component.openInviteDialog();
+    expect(teamServiceSpy.getTeamWithMembers).toHaveBeenCalled();
+    expect(component.errorMessage).toContain('a@example.com');
+    expect(component.errorMessage).toContain('b@example.com');
   });
 });

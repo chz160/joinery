@@ -1,4 +1,4 @@
-import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -19,8 +19,7 @@ export interface MemberRoleDialogResult {
   standalone: true,
   imports: [CommonModule, FormsModule, SharedMaterialModule],
   templateUrl: './member-role-dialog.html',
-  styleUrl: './member-role-dialog.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  styleUrl: './member-role-dialog.scss'
 })
 export class MemberRoleDialog {
   private readonly dialogRef = inject(MatDialogRef<MemberRoleDialog>);

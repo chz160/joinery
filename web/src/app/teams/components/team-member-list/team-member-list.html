@@ -110,7 +110,7 @@
             matTooltip="Change role"
             (click)="openRoleDialog(member)"
             [disabled]="member.role === 'owner'"
-            aria-label="Change member role"
+            [attr.aria-label]="'Change role for ' + member.name"
           >
             <mat-icon>admin_panel_settings</mat-icon>
           </button>
@@ -120,7 +120,7 @@
             color="warn"
             (click)="removeMember(member)"
             [disabled]="member.role === 'owner'"
-            aria-label="Remove member"
+            [attr.aria-label]="'Remove ' + member.name + ' from the team'"
           >
             <mat-icon>person_remove</mat-icon>
           </button>

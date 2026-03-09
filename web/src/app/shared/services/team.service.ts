@@ -24,6 +24,7 @@ interface TeamMemberApiDto {
   permissions?: number;
   effectivePermissions?: number;
   joinedAt: string;
+  status?: string;
   user: { id: number; username: string; email: string; fullName: string | null; };
 }
 
@@ -65,11 +66,6 @@ export interface UpdateMemberPermissionsRequest {
   permissions: number;
 }
 
-export interface InviteTeamMemberRequest {
-  email: string;
-  role?: number;
-}
-
 /**
  * Service for managing teams.
  * Handles CRUD operations for teams and member management.
@@ -109,7 +105,7 @@ export class TeamService {
       email: dto.user.email,
       name: dto.user.fullName || dto.user.username,
       role: TeamService.mapRoleFromApi(dto.role),
-      status: 'active',
+      status: (dto.status as TeamMember['status']) || 'active',
       permissions: dto.permissions,
       effectivePermissions: dto.effectivePermissions,
       joinedAt: new Date(dto.joinedAt)
@@ -185,6 +181,19 @@ export class TeamService {
   }
 
   /**
+   * Get a team and its members in a single HTTP call.
+   * Avoids the duplicate request that separate getTeam + getTeamMembers would cause.
+   */
+  getTeamWithMembers(teamId: string): Observable<{ team: Team; members: TeamMember[] }> {
+    return this.http.get<TeamDetailApiDto>(`${this.apiUrl}/${teamId}`).pipe(
+      map(dto => ({
+        team: this.mapDetailDto(dto),
+        members: dto.members.map(m => this.mapMemberDto(m))
+      }))
+    );
+  }
+
+  /**
    * Create a new team
    */
   createTeam(request: CreateTeamRequest): Observable<Team> {
@@ -235,12 +244,5 @@ export class TeamService {
    */
   updateMemberPermissions(teamId: string, userId: string, request: UpdateMemberPermissionsRequest): Observable<unknown> {
     return this.http.put(`${this.apiUrl}/${teamId}/members/${userId}/permissions`, request);
-  }
-
-  /**
-   * Invite a member to a team by email address
-   */
-  inviteTeamMember(teamId: string, request: InviteTeamMemberRequest): Observable<unknown> {
-    return this.http.post(`${this.apiUrl}/${teamId}/members/invite`, request);
   }
 }
