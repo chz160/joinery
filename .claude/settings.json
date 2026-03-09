@@ -1,0 +1,20 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cat <<EOF >&2\n{\n  \"decision\": \"block\",\n  \"reason\": \"🚫 I am not allowed to run git commit or git push directly. Please run these commands manually in your terminal.\"\n}\nEOF\nexit 0"
+          }
+        ]
+      }
+    ]
+  },
+  "deny": [
+    "Bash(git commit:*)",
+    "Bash(git push:*)"
+  ]
+}
+
