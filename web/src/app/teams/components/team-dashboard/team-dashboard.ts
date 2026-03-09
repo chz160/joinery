@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Subject, interval } from 'rxjs';
-import { takeUntil, startWith } from 'rxjs/operators';
+import { takeUntil } from 'rxjs/operators';
 import { SharedMaterialModule } from '../../../shared/modules/material.module';
 import { TeamDashboardService } from '../../services/team-dashboard.service';
 import { TeamService } from '../../../shared/services/team.service';
@@ -72,22 +72,36 @@ export class TeamDashboard implements OnInit, OnDestroy {
     return item.value;
   }
 
-  ngOnInit(): void {
-    const teamId = this.route.snapshot.paramMap.get('id');
-    if (!teamId) {
-      this.router.navigate(['/teams']);
-      return;
-    }
+  private teamId: string | null = null;
 
-    this.teamService.getTeam(teamId).pipe(takeUntil(this.destroy$)).subscribe({
-      next: team => { this.team = team; },
-      error: () => { this.errorMessage = 'Failed to load team information.'; }
+  ngOnInit(): void {
+    this.route.paramMap.pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(params => {
+      const id = params.get('id');
+      if (!id) {
+        this.router.navigate(['/teams']);
+        return;
+      }
+
+      this.teamId = id;
+
+      this.teamService.getTeam(id).pipe(takeUntil(this.destroy$)).subscribe({
+        next: team => { this.team = team; },
+        error: () => { this.errorMessage = 'Failed to load team information.'; }
+      });
+
+      this.loadData(id);
     });
 
     // Auto-refresh every minute
     interval(AUTO_REFRESH_INTERVAL_MS)
-      .pipe(startWith(0), takeUntil(this.destroy$))
-      .subscribe(() => this.loadData(teamId));
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        if (this.teamId) {
+          this.loadData(this.teamId);
+        }
+      });
   }
 
   ngOnDestroy(): void {
@@ -96,9 +110,8 @@ export class TeamDashboard implements OnInit, OnDestroy {
   }
 
   onTimeRangeChange(): void {
-    const teamId = this.route.snapshot.paramMap.get('id');
-    if (teamId) {
-      this.loadData(teamId);
+    if (this.teamId) {
+      this.loadData(this.teamId);
     }
   }
 

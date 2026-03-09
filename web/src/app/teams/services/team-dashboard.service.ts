@@ -5,6 +5,14 @@ import { catchError, map } from 'rxjs/operators';
 import { TeamActivity, TeamDashboardTimeRange, TeamMetrics, TeamUsageStat } from '../../shared/models';
 import { environment } from '../../../environments/environment';
 
+/** Format a local Date as YYYY-MM-DD using local-time fields. */
+function toLocalDateString(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 interface TeamMetricsApiDto {
   totalQueries: number;
   activeMembers: number;
@@ -22,12 +30,6 @@ interface TeamActivityApiDto {
   targetType: 'query' | 'repository' | 'member' | 'team';
   targetName: string;
   timestamp: string;
-}
-
-interface TeamUsageStatApiDto {
-  date: string;
-  queryRuns: number;
-  dataSource: string;
 }
 
 /**
@@ -70,9 +72,8 @@ export class TeamDashboardService {
    */
   getTeamUsage(teamId: string, timeRange: TeamDashboardTimeRange): Observable<TeamUsageStat[]> {
     return this.http
-      .get<TeamUsageStatApiDto[]>(`${this.apiUrl}/${teamId}/usage`, { params: { timeRange } })
+      .get<TeamUsageStat[]>(`${this.apiUrl}/${teamId}/usage`, { params: { timeRange } })
       .pipe(
-        map(dtos => dtos.map(dto => ({ ...dto }))),
         catchError(() => of(this.mockUsage(timeRange)))
       );
   }
@@ -154,7 +155,7 @@ export class TeamDashboardService {
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date(now);
       date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = toLocalDateString(date);
       dataSources.forEach(ds => {
         stats.push({
           date: dateStr,

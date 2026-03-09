@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { TeamDashboard } from './team-dashboard';
@@ -62,7 +62,7 @@ describe('TeamDashboard', () => {
         { provide: Router, useValue: routerSpy },
         {
           provide: ActivatedRoute,
-          useValue: { snapshot: { paramMap: { get: () => '1' } } }
+          useValue: { paramMap: of(convertToParamMap({ id: '1' })) }
         }
       ]
     }).compileComponents();
@@ -104,7 +104,7 @@ describe('TeamDashboard', () => {
         { provide: TeamDashboardService, useValue: dashboardServiceSpy },
         { provide: TeamService, useValue: teamServiceSpy },
         { provide: Router, useValue: routerSpy },
-        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => null } } } }
+        { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({})) } }
       ]
     });
     const f2 = TestBed.createComponent(TeamDashboard);
