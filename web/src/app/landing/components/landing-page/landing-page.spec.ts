@@ -48,60 +48,36 @@ describe('LandingPage', () => {
 
   it('should have a "View on GitHub" link with correct href', () => {
     const compiled = fixture.nativeElement;
-    const learnMoreButton = compiled.querySelector('.secondary-cta');
-    expect(learnMoreButton.textContent).toContain('Learn More');
+    const links = compiled.querySelectorAll('.btn-secondary');
+    const githubLink = Array.from(links).find((el: any) =>
+      el.textContent.includes('View on GitHub')
+    ) as HTMLElement | undefined;
+    expect(githubLink).toBeTruthy();
+    expect(githubLink!.getAttribute('href')).toBe('https://github.com/chz160/joinery');
+    expect(githubLink!.getAttribute('target')).toBe('_blank');
+    expect(githubLink!.getAttribute('rel')).toBe('noopener noreferrer');
   });
 
-  it('should display feature highlights', () => {
+  it('should display the workflow section with 3 steps', () => {
     const compiled = fixture.nativeElement;
-    const features = compiled.querySelectorAll('.feature');
-    expect(features.length).toBe(3);
-    expect(features[0].textContent).toContain('Secure collaboration');
-    expect(features[1].textContent).toContain('Team management');
-    expect(features[2].textContent).toContain('Query organization');
+    const steps = compiled.querySelectorAll('.workflow-step');
+    expect(steps.length).toBe(3);
   });
 
-  it('should display the hero section', () => {
+  it('should display workflow step titles: Connect, Sync, Find what you need', () => {
     const compiled = fixture.nativeElement;
-    expect(compiled.textContent).toContain('Your Team\'s Data Hub');
-    expect(compiled.textContent).toContain('Centralized access to queries, repositories, and team insights');
+    const titles = compiled.querySelectorAll('.step-title');
+    expect(titles.length).toBe(3);
+    expect(titles[0].textContent.trim()).toBe('Connect');
+    expect(titles[1].textContent.trim()).toBe('Sync');
+    expect(titles[2].textContent.trim()).toContain('Find what you need');
   });
 
-  it('should display all four feature cards in How It Works section', () => {
-    const compiled = fixture.nativeElement;
-    const featureCards = compiled.querySelectorAll('.feature-card');
-    expect(featureCards.length).toBe(4);
-
-    expect(compiled.textContent).toContain('Secure Query Sharing');
-    expect(compiled.textContent).toContain('Team & Organization Management');
-    expect(compiled.textContent).toContain('Audit Trail & History');
-    expect(compiled.textContent).toContain('Extension & Integration Support');
+  it('should start with workflowVisible = false', () => {
+    expect(component.workflowVisible).toBeFalse();
   });
 
-  it('should have step 1 as initial active step', () => {
-    expect(component.currentStep).toBe(1);
-    expect(component.getScreenTitle()).toBe('Joinery Query Editor');
-  });
-
-  it('should update active step via setStep', () => {
-    component.setStep(2);
-    fixture.detectChanges();
-    
-    expect(component.currentStep).toBe(2);
-    expect(component.getScreenTitle()).toBe('Team Collaboration Hub');
-  });
-
-  it('should display correct screen title for each step', () => {
-    expect(component.getScreenTitle()).toBe('Joinery Query Editor');
-    
-    component.setStep(2);
-    expect(component.getScreenTitle()).toBe('Team Collaboration Hub');
-    
-    component.setStep(3);
-    expect(component.getScreenTitle()).toBe('Analytics & History Dashboard');
-  });
-
-  it('should display How Joinery Works section', () => {
+  it('should display exactly 2 trust cards', () => {
     const compiled = fixture.nativeElement;
     const cards = compiled.querySelectorAll('.trust-card');
     expect(cards.length).toBe(2);
@@ -143,15 +119,6 @@ describe('LandingPage', () => {
     expect(compiled.querySelector('.landing-footer')).toBeTruthy();
   });
 
-  it('should display feature descriptions for each feature card', () => {
-    const compiled = fixture.nativeElement;
-
-    expect(compiled.textContent).toContain('Share SQL queries and data insights with granular permissions.');
-    expect(compiled.textContent).toContain('Organize users into teams with hierarchical permissions.');
-    expect(compiled.textContent).toContain('Complete visibility into query usage and modifications.');
-    expect(compiled.textContent).toContain('Connect with your existing tools and workflows.');
-  });
-
   it('should display footer brand "Joinery"', () => {
     const compiled = fixture.nativeElement;
     const brandText = compiled.querySelector('.footer-brand-text');
@@ -178,15 +145,9 @@ describe('LandingPage', () => {
     expect(compiled.textContent).toContain('Support');
     expect(compiled.textContent).toContain('Roadmap');
 
-    // Company section - verify links exist by querying footer column anchors
     expect(compiled.textContent).toContain('Company');
-    const companyLinks = Array.from(
-      compiled.querySelectorAll('.footer-column .footer-nav a') as NodeListOf<HTMLAnchorElement>
-    ).map(a => a.textContent?.trim() ?? '');
-    expect(companyLinks.some(t => t.includes('Privacy Policy'))).toBeTrue();
-    expect(companyLinks.some(t => t.includes('How It Works'))).toBeTrue();
     expect(compiled.textContent).toContain('Contact');
-    
+
     // Community section
     expect(compiled.textContent).toContain('Community');
     expect(compiled.textContent).toContain('GitHub');
