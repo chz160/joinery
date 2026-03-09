@@ -15,7 +15,7 @@ interface TeamListApiDto {
   createdBy: { id: number; username: string; email: string; };
   organization: { id: number; name: string; };
   memberCount: number;
-  userRole: number;
+  userRole: number | null;
 }
 
 interface TeamMemberApiDto {
@@ -83,6 +83,7 @@ export class TeamService {
       name: dto.name,
       description: dto.description,
       organizationId: String(dto.organization.id),
+      memberCount: dto.memberCount,
       members: [],
       repositories: [],
       createdAt: new Date(dto.createdAt),

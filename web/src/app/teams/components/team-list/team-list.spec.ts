@@ -62,4 +62,8 @@ describe('TeamList', () => {
     expect(component.errorMessage).toBeTruthy();
     expect(component.isLoading).toBeFalse();
   });
+
+  it('trackByTeamId should return the team id', () => {
+    expect(component.trackByTeamId(0, mockTeams[0])).toBe('1');
+  });
 });

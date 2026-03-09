@@ -47,5 +47,9 @@ export class TeamList implements OnInit {
   getProviderIcon(provider: string): string {
     return this.providerService.getRepositoryProviderIcon(provider);
   }
+
+  trackByTeamId(_: number, team: Team): string {
+    return team.id;
+  }
 }
 

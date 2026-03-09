@@ -23,12 +23,12 @@
     <p>No teams yet. Create your first team to get started.</p>
   </div>
 
-  <div class="teams-grid" *ngIf="!isLoading && teams.length > 0">
-    <mat-card *ngFor="let team of teams" class="team-card">
+  <div class="teams-grid" *ngIf="!isLoading && !errorMessage && teams.length > 0">
+    <mat-card *ngFor="let team of teams; trackBy: trackByTeamId" class="team-card">
       <mat-card-header>
         <mat-icon mat-card-avatar>groups</mat-icon>
         <mat-card-title>{{ team.name }}</mat-card-title>
-        <mat-card-subtitle>{{ team.members.length }} members</mat-card-subtitle>
+        <mat-card-subtitle>{{ (team.memberCount ?? team.members.length) }} members</mat-card-subtitle>
       </mat-card-header>
       
       <mat-card-content>

@@ -134,9 +134,9 @@ public class TeamsController : ControllerBase
                     t.Organization.Name
                 },
                 MemberCount = t.TeamMembers.Count(tm => tm.IsActive),
-                UserRole = t.CreatedByUserId == currentUserId ? TeamRole.Administrator :
+                UserRole = t.CreatedByUserId == currentUserId ? (TeamRole?)TeamRole.Administrator :
                           t.TeamMembers.Where(tm => tm.UserId == currentUserId && tm.IsActive)
-                                       .Select(tm => tm.Role).FirstOrDefault()
+                                       .Select(tm => (TeamRole?)tm.Role).FirstOrDefault()
             })
             .OrderByDescending(t => t.UpdatedAt)
             .ToListAsync();

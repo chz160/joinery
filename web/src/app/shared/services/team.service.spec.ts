@@ -13,7 +13,7 @@ interface TeamListApiDto {
   createdBy: { id: number; username: string; email: string; };
   organization: { id: number; name: string; };
   memberCount: number;
-  userRole: number;
+  userRole: number | null;
 }
 
 interface TeamDetailApiDto {
@@ -98,6 +98,7 @@ describe('TeamService', () => {
       expect(team.name).toBe('Backend Engineering');
       expect(team.description).toBe('API development');
       expect(team.organizationId).toBe('10');
+      expect(team.memberCount).toBe(3);
       expect(team.members).toEqual([]);
       expect(team.repositories).toEqual([]);
       expect(team.createdAt).toEqual(new Date('2024-01-15T00:00:00Z'));

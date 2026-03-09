@@ -24,6 +24,7 @@ export interface Team {
   description?: string;
   organizationId: string;
   organization?: Organization;
+  memberCount?: number;
   members: User[];
   repositories: Repository[];
   createdAt: Date;
