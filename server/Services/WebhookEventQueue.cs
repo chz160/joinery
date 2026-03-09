@@ -5,7 +5,10 @@ namespace JoineryServer.Services;
 /// <summary>In-process queue for webhook events awaiting processing.</summary>
 public interface IWebhookEventQueue
 {
-    /// <summary>Enqueue a webhook event ID for background processing.</summary>
+    /// <summary>
+    /// Enqueue a webhook event ID for background processing.
+    /// Throws <see cref="InvalidOperationException"/> when the queue is full.
+    /// </summary>
     ValueTask QueueAsync(int webhookEventId, CancellationToken cancellationToken = default);
 
     /// <summary>Dequeue the next webhook event ID. Blocks until one is available.</summary>
@@ -14,18 +17,26 @@ public interface IWebhookEventQueue
 
 /// <summary>
 /// Channel-backed implementation of <see cref="IWebhookEventQueue"/>.
-/// Bounded to 1 000 items to apply back-pressure if the processor falls behind.
+/// Bounded to <see cref="Capacity"/> items; an <see cref="InvalidOperationException"/>
+/// is thrown when the queue is full so the caller can return a non-2xx response.
 /// </summary>
 public sealed class WebhookEventQueue : IWebhookEventQueue
 {
+    internal const int Capacity = 1_000;
+
     private readonly Channel<int> _channel =
-        Channel.CreateBounded<int>(new BoundedChannelOptions(1_000)
+        Channel.CreateBounded<int>(new BoundedChannelOptions(Capacity)
         {
-            FullMode = BoundedChannelFullMode.Wait
+            SingleReader = true
         });
 
     public ValueTask QueueAsync(int webhookEventId, CancellationToken cancellationToken = default)
-        => _channel.Writer.WriteAsync(webhookEventId, cancellationToken);
+    {
+        if (_channel.Writer.TryWrite(webhookEventId))
+            return ValueTask.CompletedTask;
+
+        throw new InvalidOperationException("Webhook event queue is full.");
+    }
 
     public ValueTask<int> DequeueAsync(CancellationToken cancellationToken)
         => _channel.Reader.ReadAsync(cancellationToken);

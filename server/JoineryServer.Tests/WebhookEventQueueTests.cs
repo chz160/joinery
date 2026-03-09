@@ -41,4 +41,16 @@ public class WebhookEventQueueTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => queue.DequeueAsync(cts.Token).AsTask());
     }
+
+    [Fact]
+    public async Task QueueWhenFull_ThrowsInvalidOperationException()
+    {
+        // The queue is bounded. Fill it and verify the next write throws.
+        var queue = new WebhookEventQueue();
+        for (var i = 0; i < WebhookEventQueue.Capacity; i++)
+            await queue.QueueAsync(i);
+
+        Assert.Throws<InvalidOperationException>(() =>
+            queue.QueueAsync(9999).AsTask().GetAwaiter().GetResult());
+    }
 }

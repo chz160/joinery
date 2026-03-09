@@ -78,7 +78,15 @@ public class WebhooksController : ControllerBase
         _context.WebhookEvents.Add(webhookEvent);
         await _context.SaveChangesAsync();
 
-        await _queue.QueueAsync(webhookEvent.Id);
+        try
+        {
+            await _queue.QueueAsync(webhookEvent.Id, HttpContext.RequestAborted);
+        }
+        catch (InvalidOperationException)
+        {
+            _logger.LogWarning("Webhook event queue is full; GitHub event {EventId} persisted but not queued", webhookEvent.Id);
+            return StatusCode(503, new { message = "Webhook event queue is saturated. Event was persisted and will be retried.", eventId = webhookEvent.Id });
+        }
 
         _logger.LogInformation("GitHub webhook event {EventId} queued for processing (type={EventType})",
             webhookEvent.Id, eventType);
@@ -135,7 +143,15 @@ public class WebhooksController : ControllerBase
         _context.WebhookEvents.Add(webhookEvent);
         await _context.SaveChangesAsync();
 
-        await _queue.QueueAsync(webhookEvent.Id);
+        try
+        {
+            await _queue.QueueAsync(webhookEvent.Id, HttpContext.RequestAborted);
+        }
+        catch (InvalidOperationException)
+        {
+            _logger.LogWarning("Webhook event queue is full; GitLab event {EventId} persisted but not queued", webhookEvent.Id);
+            return StatusCode(503, new { message = "Webhook event queue is saturated. Event was persisted and will be retried.", eventId = webhookEvent.Id });
+        }
 
         _logger.LogInformation("GitLab webhook event {EventId} queued for processing (type={EventType})",
             webhookEvent.Id, normalisedEventType);
@@ -175,18 +191,20 @@ public class WebhooksController : ControllerBase
     }
 
     /// <summary>
-    /// Validates the <c>X-Gitlab-Token</c> header against the configured secret
-    /// using a fixed-time comparison to prevent timing attacks.
+    /// Validates the <c>X-Gitlab-Token</c> header against the configured secret.
+    /// Both values are hashed with SHA-256 before comparison so that
+    /// <see cref="CryptographicOperations.FixedTimeEquals"/> always compares
+    /// equal-length byte arrays, preventing length-based timing leaks.
     /// </summary>
     public static bool ValidateGitLabToken(string secret, string? tokenHeader)
     {
         if (string.IsNullOrEmpty(tokenHeader))
             return false;
 
-        var expectedBytes = Encoding.UTF8.GetBytes(secret);
-        var receivedBytes = Encoding.UTF8.GetBytes(tokenHeader);
+        var expectedHash = SHA256.HashData(Encoding.UTF8.GetBytes(secret));
+        var receivedHash = SHA256.HashData(Encoding.UTF8.GetBytes(tokenHeader));
 
-        return CryptographicOperations.FixedTimeEquals(receivedBytes, expectedBytes);
+        return CryptographicOperations.FixedTimeEquals(receivedHash, expectedHash);
     }
 
     // ── Payload parsing ──────────────────────────────────────────────────────
