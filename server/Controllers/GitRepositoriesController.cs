@@ -208,6 +208,11 @@ public class GitRepositoriesController : ControllerBase
             }
         }
 
+        if (!GitRepositoryService.IsValidRepositoryUrl(request.RepositoryUrl))
+        {
+            return BadRequest(new { message = "Invalid repository URL. Only GitHub HTTPS and SSH URLs are supported (e.g. https://github.com/owner/repo or git@github.com:owner/repo.git)." });
+        }
+
         var repository = new GitRepository
         {
             Name = request.Name,
@@ -307,6 +312,19 @@ public class GitRepositoriesController : ControllerBase
             };
 
             return Ok(result);
+        }
+        catch (GitHubRateLimitException ex)
+        {
+            _logger.LogWarning(ex, "GitHub API rate limit exceeded while syncing repository {RepositoryId}", id);
+            var retryMessage = ex.ResetAt.HasValue
+                ? $"GitHub API rate limit exceeded. Please retry after {ex.ResetAt.Value:O}."
+                : "GitHub API rate limit exceeded. Please wait before retrying.";
+            return StatusCode(429, new { message = retryMessage });
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid repository configuration for {RepositoryId}", id);
+            return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {
