@@ -60,7 +60,9 @@ public sealed class WebhookEventProcessor : BackgroundService
             return;
         }
 
-        // Only process actionable events (push / merge)
+        // Only process actionable events (push triggers sync; PR/MR events are
+        // tracked for auditing but do not trigger a sync because the subsequent
+        // merge push event will handle synchronisation).
         if (!IsProcessableEvent(webhookEvent.Provider, webhookEvent.EventType))
         {
             webhookEvent.Status = "skipped";
@@ -106,12 +108,11 @@ public sealed class WebhookEventProcessor : BackgroundService
 
             await context.SaveChangesAsync(stoppingToken);
 
-            // Re-queue for retry after exponential back-off
+            // Re-queue for retry after exponential back-off without blocking the processor
             if (webhookEvent.RetryCount < MaxRetries)
             {
                 var delay = TimeSpan.FromSeconds(Math.Pow(2, webhookEvent.RetryCount));
-                await Task.Delay(delay, stoppingToken);
-                await _queue.QueueAsync(eventId, stoppingToken);
+                _ = ScheduleRetryAsync(eventId, delay, stoppingToken);
             }
         }
     }
@@ -163,5 +164,22 @@ public sealed class WebhookEventProcessor : BackgroundService
             "gitlab" => eventType is "push",
             _ => false
         };
+    }
+
+    /// <summary>
+    /// Schedules a retry by waiting the specified delay and then re-queuing the event.
+    /// Runs independently so the main processing loop is not blocked.
+    /// </summary>
+    private async Task ScheduleRetryAsync(int eventId, TimeSpan delay, CancellationToken stoppingToken)
+    {
+        try
+        {
+            await Task.Delay(delay, stoppingToken);
+            await _queue.QueueAsync(eventId, stoppingToken);
+        }
+        catch (OperationCanceledException)
+        {
+            // Application shutting down — retry will not occur.
+        }
     }
 }

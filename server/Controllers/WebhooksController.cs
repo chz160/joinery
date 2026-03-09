@@ -257,14 +257,15 @@ public class WebhooksController : ControllerBase
 
     private static string NormaliseGitLabEvent(string gitlabEvent)
     {
-        return gitlabEvent.ToLowerInvariant() switch
+        var lower = gitlabEvent.ToLowerInvariant();
+        return lower switch
         {
             "push hook" => "push",
             "merge request hook" => "merge_request",
             "tag push hook" => "tag_push",
             "note hook" => "note",
             "issue hook" => "issue",
-            _ => gitlabEvent.ToLowerInvariant().Replace(" hook", "").Replace(" ", "_")
+            _ => lower.Replace(" hook", "").Replace(" ", "_")
         };
     }
 }
