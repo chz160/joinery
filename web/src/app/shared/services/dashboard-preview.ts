@@ -1,11 +1,11 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, forkJoin } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, forkJoin, of } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
 import { DashboardPreview, Query } from '../models';
 import { environment } from '../../../environments/environment';
 
-// Internal DTOs matching the backend response shapes
+// Internal DTOs matching the backend response shapes (ASP.NET Core camelCase serialization)
 
 interface OrganizationListDto {
   id: number;
@@ -18,22 +18,29 @@ interface TeamListDto {
 }
 
 interface GitRepositoryListDto {
-  Id: number;
-  Name: string;
+  id: number;
+  name: string;
 }
 
 interface QueryApiDto {
-  Id: number;
-  Name: string;
-  SqlQuery: string;
-  Description?: string;
-  CreatedBy: string;
-  CreatedAt: string;
-  UpdatedAt: string;
-  DatabaseType?: string;
-  Tags?: string[];
-  Source: string;
+  id: number;
+  name: string;
+  sqlQuery: string;
+  description?: string;
+  createdBy: string;
+  createdAt: string | null;
+  updatedAt: string | null;
+  databaseType?: string;
+  tags?: string[];
+  source: string;
 }
+
+const EMPTY_PREVIEW: DashboardPreview = {
+  stats: { organizations: 0, teams: 0, queries: 0, repositories: 0 },
+  recentActivity: [],
+  recentQueries: [],
+  notifications: []
+};
 
 @Injectable({
   providedIn: 'root'
@@ -51,10 +58,10 @@ export class DashboardPreviewService {
    */
   getDashboardPreview(): Observable<DashboardPreview> {
     return forkJoin({
-      orgs: this.http.get<OrganizationListDto[]>(this.orgsUrl),
-      teams: this.http.get<TeamListDto[]>(this.teamsUrl),
-      queries: this.http.get<QueryApiDto[]>(this.queriesUrl),
-      repos: this.http.get<GitRepositoryListDto[]>(this.reposUrl)
+      orgs: this.http.get<OrganizationListDto[]>(this.orgsUrl).pipe(catchError(() => of([] as OrganizationListDto[]))),
+      teams: this.http.get<TeamListDto[]>(this.teamsUrl).pipe(catchError(() => of([] as TeamListDto[]))),
+      queries: this.http.get<QueryApiDto[]>(this.queriesUrl).pipe(catchError(() => of([] as QueryApiDto[]))),
+      repos: this.http.get<GitRepositoryListDto[]>(this.reposUrl).pipe(catchError(() => of([] as GitRepositoryListDto[])))
     }).pipe(
       map(({ orgs, teams, queries, repos }) => ({
         stats: {
@@ -65,17 +72,18 @@ export class DashboardPreviewService {
         },
         recentActivity: [],
         recentQueries: queries.slice(0, 3).map(q => ({
-          id: String(q.Id),
-          name: q.Name,
-          description: q.Description,
-          content: q.SqlQuery,
-          authorId: q.CreatedBy,
-          tags: q.Tags ?? [],
-          createdAt: new Date(q.CreatedAt),
-          updatedAt: new Date(q.UpdatedAt)
+          id: String(q.id),
+          name: q.name,
+          description: q.description,
+          content: q.sqlQuery,
+          authorId: q.createdBy,
+          tags: q.tags ?? [],
+          createdAt: q.createdAt ? new Date(q.createdAt) : new Date(),
+          updatedAt: q.updatedAt ? new Date(q.updatedAt) : new Date()
         } as Query)),
         notifications: []
-      }))
+      })),
+      catchError(() => of(EMPTY_PREVIEW))
     );
   }
 }

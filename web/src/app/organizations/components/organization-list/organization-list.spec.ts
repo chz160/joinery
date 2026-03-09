@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of, throwError } from 'rxjs';
 import { OrganizationList } from './organization-list';
 import { OrganizationService } from '../../../shared/services/organization.service';
@@ -28,7 +29,7 @@ describe('OrganizationList', () => {
     organizationServiceSpy.getOrganizations.and.returnValue(of(mockOrganizations));
 
     await TestBed.configureTestingModule({
-      imports: [OrganizationList, RouterTestingModule],
+      imports: [OrganizationList, RouterTestingModule, NoopAnimationsModule],
       providers: [
         { provide: OrganizationService, useValue: organizationServiceSpy },
         ProviderService
@@ -60,5 +61,24 @@ describe('OrganizationList', () => {
     component.loadOrganizations();
     expect(component.errorMessage).toBeTruthy();
     expect(component.loading).toBeFalse();
+  });
+
+  it('should render error state when errorMessage is set', () => {
+    spyOn(console, 'error');
+    organizationServiceSpy.getOrganizations.and.returnValue(throwError(() => new Error('Network error')));
+    component.loadOrganizations();
+    fixture.detectChanges();
+    const errorEl = fixture.nativeElement.querySelector('.error-state');
+    expect(errorEl).toBeTruthy();
+    expect(errorEl.textContent).toContain('Unable to Load Organizations');
+  });
+
+  it('should hide organizations grid when errorMessage is set', () => {
+    spyOn(console, 'error');
+    organizationServiceSpy.getOrganizations.and.returnValue(throwError(() => new Error('Network error')));
+    component.loadOrganizations();
+    fixture.detectChanges();
+    const grid = fixture.nativeElement.querySelector('.organizations-grid');
+    expect(grid).toBeNull();
   });
 });

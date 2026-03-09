@@ -8,7 +8,7 @@
     </button>
   </div>
 
-  <div class="organizations-grid" *ngIf="!loading">
+  <div class="organizations-grid" *ngIf="!loading && !errorMessage">
     <mat-card *ngFor="let org of organizations" class="org-card">
       <mat-card-header>
         <mat-icon mat-card-avatar>business</mat-icon>
@@ -73,7 +73,17 @@
     </div>
   </div>
 
-  <div class="empty-state" *ngIf="!loading && organizations.length === 0">
+  <div class="error-state" *ngIf="!loading && errorMessage">
+    <mat-icon class="error-icon">error_outline</mat-icon>
+    <h2>Unable to Load Organizations</h2>
+    <p>{{ errorMessage }}</p>
+    <button mat-raised-button color="primary" (click)="loadOrganizations()">
+      <mat-icon>refresh</mat-icon>
+      Retry
+    </button>
+  </div>
+
+  <div class="empty-state" *ngIf="!loading && !errorMessage && organizations.length === 0">
     <mat-icon class="empty-icon">business_center</mat-icon>
     <h2>No Organizations Yet</h2>
     <p>Create your first organization to start managing teams and queries</p>

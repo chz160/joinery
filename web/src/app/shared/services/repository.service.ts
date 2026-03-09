@@ -82,9 +82,10 @@ export class RepositoryService {
   }
 
   /**
-   * Connect selected repositories to the organization via the server API
+   * Connect selected repositories to the organization via the server API.
+   * Errors from individual POST requests will propagate to the caller.
    */
-  connectRepositories(organizationId: string, repositories: GitHubRepository[]): Observable<void> {
+  connectRepositories(organizationId: number, repositories: GitHubRepository[]): Observable<void> {
     const selected = repositories.filter(repo => repo.selected);
     if (selected.length === 0) {
       return of(void 0);
@@ -95,8 +96,8 @@ export class RepositoryService {
           name: repo.name,
           repositoryUrl: repo.clone_url,
           description: repo.description,
-          organizationId: Number(organizationId)
-        }).pipe(catchError(() => of(null)))
+          organizationId
+        })
       )
     ).pipe(map(() => void 0));
   }
