@@ -26,7 +26,10 @@ ARG CACHEBUST=0
 
 # Inject production environment values from build args
 RUN apk add --no-cache gettext && \
-    envsubst < src/environments/environment.prod.ts.template > src/environments/environment.prod.ts
+    echo "DEBUG: API_BASE_URL=$API_BASE_URL" && \
+    echo "DEBUG: OAUTH_GITHUB_CLIENT_ID=$OAUTH_GITHUB_CLIENT_ID" && \
+    envsubst < src/environments/environment.prod.ts.template > src/environments/environment.prod.ts && \
+    cat src/environments/environment.prod.ts
 
 # Build using npx to directly call Angular CLI
 RUN npx --yes @angular/cli@20.3.2 build
