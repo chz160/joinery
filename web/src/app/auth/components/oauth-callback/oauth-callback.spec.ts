@@ -4,21 +4,21 @@ import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { of } from 'rxjs';
 import { OAuthCallback } from './oauth-callback';
-import { Auth } from '../../services/auth';
+import { AuthService } from '../../services/auth.service';
 
 describe('OAuthCallback', () => {
   let component: OAuthCallback;
   let fixture: ComponentFixture<OAuthCallback>;
   let mockRouter: jasmine.SpyObj<Router>;
   let mockActivatedRoute: jasmine.SpyObj<ActivatedRoute>;
-  let mockAuth: jasmine.SpyObj<Auth>;
+  let mockAuth: jasmine.SpyObj<AuthService>;
 
   beforeEach(async () => {
     const routerSpy = jasmine.createSpyObj('Router', ['navigate']);
     const activatedRouteSpy = jasmine.createSpyObj('ActivatedRoute', [], {
       snapshot: { queryParams: { code: 'test-code', state: 'test-state' } }
     });
-    const authSpy = jasmine.createSpyObj('Auth', ['handleOAuthCallback']);
+    const authSpy = jasmine.createSpyObj('AuthService', ['handleOAuthCallback']);
 
     await TestBed.configureTestingModule({
       imports: [
@@ -29,13 +29,13 @@ describe('OAuthCallback', () => {
       providers: [
         { provide: Router, useValue: routerSpy },
         { provide: ActivatedRoute, useValue: activatedRouteSpy },
-        { provide: Auth, useValue: authSpy }
+        { provide: AuthService, useValue: authSpy }
       ]
     }).compileComponents();
 
     mockRouter = TestBed.inject(Router) as jasmine.SpyObj<Router>;
     mockActivatedRoute = TestBed.inject(ActivatedRoute) as jasmine.SpyObj<ActivatedRoute>;
-    mockAuth = TestBed.inject(Auth) as jasmine.SpyObj<Auth>;
+    mockAuth = TestBed.inject(AuthService) as jasmine.SpyObj<AuthService>;
   });
 
   beforeEach(() => {

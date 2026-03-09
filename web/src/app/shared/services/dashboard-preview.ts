@@ -1,115 +1,92 @@
-import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
-import { DashboardPreview, Query, ActivityItem, Notification } from '../models';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable, forkJoin, of } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
+import { DashboardPreview, Query } from '../models';
+import { environment } from '../../../environments/environment';
+
+// Internal DTOs matching the backend response shapes (ASP.NET Core camelCase serialization)
+
+interface OrganizationListDto {
+  id: number;
+  name: string;
+}
+
+interface TeamListDto {
+  id: number;
+  name: string;
+}
+
+interface GitRepositoryListDto {
+  id: number;
+  name: string;
+}
+
+interface QueryApiDto {
+  id: number;
+  name: string;
+  sqlQuery: string;
+  description?: string;
+  createdBy: string | number;
+  createdAt: string | null;
+  updatedAt: string | null;
+  databaseType?: string;
+  tags?: string[];
+  source: string;
+}
+
+const EMPTY_PREVIEW: DashboardPreview = {
+  stats: { organizations: 0, teams: 0, queries: 0, repositories: 0 },
+  recentActivity: [],
+  recentQueries: [],
+  notifications: []
+};
 
 @Injectable({
   providedIn: 'root'
 })
 export class DashboardPreviewService {
-  
-  constructor() { }
+  private readonly http = inject(HttpClient);
+
+  private readonly orgsUrl = `${environment.apiBaseUrl}/organizations`;
+  private readonly teamsUrl = `${environment.apiBaseUrl}/teams`;
+  private readonly queriesUrl = `${environment.apiBaseUrl}/queries`;
+  private readonly reposUrl = `${environment.apiBaseUrl}/gitrepositories`;
 
   /**
    * Get dashboard preview data for authenticated user
    */
   getDashboardPreview(): Observable<DashboardPreview> {
-    const mockData: DashboardPreview = {
-      stats: {
-        organizations: 2,
-        teams: 5,
-        queries: 18,
-        repositories: 8
-      },
-      recentActivity: [
-        {
-          id: '1',
-          action: 'Created query',
-          item: 'User Engagement Analysis',
-          time: '10 minutes ago',
-          icon: 'add_circle'
+    return forkJoin({
+      orgs: this.http.get<OrganizationListDto[]>(this.orgsUrl).pipe(catchError(() => of([] as OrganizationListDto[]))),
+      teams: this.http.get<TeamListDto[]>(this.teamsUrl).pipe(catchError(() => of([] as TeamListDto[]))),
+      queries: this.http.get<QueryApiDto[]>(this.queriesUrl).pipe(catchError(() => of([] as QueryApiDto[]))),
+      repos: this.http.get<GitRepositoryListDto[]>(this.reposUrl).pipe(catchError(() => of([] as GitRepositoryListDto[])))
+    }).pipe(
+      map(({ orgs, teams, queries, repos }) => ({
+        stats: {
+          organizations: orgs.length,
+          teams: teams.length,
+          queries: queries.length,
+          repositories: repos.length
         },
-        {
-          id: '2',
-          action: 'Updated team',
-          item: 'Analytics Team',
-          time: '2 hours ago',
-          icon: 'group'
-        },
-        {
-          id: '3',
-          action: 'Shared query',
-          item: 'Monthly Revenue Report',
-          time: '5 hours ago',
-          icon: 'share'
-        },
-        {
-          id: '4',
-          action: 'Joined organization',
-          item: 'Data Science Hub',
-          time: '1 day ago',
-          icon: 'business'
-        }
-      ],
-      recentQueries: [
-        {
-          id: '1',
-          name: 'User Engagement Analysis',
-          description: 'Weekly active users and engagement metrics',
-          content: 'SELECT user_id, COUNT(*) as sessions FROM user_events WHERE date >= CURRENT_DATE - INTERVAL 7 DAY GROUP BY user_id',
-          authorId: '1',
-          tags: ['users', 'engagement', 'weekly'],
-          createdAt: new Date('2024-02-18'),
-          updatedAt: new Date('2024-02-18')
-        },
-        {
-          id: '2',
-          name: 'Revenue Tracking',
-          description: 'Monthly revenue breakdown by product',
-          content: 'SELECT product_id, SUM(amount) as total_revenue FROM orders WHERE MONTH(created_at) = MONTH(CURRENT_DATE) GROUP BY product_id',
-          authorId: '1',
-          tags: ['revenue', 'monthly', 'products'],
-          createdAt: new Date('2024-02-15'),
-          updatedAt: new Date('2024-02-17')
-        },
-        {
-          id: '3',
-          name: 'Team Performance',
-          description: 'Query execution and collaboration metrics',
-          content: 'SELECT team_id, COUNT(*) as queries_created, AVG(execution_time) as avg_time FROM query_logs WHERE created_at >= CURRENT_DATE - INTERVAL 30 DAY GROUP BY team_id',
-          authorId: '1',
-          tags: ['team', 'performance', 'metrics'],
-          createdAt: new Date('2024-02-10'),
-          updatedAt: new Date('2024-02-16')
-        }
-      ],
-      notifications: [
-        {
-          id: '1',
-          type: 'info',
-          title: 'New team member',
-          message: 'Sarah joined your Analytics Team',
-          time: '30 minutes ago',
-          read: false
-        },
-        {
-          id: '2',
-          type: 'success',
-          title: 'Query shared',
-          message: 'Your Monthly Revenue Report was shared with 3 teams',
-          time: '2 hours ago',
-          read: false
-        },
-        {
-          id: '3',
-          type: 'warning',
-          title: 'Repository sync',
-          message: 'analytics-queries repository needs attention',
-          time: '1 day ago',
-          read: true
-        }
-      ]
-    };
-
-    return of(mockData);
+        recentActivity: [],
+        recentQueries: queries
+          .filter(q => q.createdAt != null && q.updatedAt != null)
+          .slice(0, 3)
+          .map(q => ({
+            id: String(q.id),
+            name: q.name,
+            description: q.description,
+            content: q.sqlQuery,
+            authorId: String(q.createdBy),
+            tags: q.tags ?? [],
+            createdAt: new Date(q.createdAt!),
+            updatedAt: new Date(q.updatedAt!)
+          } as Query)),
+        notifications: []
+      })),
+      catchError(() => of(EMPTY_PREVIEW))
+    );
   }
 }

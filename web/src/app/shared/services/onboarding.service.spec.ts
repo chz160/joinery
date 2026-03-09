@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
-import { BehaviorSubject, of } from 'rxjs';
+import { BehaviorSubject, of, throwError } from 'rxjs';
 import { OnboardingService } from './onboarding.service';
 import { Auth } from '../../auth/services/auth';
 import { OrganizationService } from './organization.service';
@@ -10,10 +10,12 @@ describe('OnboardingService', () => {
   let mockAuth: jasmine.SpyObj<Auth>;
   let mockOrganizationService: jasmine.SpyObj<OrganizationService>;
   let mockRouter: jasmine.SpyObj<Router>;
+  let authIsAuthenticated$: BehaviorSubject<boolean>;
 
   beforeEach(() => {
+    authIsAuthenticated$ = new BehaviorSubject<boolean>(false);
     const authSpy = jasmine.createSpyObj('Auth', [], {
-      isAuthenticated$: new BehaviorSubject(false)
+      isAuthenticated$: authIsAuthenticated$
     });
     const organizationServiceSpy = jasmine.createSpyObj('OrganizationService', ['isFirstTimeUser']);
     const routerSpy = jasmine.createSpyObj('Router', ['navigate'], { url: '/dashboard' });
@@ -42,7 +44,7 @@ describe('OnboardingService', () => {
   });
 
   it('should return false for redirect when user is not authenticated', () => {
-    (mockAuth as any).isAuthenticated$ = new BehaviorSubject(false);
+    authIsAuthenticated$.next(false);
     
     service.shouldRedirectToSetup().subscribe(shouldRedirect => {
       expect(shouldRedirect).toBeFalse();
@@ -50,7 +52,7 @@ describe('OnboardingService', () => {
   });
 
   it('should return true for redirect when user is authenticated and first-time', () => {
-    (mockAuth as any).isAuthenticated$ = new BehaviorSubject(true);
+    authIsAuthenticated$.next(true);
     mockOrganizationService.isFirstTimeUser.and.returnValue(of(true));
     
     service.shouldRedirectToSetup().subscribe(shouldRedirect => {
@@ -59,7 +61,7 @@ describe('OnboardingService', () => {
   });
 
   it('should return false for redirect when user is authenticated but not first-time', () => {
-    (mockAuth as any).isAuthenticated$ = new BehaviorSubject(true);
+    authIsAuthenticated$.next(true);
     mockOrganizationService.isFirstTimeUser.and.returnValue(of(false));
     
     service.shouldRedirectToSetup().subscribe(shouldRedirect => {
@@ -68,7 +70,7 @@ describe('OnboardingService', () => {
   });
 
   it('should redirect first-time user to setup', () => {
-    (mockAuth as any).isAuthenticated$ = new BehaviorSubject(true);
+    authIsAuthenticated$.next(true);
     mockOrganizationService.isFirstTimeUser.and.returnValue(of(true));
     Object.defineProperty(mockRouter, 'url', { value: '/dashboard' });
     
@@ -79,7 +81,7 @@ describe('OnboardingService', () => {
   });
 
   it('should not redirect non-first-time user', () => {
-    (mockAuth as any).isAuthenticated$ = new BehaviorSubject(true);
+    authIsAuthenticated$.next(true);
     mockOrganizationService.isFirstTimeUser.and.returnValue(of(false));
     
     service.checkAndRedirectFirstTimeUser();
@@ -88,9 +90,9 @@ describe('OnboardingService', () => {
   });
 
   it('should handle API error gracefully', () => {
-    (mockAuth as any).isAuthenticated$ = new BehaviorSubject(true);
+    authIsAuthenticated$.next(true);
     mockOrganizationService.isFirstTimeUser.and.returnValue(
-      of(null).pipe(() => { throw new Error('API Error'); })
+      throwError(() => new Error('API Error'))
     );
     
     service.shouldRedirectToSetup().subscribe(shouldRedirect => {
@@ -140,7 +142,7 @@ describe('OnboardingService', () => {
   });
 
   it('should not store URL for setup page itself', () => {
-    (mockAuth as any).isAuthenticated$ = new BehaviorSubject(true);
+    authIsAuthenticated$.next(true);
     mockOrganizationService.isFirstTimeUser.and.returnValue(of(true));
     Object.defineProperty(mockRouter, 'url', { value: '/organizations/setup' });
     
@@ -150,7 +152,7 @@ describe('OnboardingService', () => {
   });
 
   it('should not store URL for home page', () => {
-    (mockAuth as any).isAuthenticated$ = new BehaviorSubject(true);
+    authIsAuthenticated$.next(true);
     mockOrganizationService.isFirstTimeUser.and.returnValue(of(true));
     Object.defineProperty(mockRouter, 'url', { value: '/' });
     

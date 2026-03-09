@@ -88,7 +88,7 @@ describe('LandingPage', () => {
     expect(compiled.textContent).toContain('Secure Authentication');
   });
 
-  it('should display trust card: Open Source', () => {
+  it('should display Trust, Security, and Open Source section', () => {
     const compiled = fixture.nativeElement;
     expect(compiled.textContent).toContain('Open Source');
   });
@@ -144,6 +144,12 @@ describe('LandingPage', () => {
     expect(compiled.textContent).toContain('Documentation');
     expect(compiled.textContent).toContain('Support');
     expect(compiled.textContent).toContain('Roadmap');
+
+    expect(compiled.textContent).toContain('Company');
+    expect(compiled.textContent).toContain('Contact');
+
+    // Community section
+    expect(compiled.textContent).toContain('Community');
     expect(compiled.textContent).toContain('GitHub');
     expect(compiled.textContent).toContain('Discussions');
     expect(compiled.textContent).toContain('Contribute');

@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
-import { BehaviorSubject, of } from 'rxjs';
+import { BehaviorSubject, of, throwError } from 'rxjs';
 import { OrganizationSetupWizard } from './organization-setup-wizard';
 import { OrganizationService } from '../../../shared/services/organization.service';
 import { RepositoryService } from '../../../shared/services/repository.service';
@@ -161,7 +161,7 @@ describe('OrganizationSetupWizard', () => {
     component.ngOnInit();
     spyOn(component, 'canCompleteWizard').and.returnValue(true);
     mockOrganizationService.completeWizard.and.returnValue(
-      of(null).pipe(() => { throw new Error('Test error'); })
+      throwError(() => new Error('Test error'))
     );
     
     component.completeWizard();
