@@ -245,10 +245,17 @@ public class GitRepositoryService : IGitRepositoryService
                 using var request = BuildGitHubRequest(url, accessToken);
                 response = await httpClient.SendAsync(request);
 
-                // Do not retry on rate-limit or client errors — propagate immediately.
+                // Do not retry on rate-limit — extract reset time, dispose, then throw.
                 if (IsRateLimited(response))
                 {
-                    ThrowIfRateLimited(response);
+                    DateTime? resetAt = null;
+                    if (response.Headers.TryGetValues("X-RateLimit-Reset", out var resetValues) &&
+                        long.TryParse(resetValues.FirstOrDefault(), out var resetUnix))
+                    {
+                        resetAt = DateTimeOffset.FromUnixTimeSeconds(resetUnix).UtcDateTime;
+                    }
+                    response.Dispose();
+                    throw new GitHubRateLimitException(resetAt);
                 }
 
                 // Success or non-retryable client error — return as-is.
@@ -379,23 +386,37 @@ public class GitRepositoryService : IGitRepositoryService
 
     private static (string owner, string repoName) ParseGitHubUrl(string url)
     {
+        if (string.IsNullOrWhiteSpace(url)) return ("", "");
+
         try
         {
             // https://github.com/owner/repo  or  https://github.com/owner/repo.git
-            if (url.StartsWith("https://github.com/", StringComparison.OrdinalIgnoreCase))
+            if (Uri.TryCreate(url, UriKind.Absolute, out var uri) &&
+                (uri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase) ||
+                 uri.Scheme.Equals("http", StringComparison.OrdinalIgnoreCase)) &&
+                uri.Host.Equals("github.com", StringComparison.OrdinalIgnoreCase))
             {
-                var parts = url["https://github.com/".Length..].TrimEnd('/').Split('/');
-                if (parts.Length >= 2)
+                // AbsolutePath strips query and fragment; split into clean path segments.
+                var segments = uri.AbsolutePath.Trim('/').Split('/');
+                if (segments.Length >= 2 &&
+                    !string.IsNullOrEmpty(segments[0]) &&
+                    !string.IsNullOrEmpty(segments[1]))
                 {
-                    return (parts[0], parts[1].Replace(".git", "", StringComparison.OrdinalIgnoreCase));
+                    return (segments[0], segments[1].Replace(".git", "", StringComparison.OrdinalIgnoreCase));
                 }
             }
             // git@github.com:owner/repo.git
             else if (url.StartsWith("git@github.com:", StringComparison.OrdinalIgnoreCase))
             {
-                var repoPath = url["git@github.com:".Length..].Replace(".git", "", StringComparison.OrdinalIgnoreCase);
+                var repoPath = url["git@github.com:".Length..];
+                // Strip any accidental query string or fragment.
+                var extraIdx = repoPath.IndexOfAny(['?', '#']);
+                if (extraIdx >= 0) repoPath = repoPath[..extraIdx];
+                repoPath = repoPath.Replace(".git", "", StringComparison.OrdinalIgnoreCase);
                 var parts = repoPath.Split('/');
-                if (parts.Length >= 2)
+                if (parts.Length >= 2 &&
+                    !string.IsNullOrEmpty(parts[0]) &&
+                    !string.IsNullOrEmpty(parts[1]))
                 {
                     return (parts[0], parts[1]);
                 }
