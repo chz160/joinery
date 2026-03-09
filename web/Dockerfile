@@ -21,10 +21,8 @@ COPY angular.json ./
 COPY tsconfig*.json ./
 COPY public/ public/
 
-# Re-declare build args to bust Docker layer cache when values change
-ARG API_BASE_URL
-ARG OAUTH_REDIRECT_URI
-ARG OAUTH_GITHUB_CLIENT_ID
+# Cache-bust arg: pass unique value (e.g. git SHA) to force envsubst re-run
+ARG CACHEBUST=0
 
 # Inject production environment values from build args
 RUN apk add --no-cache gettext && \
