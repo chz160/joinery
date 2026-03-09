@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, of } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { Organization, OrganizationSetupWizardData, TeamInvitation, User } from '../models';
+import { Organization, OrganizationSetupWizardData, User } from '../models';
 import { environment } from '../../../environments/environment';
 
 // Internal DTOs matching the actual backend response shapes
@@ -202,22 +202,13 @@ export class OrganizationService {
       throw new Error('No wizard data available');
     }
 
-    // Create the organization with all collected data
     return this.createOrganization({
       name: wizardData.organization.name ?? '',
       description: wizardData.organization.description
     }).pipe(
       map(organization => {
-        // Mark wizard as completed
         this.updateWizardData({ completed: true });
-        
-        // Mark user as having completed setup (for development)
         localStorage.setItem('userHasCompletedSetup', 'true');
-        
-        // TODO: Send team invitations
-        // TODO: Connect repositories
-        // TODO: Apply settings
-        
         return organization;
       })
     );
@@ -228,16 +219,5 @@ export class OrganizationService {
    */
   clearWizardData(): void {
     this.wizardDataSubject.next(null);
-  }
-
-  /**
-   * Send team member invitations
-   */
-  sendTeamInvitations(organizationId: string, invitations: TeamInvitation[]): Observable<void> {
-    // Mock implementation - replace with actual API call
-    console.log('Sending invitations:', invitations);
-    return of(void 0);
-    // TODO: Replace with actual API call
-    // return this.http.post<void>(`${this.apiUrl}/${organizationId}/invite`, { invitations });
   }
 }

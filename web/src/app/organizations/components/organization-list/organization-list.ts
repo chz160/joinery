@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { SharedMaterialModule } from '../../../shared/modules/material.module';
 import { ProviderService } from '../../../shared/services/provider.service';
+import { OrganizationService } from '../../../shared/services/organization.service';
 import { Organization } from '../../../shared/models';
 
 @Component({
@@ -17,60 +18,32 @@ import { Organization } from '../../../shared/models';
 })
 export class OrganizationList implements OnInit {
   organizations: Organization[] = [];
-  loading = true;
+  loading = false;
+  errorMessage: string | null = null;
 
-  constructor(private providerService: ProviderService) {}
+  constructor(
+    private providerService: ProviderService,
+    private organizationService: OrganizationService
+  ) {}
 
   ngOnInit(): void {
     this.loadOrganizations();
   }
 
   loadOrganizations(): void {
-    // Mock data - in real app this would come from the API service
-    setTimeout(() => {
-      this.organizations = [
-        {
-          id: '1',
-          name: 'Acme Corp',
-          description: 'Main corporate organization for all data analytics',
-          ownerId: 'user1',
-          members: [],
-          authProvider: {
-            type: 'microsoft',
-            config: { clientId: 'abc123', domain: 'acmecorp.onmicrosoft.com' }
-          },
-          createdAt: new Date('2024-01-15'),
-          updatedAt: new Date('2024-02-01')
-        },
-        {
-          id: '2',
-          name: 'Data Science Division',
-          description: 'Specialized team for machine learning and AI queries',
-          ownerId: 'user1',
-          members: [],
-          authProvider: {
-            type: 'github',
-            config: { clientId: 'def456' }
-          },
-          createdAt: new Date('2024-02-10'),
-          updatedAt: new Date('2024-02-15')
-        },
-        {
-          id: '3',
-          name: 'Analytics Hub',
-          description: 'Central hub for business intelligence and reporting',
-          ownerId: 'user2',
-          members: [],
-          authProvider: {
-            type: 'aws-iam',
-            config: { clientId: 'ghi789' }
-          },
-          createdAt: new Date('2024-01-20'),
-          updatedAt: new Date('2024-02-05')
-        }
-      ];
-      this.loading = false;
-    }, 1000);
+    this.loading = true;
+    this.errorMessage = null;
+    this.organizationService.getOrganizations().subscribe({
+      next: (orgs) => {
+        this.organizations = orgs;
+        this.loading = false;
+      },
+      error: (err) => {
+        console.error('Failed to load organizations', err);
+        this.errorMessage = 'Failed to load organizations. Please try again.';
+        this.loading = false;
+      }
+    });
   }
 
   createOrganization(): void {

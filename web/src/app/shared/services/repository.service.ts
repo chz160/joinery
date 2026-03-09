@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
+import { Observable, of, forkJoin } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { GitHubRepository } from '../models';
+import { environment } from '../../../environments/environment';
 
 /**
  * Service for managing repository connections, particularly GitHub integration.
@@ -13,6 +14,7 @@ import { GitHubRepository } from '../models';
 })
 export class RepositoryService {
   private readonly githubApiUrl = 'https://api.github.com';
+  private readonly apiUrl = `${environment.apiBaseUrl}/gitrepositories`;
 
   constructor(private http: HttpClient) {}
 
@@ -21,43 +23,10 @@ export class RepositoryService {
    * Requires GitHub access token to be available
    */
   getGitHubRepositories(accessToken?: string): Observable<GitHubRepository[]> {
-    // Mock data for development when no access token is available
     if (!accessToken) {
-      return of([
-        {
-          id: 1,
-          name: 'data-analytics-queries',
-          full_name: 'johndoe/data-analytics-queries',
-          description: 'Collection of SQL queries for data analysis',
-          private: false,
-          html_url: 'https://github.com/johndoe/data-analytics-queries',
-          clone_url: 'https://github.com/johndoe/data-analytics-queries.git',
-          selected: false
-        },
-        {
-          id: 2,
-          name: 'team-dashboards',
-          full_name: 'johndoe/team-dashboards',
-          description: 'Shared dashboard configurations',
-          private: true,
-          html_url: 'https://github.com/johndoe/team-dashboards',
-          clone_url: 'https://github.com/johndoe/team-dashboards.git',
-          selected: false
-        },
-        {
-          id: 3,
-          name: 'marketing-reports',
-          full_name: 'acme-corp/marketing-reports',
-          description: 'Marketing analytics and reporting queries',
-          private: true,
-          html_url: 'https://github.com/acme-corp/marketing-reports',
-          clone_url: 'https://github.com/acme-corp/marketing-reports.git',
-          selected: false
-        }
-      ]);
+      return of([]);
     }
 
-    // Real GitHub API implementation
     const headers = new HttpHeaders({
       'Authorization': `token ${accessToken}`,
       'Accept': 'application/vnd.github.v3+json'
@@ -76,7 +45,7 @@ export class RepositoryService {
       }))),
       catchError(error => {
         console.error('Error fetching GitHub repositories:', error);
-        return of([]); // Return empty array on error
+        return of([]);
       })
     );
   }
@@ -113,28 +82,23 @@ export class RepositoryService {
   }
 
   /**
-   * Connect selected repositories to the organization
+   * Connect selected repositories to the organization via the server API
    */
   connectRepositories(organizationId: string, repositories: GitHubRepository[]): Observable<void> {
-    // Mock implementation - replace with actual API call
-    console.log('Connecting repositories to organization:', organizationId, repositories);
-    return of(void 0);
-    
-    // TODO: Replace with actual API call
-    // return this.http.post<void>(`/api/organizations/${organizationId}/repositories`, {
-    //   repositories: repositories.filter(repo => repo.selected)
-    // });
-  }
-
-  /**
-   * Validate repository access
-   */
-  validateRepositoryAccess(repoUrl: string, accessToken?: string): Observable<boolean> {
-    // Mock implementation
-    return of(true);
-    
-    // TODO: Implement actual validation
-    // This would check if the user has access to the repository
+    const selected = repositories.filter(repo => repo.selected);
+    if (selected.length === 0) {
+      return of(void 0);
+    }
+    return forkJoin(
+      selected.map(repo =>
+        this.http.post(this.apiUrl, {
+          name: repo.name,
+          repositoryUrl: repo.clone_url,
+          description: repo.description,
+          organizationId: Number(organizationId)
+        }).pipe(catchError(() => of(null)))
+      )
+    ).pipe(map(() => void 0));
   }
 
   /**
