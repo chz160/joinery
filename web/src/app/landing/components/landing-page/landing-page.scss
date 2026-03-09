@@ -985,7 +985,11 @@
 
 /* Footer Styles */
 .landing-footer {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  --color-base: #1a1a2e;
+  --color-base-light: #16213e;
+  --font-display: 'Roboto', 'Helvetica Neue', sans-serif;
+  --font-body: 'Roboto', 'Helvetica Neue', sans-serif;
+  background: linear-gradient(135deg, var(--color-base), var(--color-base-light));
   color: white;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -1025,6 +1029,7 @@
   font-size: 1.5rem;
   font-weight: 700;
   color: white;
+  font-family: var(--font-display);
 }
 
 .footer-tagline {
@@ -1033,6 +1038,7 @@
   font-size: 0.95rem;
   line-height: 1.5;
   max-width: 280px;
+  font-family: var(--font-body);
 }
 
 .footer-links {
@@ -1052,6 +1058,7 @@
   font-weight: 600;
   color: white;
   margin: 0 0 0.5rem 0;
+  font-family: var(--font-display);
 }
 
 .footer-nav {
@@ -1071,6 +1078,7 @@
   color: rgba(255, 255, 255, 0.7);
   text-decoration: none;
   font-size: 0.875rem;
+  font-family: var(--font-body);
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
@@ -1111,11 +1119,13 @@
   margin: 0;
   color: rgba(255, 255, 255, 0.6);
   font-size: 0.875rem;
+  font-family: var(--font-body);
 }
 
 .footer-legal {
   color: rgba(255, 255, 255, 0.6);
   font-size: 0.875rem;
+  font-family: var(--font-body);
 }
 
 /* Footer Responsive Design */
