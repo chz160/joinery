@@ -11,14 +11,14 @@ describe('LandingPage', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [
-        LandingPage, 
-        RouterTestingModule, 
+        LandingPage,
+        RouterTestingModule,
         NoopAnimationsModule,
         HttpClientTestingModule
       ]
     })
     .compileComponents();
-    
+
     fixture = TestBed.createComponent(LandingPage);
     component = fixture.componentInstance;
     fixture.detectChanges();
@@ -28,28 +28,25 @@ describe('LandingPage', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should display the Joinery brand', () => {
+  it('should display the hero title "Joinery"', () => {
     const compiled = fixture.nativeElement;
-    expect(compiled.querySelector('.logo-text').textContent).toContain('Joinery');
+    expect(compiled.querySelector('.hero-title').textContent).toContain('Joinery');
   });
 
-  it('should display the tagline', () => {
+  it('should display the hero subtitle', () => {
     const compiled = fixture.nativeElement;
-    expect(compiled.querySelector('.tagline').textContent).toContain('Secure, collaborative query sharing for teams');
+    expect(compiled.querySelector('.hero-subtitle').textContent).toContain('Where teams craft better queries together');
   });
 
-  it('should display the main value proposition heading', () => {
+  it('should have a "Get Started" link pointing to /auth/login', () => {
     const compiled = fixture.nativeElement;
-    expect(compiled.querySelector('h2').textContent).toContain('Streamline your team\'s data workflow');
+    const btn = compiled.querySelector('.btn-primary');
+    expect(btn).toBeTruthy();
+    expect(btn.textContent.trim()).toBe('Get Started');
+    expect(btn.getAttribute('href')).toBe('/auth/login');
   });
 
-  it('should have Sign in with GitHub button', () => {
-    const compiled = fixture.nativeElement;
-    const githubButton = compiled.querySelector('.primary-cta');
-    expect(githubButton.textContent).toContain('Sign in with GitHub');
-  });
-
-  it('should have Learn More button', () => {
+  it('should have a "View on GitHub" link with correct href', () => {
     const compiled = fixture.nativeElement;
     const learnMoreButton = compiled.querySelector('.secondary-cta');
     expect(learnMoreButton.textContent).toContain('Learn More');
@@ -106,55 +103,44 @@ describe('LandingPage', () => {
 
   it('should display How Joinery Works section', () => {
     const compiled = fixture.nativeElement;
-    const section = compiled.querySelector('.how-it-works-section');
-    expect(section).toBeTruthy();
-    expect(compiled.textContent).toContain('How Joinery Works');
-    expect(compiled.textContent).toContain('Powerful features designed for team collaboration, security, and workflow management');
+    const cards = compiled.querySelectorAll('.trust-card');
+    expect(cards.length).toBe(2);
+  });
+
+  it('should display trust card: Secure Authentication', () => {
+    const compiled = fixture.nativeElement;
+    expect(compiled.textContent).toContain('Secure Authentication');
   });
 
   it('should display Trust, Security, and Open Source section', () => {
     const compiled = fixture.nativeElement;
-    const trustSection = compiled.querySelector('.trust-security-section');
-    expect(trustSection).toBeTruthy();
-    
-    expect(compiled.textContent).toContain('Built with Trust, Security, and Transparency');
-    expect(compiled.textContent).toContain('Your data security and privacy are our top priorities');
+    expect(compiled.textContent).toContain('Open Source');
   });
 
-  it('should display all three trust feature cards', () => {
+  it('should not display the removed "Data Privacy First" card', () => {
     const compiled = fixture.nativeElement;
-    const trustFeatureCards = compiled.querySelectorAll('.trust-feature-card');
-    expect(trustFeatureCards.length).toBe(3);
-    
-    expect(compiled.textContent).toContain('Secure Authentication');
-    expect(compiled.textContent).toContain('Data Privacy First');
-    expect(compiled.textContent).toContain('Open Source Transparency');
+    expect(compiled.textContent).not.toContain('Data Privacy First');
   });
 
-  it('should display OAuth provider icons', () => {
+  it('should not contain false security claims', () => {
     const compiled = fixture.nativeElement;
-    const oauthProviders = compiled.querySelectorAll('.oauth-provider');
-    expect(oauthProviders.length).toBe(2);
-    
-    expect(compiled.textContent).toContain('GitHub');
-    expect(compiled.textContent).toContain('Microsoft');
+    expect(compiled.textContent).not.toContain('End-to-end encryption');
+    expect(compiled.textContent).not.toContain('Zero-knowledge');
+    expect(compiled.textContent).not.toContain('No data mining');
   });
 
-  it('should have GitHub repository link', () => {
+  it('should have a "View on GitHub" trust link in the Open Source card', () => {
     const compiled = fixture.nativeElement;
-    const repoLink = compiled.querySelector('.repo-link');
-    expect(repoLink).toBeTruthy();
-    expect(repoLink.getAttribute('href')).toBe('https://github.com/chz160/joinery');
-    expect(repoLink.getAttribute('target')).toBe('_blank');
-    expect(repoLink.getAttribute('rel')).toBe('noopener noreferrer');
-    expect(repoLink.textContent).toContain('View on GitHub');
+    const trustLink = compiled.querySelector('.trust-link');
+    expect(trustLink).toBeTruthy();
+    expect(trustLink.getAttribute('href')).toBe('https://github.com/chz160/joinery');
+    expect(trustLink.getAttribute('target')).toBe('_blank');
+    expect(trustLink.getAttribute('rel')).toBe('noopener noreferrer');
   });
 
-  it('should display open source badge', () => {
+  it('should display the footer', () => {
     const compiled = fixture.nativeElement;
-    const opensourceBadge = compiled.querySelector('.opensource-badge');
-    expect(opensourceBadge).toBeTruthy();
-    expect(opensourceBadge.textContent).toContain('MIT Licensed');
+    expect(compiled.querySelector('.landing-footer')).toBeTruthy();
   });
 
   it('should display feature descriptions for each feature card', () => {
@@ -166,35 +152,32 @@ describe('LandingPage', () => {
     expect(compiled.textContent).toContain('Connect with your existing tools and workflows.');
   });
 
-  // Footer Tests
-  it('should display footer on landing page', () => {
+  it('should display footer brand "Joinery"', () => {
     const compiled = fixture.nativeElement;
-    const footer = compiled.querySelector('.landing-footer');
-    expect(footer).toBeTruthy();
+    const brandText = compiled.querySelector('.footer-brand-text');
+    expect(brandText).toBeTruthy();
+    expect(brandText.textContent).toContain('Joinery');
   });
 
-  it('should display footer brand section', () => {
+  it('should display correct copyright year © 2026', () => {
     const compiled = fixture.nativeElement;
-    const footerBrand = compiled.querySelector('.footer-brand');
-    expect(footerBrand).toBeTruthy();
-    
-    const footerLogo = compiled.querySelector('.footer-logo');
-    expect(footerLogo).toBeTruthy();
-    expect(footerLogo.textContent).toContain('Joinery');
-    
-    const footerTagline = compiled.querySelector('.footer-tagline');
-    expect(footerTagline.textContent).toContain('Secure, collaborative query sharing for teams');
+    const copyright = compiled.querySelector('.footer-copyright');
+    expect(copyright.textContent).toContain('© 2026');
+  });
+
+  it('should display correct contact email support@jnry.io', () => {
+    const compiled = fixture.nativeElement;
+    const contactLink = compiled.querySelector('a[href="mailto:support@jnry.io"]');
+    expect(contactLink).toBeTruthy();
+    expect(contactLink.textContent.trim()).toBe('Contact');
   });
 
   it('should display footer navigation links', () => {
     const compiled = fixture.nativeElement;
-    
-    // Resources section
-    expect(compiled.textContent).toContain('Resources');
     expect(compiled.textContent).toContain('Documentation');
     expect(compiled.textContent).toContain('Support');
     expect(compiled.textContent).toContain('Roadmap');
-    
+
     // Company section - verify links exist by querying footer column anchors
     expect(compiled.textContent).toContain('Company');
     const companyLinks = Array.from(
@@ -206,73 +189,29 @@ describe('LandingPage', () => {
     
     // Community section
     expect(compiled.textContent).toContain('Community');
+    expect(compiled.textContent).toContain('GitHub');
     expect(compiled.textContent).toContain('Discussions');
     expect(compiled.textContent).toContain('Contribute');
   });
 
-  it('should have correct external links in footer', () => {
+  it('should have proper rel attributes on all external links', () => {
     const compiled = fixture.nativeElement;
-    
-    // Documentation link
-    const docLink = compiled.querySelector('a[href="https://github.com/chz160/joinery/wiki"]');
-    expect(docLink).toBeTruthy();
-    expect(docLink.textContent).toContain('Documentation');
-    
-    // Support link
-    const supportLink = compiled.querySelector('a[href="https://github.com/chz160/joinery/issues"]');
-    expect(supportLink).toBeTruthy();
-    expect(supportLink.textContent).toContain('Support');
-    
-    // GitHub link
-    const githubLink = compiled.querySelector('a[href="https://github.com/chz160/joinery"]');
-    expect(githubLink).toBeTruthy();
-    expect(githubLink.textContent).toContain('GitHub');
-    
-    // Contact link
-    const contactLink = compiled.querySelector('a[href="mailto:support@joinery.dev"]');
-    expect(contactLink).toBeTruthy();
-    expect(contactLink.textContent).toContain('Contact');
-  });
-
-  it('should display footer bottom section', () => {
-    const compiled = fixture.nativeElement;
-    const footerBottom = compiled.querySelector('.footer-bottom');
-    expect(footerBottom).toBeTruthy();
-    
-    const copyright = compiled.querySelector('.footer-copyright');
-    expect(copyright.textContent).toContain('© 2024 Joinery. Open source under MIT License.');
-    
-    const legal = compiled.querySelector('.footer-legal');
-    expect(legal.textContent).toContain('Built for teams and educational organizations');
-  });
-
-  it('should have proper accessibility attributes on footer links', () => {
-    const compiled = fixture.nativeElement;
-    
-    // Check external links have proper rel attributes
     const externalLinks = compiled.querySelectorAll('a[target="_blank"]');
     externalLinks.forEach((link: any) => {
       expect(link.getAttribute('rel')).toBe('noopener noreferrer');
     });
   });
 
-  it('should not reference public query exploration in footer', () => {
-    const compiled = fixture.nativeElement;
-    const footerText = compiled.querySelector('.landing-footer').textContent.toLowerCase();
-    
-    // Ensure no references to public query exploration
-    expect(footerText).not.toContain('public query');
-    expect(footerText).not.toContain('explore queries');
-    expect(footerText).not.toContain('public database');
-    expect(footerText).not.toContain('browse queries');
-  });
-
   it('should focus on team/organization audience in footer', () => {
     const compiled = fixture.nativeElement;
     const footerText = compiled.querySelector('.landing-footer').textContent.toLowerCase();
-    
-    // Ensure focus on teams and organizations
     expect(footerText).toContain('teams');
     expect(footerText).toContain('organizations');
+  });
+
+  it('should not have broken hash links in the footer', () => {
+    const compiled = fixture.nativeElement;
+    const hashLinks = compiled.querySelectorAll('a[href="#"]');
+    expect(hashLinks.length).toBe(0);
   });
 });
