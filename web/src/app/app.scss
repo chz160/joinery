@@ -15,6 +15,18 @@
   min-height: calc(100vh - 64px);
 }
 
+mat-toolbar {
+  background-color: var(--color-base) !important;
+  color: var(--color-text-light) !important;
+  font-family: var(--font-body);
+}
+
+.toolbar-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  letter-spacing: 0.02em;
+}
+
 mat-nav-list a {
   display: flex;
   align-items: center;

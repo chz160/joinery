@@ -37,14 +37,14 @@
         (click)="drawer.toggle()">
         <mat-icon aria-label="Side nav toggle icon">menu</mat-icon>
       </button>
-      <span>{{ title() }}</span>
+      <span class="toolbar-title">{{ title() }}</span>
       <span class="spacer"></span>
       
       <!-- Authentication Controls -->
       <div *ngIf="(isAuthenticated$ | async) === false">
         <button mat-button routerLink="/auth/login">
           <mat-icon>person</mat-icon>
-          Login
+          Sign In
         </button>
       </div>
       
