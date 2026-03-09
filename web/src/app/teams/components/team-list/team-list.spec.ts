@@ -75,4 +75,9 @@ describe('TeamList', () => {
     component.viewDashboard(mockTeams[0]);
     expect(routerSpy.navigate).toHaveBeenCalledWith(['/teams', '1', 'dashboard']);
   });
+
+  it('manageMembers should navigate to the team members route', () => {
+    component.manageMembers(mockTeams[0]);
+    expect(routerSpy.navigate).toHaveBeenCalledWith(['/teams', '1', 'members']);
+  });
 });

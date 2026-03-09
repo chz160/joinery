@@ -1,0 +1,72 @@
+.invite-form {
+  min-width: 400px;
+  max-width: 560px;
+}
+
+.email-input-section {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.full-width {
+  flex: 1;
+}
+
+.add-btn {
+  margin-top: 4px;
+}
+
+.email-error {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #f44336;
+  font-size: 12px;
+  margin: -8px 0 8px;
+}
+
+.email-chips {
+  margin: 8px 0 16px;
+}
+
+.chip-count {
+  font-size: 12px;
+  color: #666;
+  margin: 8px 0 0;
+}
+
+mat-divider {
+  margin: 16px 0;
+}
+
+.role-section h3 {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.role-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.role-option {
+  margin-bottom: 4px;
+}
+
+.role-label {
+  display: flex;
+  flex-direction: column;
+}
+
+.role-name {
+  font-weight: 500;
+}
+
+.role-desc {
+  font-size: 12px;
+  color: #888;
+}

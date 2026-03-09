@@ -52,6 +52,10 @@ export class TeamList implements OnInit {
     this.router.navigate(['/teams', team.id, 'dashboard']);
   }
 
+  manageMembers(team: Team): void {
+    this.router.navigate(['/teams', team.id, 'members']);
+  }
+
   trackByTeamId(_: number, team: Team): string {
     return team.id;
   }
