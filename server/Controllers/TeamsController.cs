@@ -81,6 +81,67 @@ public class TeamsController : ControllerBase
     }
 
     /// <summary>
+    /// Get all teams for a specific organization
+    /// </summary>
+    /// <param name="organizationId">Organization ID</param>
+    /// <returns>List of teams in the organization</returns>
+    [HttpGet("organization/{organizationId}")]
+    public async Task<ActionResult<IEnumerable<object>>> GetTeamsByOrganization(int organizationId)
+    {
+        var currentUserId = GetCurrentUserId();
+        _logger.LogInformation("Getting teams for organization {OrganizationId} by user {UserId}", organizationId, currentUserId);
+
+        // Check that the organization exists and user has access
+        var organization = await _context.Organizations
+            .Where(o => o.Id == organizationId && o.IsActive)
+            .FirstOrDefaultAsync();
+
+        if (organization == null)
+        {
+            return NotFound("Organization not found");
+        }
+
+        var isOrgCreator = organization.CreatedByUserId == currentUserId;
+        var isOrgMember = await _context.OrganizationMembers
+            .AnyAsync(om => om.OrganizationId == organizationId && om.UserId == currentUserId && om.IsActive);
+
+        if (!isOrgCreator && !isOrgMember)
+        {
+            return Forbid();
+        }
+
+        var teams = await _context.Teams
+            .Where(t => t.OrganizationId == organizationId && t.IsActive)
+            .Select(t => new
+            {
+                t.Id,
+                t.Name,
+                t.Description,
+                t.CreatedAt,
+                t.UpdatedAt,
+                CreatedBy = new
+                {
+                    t.CreatedByUser.Id,
+                    t.CreatedByUser.Username,
+                    t.CreatedByUser.Email
+                },
+                Organization = new
+                {
+                    t.Organization.Id,
+                    t.Organization.Name
+                },
+                MemberCount = t.TeamMembers.Count(tm => tm.IsActive),
+                UserRole = t.CreatedByUserId == currentUserId ? (TeamRole?)TeamRole.Administrator :
+                          t.TeamMembers.Where(tm => tm.UserId == currentUserId && tm.IsActive)
+                                       .Select(tm => (TeamRole?)tm.Role).FirstOrDefault()
+            })
+            .OrderByDescending(t => t.UpdatedAt)
+            .ToListAsync();
+
+        return Ok(teams);
+    }
+
+    /// <summary>
     /// Get a specific team by ID
     /// </summary>
     /// <param name="id">Team ID</param>
@@ -406,7 +467,7 @@ public class TeamsController : ControllerBase
             return BadRequest("User not found");
         }
 
-        // Check if user is already a member
+        // Check if user is already an active member
         var existingMembership = await _context.TeamMembers
             .FirstOrDefaultAsync(tm => tm.TeamId == id && tm.UserId == request.UserId && tm.IsActive);
 
@@ -415,17 +476,33 @@ public class TeamsController : ControllerBase
             return BadRequest("User is already a member of this team");
         }
 
-        var teamMember = new TeamMember
-        {
-            TeamId = id,
-            UserId = request.UserId,
-            Role = request.Role,
-            Permissions = request.Permissions,
-            JoinedAt = DateTime.UtcNow,
-            IsActive = true
-        };
+        // Check for a previously deactivated membership and reactivate it to avoid unique index violation
+        var inactiveMembership = await _context.TeamMembers
+            .FirstOrDefaultAsync(tm => tm.TeamId == id && tm.UserId == request.UserId && !tm.IsActive);
 
-        _context.TeamMembers.Add(teamMember);
+        TeamMember teamMember;
+        if (inactiveMembership != null)
+        {
+            inactiveMembership.Role = request.Role;
+            inactiveMembership.Permissions = request.Permissions;
+            inactiveMembership.JoinedAt = DateTime.UtcNow;
+            inactiveMembership.IsActive = true;
+            teamMember = inactiveMembership;
+        }
+        else
+        {
+            teamMember = new TeamMember
+            {
+                TeamId = id,
+                UserId = request.UserId,
+                Role = request.Role,
+                Permissions = request.Permissions,
+                JoinedAt = DateTime.UtcNow,
+                IsActive = true
+            };
+            _context.TeamMembers.Add(teamMember);
+        }
+
         await _context.SaveChangesAsync();
 
         // Load the created team member with user details
