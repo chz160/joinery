@@ -71,16 +71,19 @@ export class DashboardPreviewService {
           repositories: repos.length
         },
         recentActivity: [],
-        recentQueries: queries.slice(0, 3).map(q => ({
-          id: String(q.id),
-          name: q.name,
-          description: q.description,
-          content: q.sqlQuery,
-          authorId: q.createdBy,
-          tags: q.tags ?? [],
-          createdAt: q.createdAt ? new Date(q.createdAt) : new Date(),
-          updatedAt: q.updatedAt ? new Date(q.updatedAt) : new Date()
-        } as Query)),
+        recentQueries: queries
+          .filter(q => q.createdAt != null && q.updatedAt != null)
+          .slice(0, 3)
+          .map(q => ({
+            id: String(q.id),
+            name: q.name,
+            description: q.description,
+            content: q.sqlQuery,
+            authorId: q.createdBy,
+            tags: q.tags ?? [],
+            createdAt: new Date(q.createdAt!),
+            updatedAt: new Date(q.updatedAt!)
+          } as Query)),
         notifications: []
       })),
       catchError(() => of(EMPTY_PREVIEW))

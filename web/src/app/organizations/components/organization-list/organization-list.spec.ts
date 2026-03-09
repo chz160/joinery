@@ -61,6 +61,7 @@ describe('OrganizationList', () => {
     component.loadOrganizations();
     expect(component.errorMessage).toBeTruthy();
     expect(component.loading).toBeFalse();
+    expect(console.error).toHaveBeenCalled();
   });
 
   it('should render error state when errorMessage is set', () => {
@@ -71,6 +72,7 @@ describe('OrganizationList', () => {
     const errorEl = fixture.nativeElement.querySelector('.error-state');
     expect(errorEl).toBeTruthy();
     expect(errorEl.textContent).toContain('Unable to Load Organizations');
+    expect(console.error).toHaveBeenCalled();
   });
 
   it('should hide organizations grid when errorMessage is set', () => {
@@ -80,5 +82,6 @@ describe('OrganizationList', () => {
     fixture.detectChanges();
     const grid = fixture.nativeElement.querySelector('.organizations-grid');
     expect(grid).toBeNull();
+    expect(console.error).toHaveBeenCalled();
   });
 });
