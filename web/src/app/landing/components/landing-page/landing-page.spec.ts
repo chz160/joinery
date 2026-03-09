@@ -77,6 +77,20 @@ describe('LandingPage', () => {
     expect(component.workflowVisible).toBeFalse();
   });
 
+  it('should set workflowVisible to true immediately when prefers-reduced-motion is enabled', () => {
+    spyOn(window, 'matchMedia').and.returnValue({ matches: true } as unknown as MediaQueryList);
+    component.workflowVisible = false;
+    component.ngAfterViewInit();
+    expect(component.workflowVisible).toBeTrue();
+  });
+
+  it('should keep workflowVisible as false when prefers-reduced-motion is disabled', () => {
+    spyOn(window, 'matchMedia').and.returnValue({ matches: false } as unknown as MediaQueryList);
+    component.workflowVisible = false;
+    component.ngAfterViewInit();
+    expect(component.workflowVisible).toBeFalse();
+  });
+
   it('should display exactly 2 trust cards', () => {
     const compiled = fixture.nativeElement;
     const cards = compiled.querySelectorAll('.trust-card');

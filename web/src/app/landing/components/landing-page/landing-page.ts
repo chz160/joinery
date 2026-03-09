@@ -26,6 +26,12 @@ export class LandingPage extends BaseAuthComponent implements OnInit, AfterViewI
   ngOnInit(): void {}
 
   ngAfterViewInit(): void {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) {
+      this.workflowVisible = true;
+      return;
+    }
+
     const root = document.querySelector('mat-sidenav-content');
     this.observer = new IntersectionObserver(
       (entries) => {
