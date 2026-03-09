@@ -51,17 +51,7 @@ public class GitRepositoryService : IGitRepositoryService
 
         try
         {
-            var queryFiles = new List<GitQueryFile>();
-
-            if (repository.RepositoryUrl.Contains("github.com", StringComparison.OrdinalIgnoreCase))
-            {
-                queryFiles = await SyncGitHubRepositoryAsync(repository);
-            }
-            else
-            {
-                _logger.LogWarning("Repository provider not yet supported: {RepositoryUrl}", repository.RepositoryUrl);
-            }
-
+            var queryFiles = await SyncGitHubRepositoryAsync(repository);
             return queryFiles;
         }
         catch (GitHubRateLimitException)
@@ -108,7 +98,7 @@ public class GitRepositoryService : IGitRepositoryService
         List<GitQueryFile> queryFiles,
         int depth)
     {
-        if (depth > MaxDirectoryDepth)
+        if (depth >= MaxDirectoryDepth)
         {
             _logger.LogWarning("Maximum directory depth ({MaxDepth}) reached at path '{Path}'; skipping deeper contents",
                 MaxDirectoryDepth, path);
@@ -304,7 +294,7 @@ public class GitRepositoryService : IGitRepositoryService
         request.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
         if (!string.IsNullOrEmpty(accessToken))
         {
-            request.Headers.Add("Authorization", $"token {accessToken}");
+            request.Headers.Add("Authorization", $"Bearer {accessToken}");
         }
         return request;
     }
@@ -470,12 +460,12 @@ public class GitRepositoryService : IGitRepositoryService
             var trimmed = line.Trim();
             if (!trimmed.StartsWith("--", StringComparison.Ordinal)) continue;
 
+            var body = trimmed[2..].TrimStart(); // text after "--"
             foreach (var key in keys)
             {
-                var idx = trimmed.IndexOf(key, StringComparison.OrdinalIgnoreCase);
-                if (idx >= 0)
+                if (body.StartsWith(key, StringComparison.OrdinalIgnoreCase))
                 {
-                    var value = trimmed[(idx + key.Length)..].Trim();
+                    var value = body[key.Length..].Trim();
                     if (!string.IsNullOrEmpty(value)) return value;
                 }
             }
