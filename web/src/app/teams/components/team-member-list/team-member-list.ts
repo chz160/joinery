@@ -178,6 +178,8 @@ export class TeamMemberList implements OnInit, OnDestroy {
     if (!this.teamId) return;
 
     const roleNum = TeamService.mapRoleToApi(result.role);
+    // TODO: Backend needs an email-based invite endpoint. Currently uses addTeamMember
+    // with userId as a placeholder. Replace once POST /teams/:id/members/invite exists.
     const invites$ = result.emails.map(email =>
       this.teamService.addTeamMember(this.teamId!, { userId: 0, role: roleNum }).pipe(
         catchError(() => of({ error: true, email }))
