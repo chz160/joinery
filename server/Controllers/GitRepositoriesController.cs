@@ -232,10 +232,7 @@ public class GitRepositoriesController : ControllerBase
         try
         {
             var syncResult = await _gitService.IncrementalSyncRepositoryAsync(repository, []);
-            foreach (var queryFile in syncResult.Added)
-            {
-                _context.GitQueryFiles.Add(queryFile);
-            }
+            _context.ApplyIncrementalSyncResult(repository, syncResult);
             repository.LastSyncAt = DateTime.UtcNow;
             repository.LastHeadCommitSha = syncResult.HeadCommitSha;
             await _context.SaveChangesAsync();

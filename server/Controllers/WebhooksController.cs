@@ -153,8 +153,7 @@ public class WebhooksController : ControllerBase
         var secretBytes = Encoding.UTF8.GetBytes(secret);
         var bodyBytes = Encoding.UTF8.GetBytes(rawBody);
 
-        var expectedBytes = Convert.FromHexString(
-            Convert.ToHexString(HMACSHA256.HashData(secretBytes, bodyBytes)));
+        var expectedBytes = HMACSHA256.HashData(secretBytes, bodyBytes);
 
         // Guard: return false immediately for any invalid hex rather than letting
         // Convert.FromHexString throw a FormatException at comparison time.
