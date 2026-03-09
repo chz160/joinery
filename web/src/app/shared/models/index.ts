@@ -108,6 +108,48 @@ export interface Notification {
   read: boolean;
 }
 
+// Team Dashboard interfaces
+export type TeamDashboardTimeRange = '7d' | '30d' | '90d';
+
+export interface TopQuery {
+  id: string;
+  name: string;
+  runs: number;
+  lastRunAt: Date;
+}
+
+export interface MemberContribution {
+  userId: string;
+  userName: string;
+  queriesCreated: number;
+  queryRuns: number;
+}
+
+export interface TeamMetrics {
+  totalQueries: number;
+  activeMembers: number;
+  queryRuns: number;
+  avgExecutionTimeMs: number;
+  topQueries: TopQuery[];
+  memberContributions: MemberContribution[];
+}
+
+export interface TeamActivity {
+  id: string;
+  userId: string;
+  userName: string;
+  action: string;
+  targetType: 'query' | 'repository' | 'member' | 'team';
+  targetName: string;
+  timestamp: Date;
+}
+
+export interface TeamUsageStat {
+  date: string;
+  queryRuns: number;
+  dataSource: string;
+}
+
 // Organization Setup Wizard interfaces
 export interface OrganizationSetupWizardData {
   organization: Partial<Organization>;

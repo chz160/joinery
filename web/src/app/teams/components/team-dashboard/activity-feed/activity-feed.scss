@@ -1,0 +1,72 @@
+.activity-card {
+  height: 100%;
+}
+
+.activity-list {
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.activity-item:last-child {
+  border-bottom: none;
+}
+
+.activity-icon {
+  margin-top: 2px;
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.type-query      { color: #3f51b5; }
+.type-repository { color: #ff9800; }
+.type-member     { color: #4caf50; }
+.type-team       { color: #9c27b0; }
+
+.activity-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.activity-text {
+  font-size: 14px;
+  color: #333;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.activity-user {
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.activity-target {
+  font-style: italic;
+  margin-left: 4px;
+  color: #555;
+}
+
+.activity-time {
+  font-size: 12px;
+  color: #999;
+  margin-top: 2px;
+}
+
+.empty-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #aaa;
+  padding: 16px 0;
+}

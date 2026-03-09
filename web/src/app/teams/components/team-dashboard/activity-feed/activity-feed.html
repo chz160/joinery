@@ -1,0 +1,35 @@
+<mat-card class="activity-card">
+  <mat-card-header>
+    <mat-icon mat-card-avatar>feed</mat-icon>
+    <mat-card-title>Recent Activity</mat-card-title>
+    <mat-card-subtitle>Latest team actions and query modifications</mat-card-subtitle>
+  </mat-card-header>
+
+  <mat-card-content>
+    <div *ngIf="activities.length === 0" class="empty-state">
+      <mat-icon>history</mat-icon>
+      <span>No recent activity to display.</span>
+    </div>
+
+    <div class="activity-list">
+      <div
+        *ngFor="let activity of activities; trackBy: trackByActivityId"
+        class="activity-item"
+      >
+        <mat-icon class="activity-icon" [ngClass]="'type-' + activity.targetType">
+          {{ getActivityIcon(activity.targetType) }}
+        </mat-icon>
+        <div class="activity-body">
+          <div class="activity-text">
+            <span class="activity-user">{{ activity.userName }}</span>
+            {{ activity.action }}
+            <span class="activity-target">{{ activity.targetName }}</span>
+          </div>
+          <div class="activity-time" [matTooltip]="activity.timestamp | date:'medium'">
+            {{ activity.timestamp | date:'shortTime' }} &middot; {{ activity.timestamp | date:'mediumDate' }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </mat-card-content>
+</mat-card>

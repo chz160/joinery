@@ -22,6 +22,7 @@ import { MatRadioModule } from '@angular/material/radio';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 
 /**
  * Shared Material Design modules to eliminate import duplication across components.
@@ -52,6 +53,7 @@ const MATERIAL_MODULES = [
   MatSlideToggleModule,
   MatSnackBarModule,
   MatTooltipModule,
+  MatProgressBarModule,
 ];
 
 @NgModule({

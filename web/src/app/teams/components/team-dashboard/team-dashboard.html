@@ -1,0 +1,134 @@
+<div class="dashboard-container">
+  <!-- Header -->
+  <div class="dashboard-header">
+    <div class="header-left">
+      <button mat-icon-button (click)="navigateBack()" matTooltip="Back to Teams" aria-label="Back to Teams">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <div class="header-text">
+        <h1>{{ team?.name ?? 'Team Dashboard' }}</h1>
+        <p class="subtitle">{{ team?.description ?? 'Team activity and performance metrics' }}</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <mat-form-field appearance="outline" class="time-range-select">
+        <mat-label>Time Range</mat-label>
+        <mat-select [(ngModel)]="selectedTimeRange" (ngModelChange)="onTimeRangeChange()">
+          <mat-option *ngFor="let opt of timeRangeOptions" [value]="opt.value">
+            {{ opt.label }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <button
+        mat-stroked-button
+        (click)="exportData()"
+        [disabled]="!metrics"
+        matTooltip="Export dashboard data as JSON"
+        aria-label="Export dashboard data"
+      >
+        <mat-icon>download</mat-icon>
+        Export
+      </button>
+    </div>
+  </div>
+
+  <!-- Error Banner -->
+  <div *ngIf="errorMessage" class="error-banner">
+    <mat-icon color="warn">error</mat-icon>
+    <span>{{ errorMessage }}</span>
+  </div>
+
+  <!-- Metrics Cards -->
+  <div class="section">
+    <div *ngIf="isLoadingMetrics" class="loading-row">
+      <mat-spinner diameter="32"></mat-spinner>
+      <span>Loading metrics…</span>
+    </div>
+    <app-metrics-cards *ngIf="!isLoadingMetrics" [metrics]="metrics"></app-metrics-cards>
+  </div>
+
+  <!-- Activity + Usage Charts -->
+  <div class="main-content">
+    <!-- Activity Feed -->
+    <div class="activity-section">
+      <div *ngIf="isLoadingActivity" class="loading-row">
+        <mat-spinner diameter="32"></mat-spinner>
+        <span>Loading activity…</span>
+      </div>
+      <app-activity-feed *ngIf="!isLoadingActivity" [activities]="activities"></app-activity-feed>
+    </div>
+
+    <!-- Usage Charts -->
+    <div class="charts-section">
+      <div *ngIf="isLoadingUsage" class="loading-row">
+        <mat-spinner diameter="32"></mat-spinner>
+        <span>Loading usage data…</span>
+      </div>
+      <app-usage-chart *ngIf="!isLoadingUsage" [stats]="usageStats"></app-usage-chart>
+    </div>
+  </div>
+
+  <!-- Top Queries & Member Contributions -->
+  <div class="bottom-row">
+    <!-- Top Queries -->
+    <mat-card class="top-queries-card">
+      <mat-card-header>
+        <mat-icon mat-card-avatar>leaderboard</mat-icon>
+        <mat-card-title>Top Queries</mat-card-title>
+        <mat-card-subtitle>Most executed queries this period</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div *ngIf="!metrics?.topQueries?.length" class="empty-state">
+          <mat-icon>search_off</mat-icon>
+          <span>No query data available.</span>
+        </div>
+        <div class="rank-list" *ngIf="metrics?.topQueries?.length">
+          <div
+            class="rank-item"
+            *ngFor="let q of metrics!.topQueries; let i = index; trackBy: trackByTopQuery"
+          >
+            <span class="rank-number">{{ i + 1 }}</span>
+            <div class="rank-info">
+              <span class="rank-name">{{ q.name }}</span>
+              <span class="rank-detail">{{ q.runs }} runs</span>
+            </div>
+            <mat-icon class="rank-icon">search</mat-icon>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Member Contributions -->
+    <mat-card class="contributions-card">
+      <mat-card-header>
+        <mat-icon mat-card-avatar>emoji_events</mat-icon>
+        <mat-card-title>Member Contributions</mat-card-title>
+        <mat-card-subtitle>Queries created and runs per member</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div *ngIf="!metrics?.memberContributions?.length" class="empty-state">
+          <mat-icon>people_outline</mat-icon>
+          <span>No contribution data available.</span>
+        </div>
+        <div class="contrib-list" *ngIf="metrics?.memberContributions?.length">
+          <div
+            class="contrib-item"
+            *ngFor="let m of metrics!.memberContributions; trackBy: trackByContribution"
+          >
+            <div class="contrib-avatar">
+              <mat-icon>account_circle</mat-icon>
+            </div>
+            <div class="contrib-info">
+              <span class="contrib-name">{{ m.userName }}</span>
+              <span class="contrib-detail">
+                {{ m.queriesCreated }} created &middot; {{ m.queryRuns }} runs
+              </span>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

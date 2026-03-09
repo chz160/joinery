@@ -1,0 +1,49 @@
+<div class="metrics-grid">
+  <mat-card class="metric-card">
+    <mat-card-content>
+      <div class="metric-content">
+        <mat-icon class="metric-icon queries-icon">search</mat-icon>
+        <div class="metric-info">
+          <div class="metric-number">{{ metrics?.totalQueries ?? 0 }}</div>
+          <div class="metric-label">Total Queries</div>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card class="metric-card">
+    <mat-card-content>
+      <div class="metric-content">
+        <mat-icon class="metric-icon members-icon">people</mat-icon>
+        <div class="metric-info">
+          <div class="metric-number">{{ metrics?.activeMembers ?? 0 }}</div>
+          <div class="metric-label">Active Members</div>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card class="metric-card">
+    <mat-card-content>
+      <div class="metric-content">
+        <mat-icon class="metric-icon runs-icon">play_circle</mat-icon>
+        <div class="metric-info">
+          <div class="metric-number">{{ metrics?.queryRuns ?? 0 }}</div>
+          <div class="metric-label">Query Runs</div>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card class="metric-card">
+    <mat-card-content>
+      <div class="metric-content">
+        <mat-icon class="metric-icon time-icon">timer</mat-icon>
+        <div class="metric-info">
+          <div class="metric-number">{{ metrics?.avgExecutionTimeMs ?? 0 }}<span class="metric-unit">ms</span></div>
+          <div class="metric-label">Avg Execution Time</div>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

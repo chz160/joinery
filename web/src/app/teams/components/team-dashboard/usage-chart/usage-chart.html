@@ -1,0 +1,53 @@
+<div class="charts-row">
+  <!-- Query Runs Trend -->
+  <mat-card class="chart-card">
+    <mat-card-header>
+      <mat-icon mat-card-avatar>bar_chart</mat-icon>
+      <mat-card-title>Query Runs Trend</mat-card-title>
+      <mat-card-subtitle>Daily query executions</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <div *ngIf="dailyTotals.length === 0" class="empty-state">
+        <mat-icon>bar_chart</mat-icon>
+        <span>No usage data available.</span>
+      </div>
+      <div class="bar-chart" *ngIf="dailyTotals.length > 0" aria-label="Query runs per day">
+        <div
+          class="bar-group"
+          *ngFor="let day of dailyTotals; trackBy: trackByDate"
+          [matTooltip]="day.date + ': ' + day.runs + ' runs'"
+        >
+          <div class="bar" [style.height.%]="barHeight(day.runs)"></div>
+          <div class="bar-label">{{ day.date | date:'d' }}</div>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Data Source Distribution -->
+  <mat-card class="chart-card">
+    <mat-card-header>
+      <mat-icon mat-card-avatar>donut_large</mat-icon>
+      <mat-card-title>Data Source Distribution</mat-card-title>
+      <mat-card-subtitle>Runs by data source</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <div *ngIf="dataSourceTotals.length === 0" class="empty-state">
+        <mat-icon>storage</mat-icon>
+        <span>No data source information available.</span>
+      </div>
+      <div class="source-list" *ngIf="dataSourceTotals.length > 0">
+        <div
+          class="source-item"
+          *ngFor="let src of dataSourceTotals; trackBy: trackBySource"
+        >
+          <div class="source-header">
+            <span class="source-name">{{ src.name }}</span>
+            <span class="source-value">{{ src.runs }} runs ({{ src.pct }}%)</span>
+          </div>
+          <mat-progress-bar mode="determinate" [value]="src.pct" class="source-bar"></mat-progress-bar>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>
