@@ -5,6 +5,15 @@ import { map, catchError } from 'rxjs/operators';
 import { GitHubRepository } from '../models';
 import { environment } from '../../../environments/environment';
 
+interface CreateGitRepositoryPayload {
+  name: string;
+  repositoryUrl: string;
+  description?: string | null;
+  organizationId: number;
+  accessToken?: string;
+  branch?: string;
+}
+
 /**
  * Service for managing repository connections, particularly GitHub integration.
  * Handles fetching repositories from GitHub API and managing connections.
@@ -85,20 +94,32 @@ export class RepositoryService {
    * Connect selected repositories to the organization via the server API.
    * Errors from individual POST requests will propagate to the caller.
    */
-  connectRepositories(organizationId: number, repositories: GitHubRepository[]): Observable<void> {
+  connectRepositories(
+    organizationId: number,
+    repositories: GitHubRepository[],
+    accessToken?: string,
+    branch?: string
+  ): Observable<void> {
     const selected = repositories.filter(repo => repo.selected);
     if (selected.length === 0) {
       return of(void 0);
     }
     return forkJoin(
-      selected.map(repo =>
-        this.http.post(this.apiUrl, {
+      selected.map(repo => {
+        const payload: CreateGitRepositoryPayload = {
           name: repo.name,
           repositoryUrl: repo.clone_url,
           description: repo.description,
           organizationId
-        })
-      )
+        };
+        if (accessToken) {
+          payload.accessToken = accessToken;
+        }
+        if (branch) {
+          payload.branch = branch;
+        }
+        return this.http.post(this.apiUrl, payload);
+      })
     ).pipe(map(() => void 0));
   }
 

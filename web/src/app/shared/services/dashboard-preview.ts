@@ -27,7 +27,7 @@ interface QueryApiDto {
   name: string;
   sqlQuery: string;
   description?: string;
-  createdBy: string;
+  createdBy: string | number;
   createdAt: string | null;
   updatedAt: string | null;
   databaseType?: string;
@@ -79,7 +79,7 @@ export class DashboardPreviewService {
             name: q.name,
             description: q.description,
             content: q.sqlQuery,
-            authorId: q.createdBy,
+            authorId: String(q.createdBy),
             tags: q.tags ?? [],
             createdAt: new Date(q.createdAt!),
             updatedAt: new Date(q.updatedAt!)
