@@ -1,0 +1,131 @@
+<div class="members-container">
+  <!-- Header -->
+  <div class="members-header">
+    <div class="header-left">
+      <button mat-icon-button (click)="navigateBack()" matTooltip="Back to Teams" aria-label="Back to Teams">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <div class="header-text">
+        <h1>{{ team?.name ?? 'Team' }} — Members</h1>
+        <p class="subtitle">Manage team members and their roles</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button mat-raised-button color="primary" (click)="openInviteDialog()" [disabled]="!team">
+        <mat-icon>person_add</mat-icon>
+        Invite Members
+      </button>
+    </div>
+  </div>
+
+  <!-- Error Banner -->
+  <div *ngIf="errorMessage" class="error-banner">
+    <mat-icon color="warn">error</mat-icon>
+    <span>{{ errorMessage }}</span>
+    <button mat-icon-button (click)="errorMessage = null" aria-label="Dismiss error">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="isLoading" class="loading-container">
+    <mat-spinner diameter="40"></mat-spinner>
+    <span>Loading members…</span>
+  </div>
+
+  <!-- Filters -->
+  <div *ngIf="!isLoading" class="filters-bar">
+    <mat-form-field appearance="outline" class="search-field">
+      <mat-label>Search members</mat-label>
+      <mat-icon matPrefix>search</mat-icon>
+      <input
+        matInput
+        [(ngModel)]="searchQuery"
+        (ngModelChange)="applyFilters()"
+        placeholder="Search by name or email"
+      />
+      <button
+        *ngIf="searchQuery"
+        mat-icon-button
+        matSuffix
+        (click)="searchQuery = ''; applyFilters()"
+        aria-label="Clear search"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="role-filter-field">
+      <mat-label>Role</mat-label>
+      <mat-select [(ngModel)]="roleFilter" (ngModelChange)="applyFilters()">
+        <mat-option *ngFor="let opt of roleFilterOptions; trackBy: trackByRoleFilterOption" [value]="opt.value">
+          {{ opt.label }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <span class="member-count">{{ filteredMembers.length }} of {{ members.length }} members</span>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!isLoading && members.length === 0 && !errorMessage" class="empty-state">
+    <mat-icon>people_outline</mat-icon>
+    <p>No members yet. Invite your first team member to get started.</p>
+    <button mat-raised-button color="primary" (click)="openInviteDialog()" [disabled]="!team">
+      <mat-icon>person_add</mat-icon>
+      Invite Members
+    </button>
+  </div>
+
+  <!-- No Filter Results -->
+  <div *ngIf="!isLoading && members.length > 0 && filteredMembers.length === 0" class="empty-state">
+    <mat-icon>search_off</mat-icon>
+    <p>No members match your filters.</p>
+  </div>
+
+  <!-- Member List -->
+  <div class="member-list" *ngIf="!isLoading && filteredMembers.length > 0">
+    <mat-card *ngFor="let member of filteredMembers; trackBy: trackByMemberId" class="member-card">
+      <div class="member-info">
+        <div class="member-avatar">
+          <mat-icon>account_circle</mat-icon>
+        </div>
+        <div class="member-details">
+          <span class="member-name">{{ member.name }}</span>
+          <span class="member-email">{{ member.email }}</span>
+        </div>
+        <span [class]="getRoleBadgeClass(member.role)">
+          {{ member.role | titlecase }}
+        </span>
+        <span class="status-badge status-{{ member.status }}">
+          {{ member.status | titlecase }}
+        </span>
+        <span class="member-joined">
+          Joined {{ member.joinedAt | date:'mediumDate' }}
+        </span>
+        <div class="member-actions">
+          <button
+            mat-icon-button
+            matTooltip="Change role"
+            (click)="openRoleDialog(member)"
+            [disabled]="member.role === 'owner'"
+            [attr.aria-label]="'Change role for ' + member.name"
+          >
+            <mat-icon>admin_panel_settings</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            matTooltip="Remove member"
+            color="warn"
+            (click)="removeMember(member)"
+            [disabled]="member.role === 'owner'"
+            [attr.aria-label]="'Remove ' + member.name + ' from the team'"
+          >
+            <mat-icon>person_remove</mat-icon>
+          </button>
+        </div>
+      </div>
+    </mat-card>
+  </div>
+</div>

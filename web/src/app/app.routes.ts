@@ -44,6 +44,11 @@ export const routes: Routes = [
     canActivate: [AuthGuard]
   },
   {
+    path: 'teams/:id/members',
+    loadComponent: () => import('./teams/components/team-member-list/team-member-list').then(m => m.TeamMemberList),
+    canActivate: [AuthGuard]
+  },
+  {
     path: 'queries',
     loadComponent: () => import('./queries/components/query-browser/query-browser').then(m => m.QueryBrowser),
     canActivate: [AuthGuard]

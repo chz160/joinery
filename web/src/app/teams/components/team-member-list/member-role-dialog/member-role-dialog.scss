@@ -1,0 +1,33 @@
+.role-form {
+  min-width: 320px;
+}
+
+.current-role {
+  margin: 0 0 16px;
+  color: #666;
+  font-size: 14px;
+}
+
+.role-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.role-option {
+  margin-bottom: 4px;
+}
+
+.role-label {
+  display: flex;
+  flex-direction: column;
+}
+
+.role-name {
+  font-weight: 500;
+}
+
+.role-desc {
+  font-size: 12px;
+  color: #888;
+}

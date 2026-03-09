@@ -1,0 +1,72 @@
+<h2 mat-dialog-title>Invite Members to {{ data.teamName }}</h2>
+
+<mat-dialog-content>
+  <div class="invite-form">
+    <div class="email-input-section">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Email address</mat-label>
+        <input
+          matInput
+          type="email"
+          [(ngModel)]="emailInput"
+          (keydown)="onKeydown($event)"
+          placeholder="Enter email and press Enter or Add"
+        />
+        <mat-hint>Press Enter or click Add to include multiple emails</mat-hint>
+      </mat-form-field>
+      <button mat-stroked-button type="button" (click)="addEmail()" class="add-btn">
+        <mat-icon>add</mat-icon>
+        Add
+      </button>
+    </div>
+
+    <div *ngIf="emailError" class="email-error">
+      <mat-icon>error_outline</mat-icon>
+      {{ emailError }}
+    </div>
+
+    <div class="email-chips" *ngIf="emails.length > 0">
+      <mat-chip-set>
+        <mat-chip *ngFor="let email of emails; trackBy: trackByEmail" (removed)="removeEmail(email)">
+          <mat-icon matChipAvatar>email</mat-icon>
+          {{ email }}
+          <button matChipRemove aria-label="Remove email">
+            <mat-icon>cancel</mat-icon>
+          </button>
+        </mat-chip>
+      </mat-chip-set>
+      <p class="chip-count">{{ emails.length }} {{ emails.length === 1 ? 'invite' : 'invites' }} ready</p>
+    </div>
+
+    <mat-divider></mat-divider>
+
+    <div class="role-section">
+      <h3>Assign Role</h3>
+      <mat-radio-group [(ngModel)]="selectedRole" class="role-group">
+        <mat-radio-button
+          *ngFor="let role of roleOptions; trackBy: trackByRoleOption"
+          [value]="role.value"
+          class="role-option"
+        >
+          <div class="role-label">
+            <span class="role-name">{{ role.label }}</span>
+            <span class="role-desc">{{ role.description }}</span>
+          </div>
+        </mat-radio-button>
+      </mat-radio-group>
+    </div>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()">Cancel</button>
+  <button
+    mat-raised-button
+    color="primary"
+    (click)="invite()"
+    [disabled]="emails.length === 0"
+  >
+    <mat-icon>send</mat-icon>
+    Invite {{ emails.length > 1 ? emails.length + ' Members' : 'Member' }}
+  </button>
+</mat-dialog-actions>

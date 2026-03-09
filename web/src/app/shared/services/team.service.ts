@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { Team, User } from '../models';
+import { Team, TeamMember, TeamMemberRole, User } from '../models';
 import { environment } from '../../../environments/environment';
 
 // Internal DTOs matching the actual backend response shapes
@@ -24,6 +24,7 @@ interface TeamMemberApiDto {
   permissions?: number;
   effectivePermissions?: number;
   joinedAt: string;
+  status?: string;
   user: { id: number; username: string; email: string; fullName: string | null; };
 }
 
@@ -76,6 +77,40 @@ export class TeamService {
   private readonly apiUrl = `${environment.apiBaseUrl}/teams`;
 
   constructor(private http: HttpClient) {}
+
+  /** Map numeric backend role to display string */
+  static mapRoleFromApi(role: number): TeamMemberRole {
+    switch (role) {
+      case 2: return 'owner';
+      case 1: return 'admin';
+      case 0: return 'member';
+      default: return 'viewer';
+    }
+  }
+
+  /** Map display role string to numeric backend value */
+  static mapRoleToApi(role: TeamMemberRole): number {
+    switch (role) {
+      case 'owner': return 2;
+      case 'admin': return 1;
+      case 'member': return 0;
+      case 'viewer': return -1;
+    }
+  }
+
+  private mapMemberDto(dto: TeamMemberApiDto): TeamMember {
+    return {
+      id: String(dto.id),
+      userId: String(dto.user.id),
+      email: dto.user.email,
+      name: dto.user.fullName || dto.user.username,
+      role: TeamService.mapRoleFromApi(dto.role),
+      status: (dto.status as TeamMember['status']) || 'active',
+      permissions: dto.permissions,
+      effectivePermissions: dto.effectivePermissions,
+      joinedAt: new Date(dto.joinedAt)
+    };
+  }
 
   private mapListDto(dto: TeamListApiDto): Team {
     return {
@@ -133,6 +168,28 @@ export class TeamService {
   getTeam(id: string): Observable<Team> {
     return this.http.get<TeamDetailApiDto>(`${this.apiUrl}/${id}`).pipe(
       map(dto => this.mapDetailDto(dto))
+    );
+  }
+
+  /**
+   * Get all members of a team with role and permission details
+   */
+  getTeamMembers(teamId: string): Observable<TeamMember[]> {
+    return this.http.get<TeamDetailApiDto>(`${this.apiUrl}/${teamId}`).pipe(
+      map(dto => dto.members.map(m => this.mapMemberDto(m)))
+    );
+  }
+
+  /**
+   * Get a team and its members in a single HTTP call.
+   * Avoids the duplicate request that separate getTeam + getTeamMembers would cause.
+   */
+  getTeamWithMembers(teamId: string): Observable<{ team: Team; members: TeamMember[] }> {
+    return this.http.get<TeamDetailApiDto>(`${this.apiUrl}/${teamId}`).pipe(
+      map(dto => ({
+        team: this.mapDetailDto(dto),
+        members: dto.members.map(m => this.mapMemberDto(m))
+      }))
     );
   }
 

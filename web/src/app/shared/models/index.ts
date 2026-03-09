@@ -108,6 +108,23 @@ export interface Notification {
   read: boolean;
 }
 
+// Team Member Management interfaces
+export type TeamMemberRole = 'owner' | 'admin' | 'member' | 'viewer';
+export type TeamMemberStatus = 'active' | 'pending' | 'inactive';
+
+export interface TeamMember {
+  id: string;
+  userId: string;
+  email: string;
+  name: string;
+  avatar?: string;
+  role: TeamMemberRole;
+  status: TeamMemberStatus;
+  permissions?: number;
+  effectivePermissions?: number;
+  joinedAt: Date;
+}
+
 // Team Dashboard interfaces
 export type TeamDashboardTimeRange = '7d' | '30d' | '90d';
 

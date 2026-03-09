@@ -255,4 +255,64 @@ describe('TeamService', () => {
     expect(req.request.body).toEqual(request);
     req.flush({});
   });
+
+  it('should fetch team members with role mapping', () => {
+    service.getTeamMembers('1').subscribe(members => {
+      expect(members.length).toBe(1);
+      const member = members[0];
+      expect(member.userId).toBe('42');
+      expect(member.name).toBe('Admin User');
+      expect(member.email).toBe('admin@example.com');
+      expect(member.role).toBe('admin');
+      expect(member.status).toBe('active');
+      expect(member.effectivePermissions).toBe(31);
+    });
+
+    const req = httpMock.expectOne(`${apiUrl}/1`);
+    expect(req.request.method).toBe('GET');
+    req.flush(detailDto);
+  });
+
+  it('should map status from API DTO when present', () => {
+    const dtoWithStatus = {
+      ...detailDto,
+      members: [{ ...detailDto.members[0], status: 'pending' }]
+    };
+
+    service.getTeamMembers('1').subscribe(members => {
+      expect(members[0].status).toBe('pending');
+    });
+
+    const req = httpMock.expectOne(`${apiUrl}/1`);
+    req.flush(dtoWithStatus);
+  });
+
+  it('should fetch team with members in a single call', () => {
+    service.getTeamWithMembers('1').subscribe(result => {
+      expect(result.team.id).toBe('1');
+      expect(result.team.name).toBe('Backend Engineering');
+      expect(result.members.length).toBe(1);
+      expect(result.members[0].name).toBe('Admin User');
+      expect(result.members[0].role).toBe('admin');
+    });
+
+    const req = httpMock.expectOne(`${apiUrl}/1`);
+    expect(req.request.method).toBe('GET');
+    req.flush(detailDto);
+  });
+
+  it('mapRoleFromApi should map numeric roles to string roles', () => {
+    expect(TeamService.mapRoleFromApi(2)).toBe('owner');
+    expect(TeamService.mapRoleFromApi(1)).toBe('admin');
+    expect(TeamService.mapRoleFromApi(0)).toBe('member');
+    expect(TeamService.mapRoleFromApi(-1)).toBe('viewer');
+    expect(TeamService.mapRoleFromApi(99)).toBe('viewer');
+  });
+
+  it('mapRoleToApi should map string roles to numeric values', () => {
+    expect(TeamService.mapRoleToApi('owner')).toBe(2);
+    expect(TeamService.mapRoleToApi('admin')).toBe(1);
+    expect(TeamService.mapRoleToApi('member')).toBe(0);
+    expect(TeamService.mapRoleToApi('viewer')).toBe(-1);
+  });
 });
