@@ -1,0 +1,69 @@
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.metric-card {
+  transition: transform 0.2s;
+  cursor: default;
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+}
+
+.metric-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 0;
+}
+
+.metric-icon {
+  font-size: 40px;
+  width: 40px;
+  height: 40px;
+}
+
+.queries-icon { color: #3f51b5; }
+.members-icon { color: #4caf50; }
+.runs-icon    { color: #ff9800; }
+.time-icon    { color: #9c27b0; }
+
+.metric-info {
+  flex: 1;
+}
+
+.metric-number {
+  font-size: 28px;
+  font-weight: 700;
+  color: #333;
+  line-height: 1;
+}
+
+.metric-unit {
+  font-size: 14px;
+  font-weight: 400;
+  color: #666;
+  margin-left: 2px;
+}
+
+.metric-label {
+  font-size: 13px;
+  color: #666;
+  margin-top: 4px;
+}
+
+@media (max-width: 900px) {
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+}
