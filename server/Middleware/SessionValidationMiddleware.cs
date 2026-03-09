@@ -19,7 +19,8 @@ public class SessionValidationMiddleware
         // Skip session validation for non-authenticated endpoints
         if (!context.Request.Path.StartsWithSegments("/api") ||
             context.Request.Path.StartsWithSegments("/api/auth") ||
-            context.Request.Path.StartsWithSegments("/api/health"))
+            context.Request.Path.StartsWithSegments("/api/health") ||
+            context.Request.Path.StartsWithSegments("/api/webhooks"))
         {
             await _next(context);
             return;

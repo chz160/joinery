@@ -231,16 +231,17 @@ public class GitRepositoriesController : ControllerBase
         // Sync repository immediately
         try
         {
-            var queryFiles = await _gitService.SyncRepositoryAsync(repository);
-            foreach (var queryFile in queryFiles)
+            var syncResult = await _gitService.IncrementalSyncRepositoryAsync(repository, []);
+            foreach (var queryFile in syncResult.Added)
             {
                 _context.GitQueryFiles.Add(queryFile);
             }
             repository.LastSyncAt = DateTime.UtcNow;
+            repository.LastHeadCommitSha = syncResult.HeadCommitSha;
             await _context.SaveChangesAsync();
 
             _logger.LogInformation("Successfully synced {FileCount} query files from repository {RepositoryId}",
-                queryFiles.Count, repository.Id);
+                syncResult.Added.Count, repository.Id);
         }
         catch (Exception ex)
         {
@@ -284,31 +285,56 @@ public class GitRepositoriesController : ControllerBase
 
         try
         {
-            // Remove existing query files for this repository
-            _context.GitQueryFiles.RemoveRange(repository.QueryFiles);
+            var existingFiles = repository.QueryFiles.Where(f => f.IsActive).ToList();
+            var syncResult = await _gitService.IncrementalSyncRepositoryAsync(repository, existingFiles);
 
-            // Sync new files from repository
-            var queryFiles = await _gitService.SyncRepositoryAsync(repository);
-            foreach (var queryFile in queryFiles)
+            if (!syncResult.IsNoOp)
             {
-                _context.GitQueryFiles.Add(queryFile);
+                // Remove deleted files
+                foreach (var deletedPath in syncResult.DeletedFilePaths)
+                {
+                    var toRemove = repository.QueryFiles.FirstOrDefault(
+                        f => string.Equals(f.FilePath, deletedPath, StringComparison.OrdinalIgnoreCase));
+                    if (toRemove != null)
+                        _context.GitQueryFiles.Remove(toRemove);
+                }
+
+                // Add new files
+                foreach (var added in syncResult.Added)
+                    _context.GitQueryFiles.Add(added);
+
+                // Update modified files
+                foreach (var mod in syncResult.Modified)
+                {
+                    var existing = repository.QueryFiles.FirstOrDefault(f => f.Id == mod.Id);
+                    if (existing != null)
+                    {
+                        existing.SqlContent = mod.SqlContent;
+                        existing.Description = mod.Description;
+                        existing.DatabaseType = mod.DatabaseType;
+                        existing.Tags = mod.Tags;
+                        existing.LastCommitSha = mod.LastCommitSha;
+                        existing.LastCommitAuthor = mod.LastCommitAuthor;
+                        existing.LastCommitAt = mod.LastCommitAt;
+                        existing.LastSyncAt = mod.LastSyncAt;
+                    }
+                }
             }
 
             repository.LastSyncAt = DateTime.UtcNow;
+            repository.LastHeadCommitSha = syncResult.HeadCommitSha ?? repository.LastHeadCommitSha;
             await _context.SaveChangesAsync();
 
             var result = new
             {
                 RepositoryId = repository.Id,
                 SyncedAt = repository.LastSyncAt,
-                FileCount = queryFiles.Count,
-                Files = queryFiles.Select(qf => new
-                {
-                    qf.FileName,
-                    qf.FilePath,
-                    qf.DatabaseType,
-                    TagCount = qf.Tags?.Count ?? 0
-                })
+                HeadCommitSha = repository.LastHeadCommitSha,
+                IsIncremental = !string.IsNullOrEmpty(repository.LastHeadCommitSha),
+                FilesAdded = syncResult.Added.Count,
+                FilesModified = syncResult.Modified.Count,
+                FilesDeleted = syncResult.DeletedFilePaths.Count,
+                NoChanges = syncResult.IsNoOp
             };
 
             return Ok(result);

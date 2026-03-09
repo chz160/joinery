@@ -28,6 +28,10 @@ public class GitRepository
 
     public bool IsActive { get; set; } = true;
 
+    /// <summary>The HEAD commit SHA of the tracked branch at the time of the last successful sync.
+    /// Null until the first sync completes. Used by incremental sync to detect changes.</summary>
+    public string? LastHeadCommitSha { get; set; }
+
     // Navigation properties
     public User CreatedByUser { get; set; } = null!;
     public Organization? Organization { get; set; }
