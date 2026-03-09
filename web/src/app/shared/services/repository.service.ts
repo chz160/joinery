@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, of, forkJoin } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
@@ -13,10 +13,10 @@ import { environment } from '../../../environments/environment';
   providedIn: 'root'
 })
 export class RepositoryService {
+  private readonly http = inject(HttpClient);
+
   private readonly githubApiUrl = 'https://api.github.com';
   private readonly apiUrl = `${environment.apiBaseUrl}/gitrepositories`;
-
-  constructor(private http: HttpClient) {}
 
   /**
    * Fetch user's GitHub repositories

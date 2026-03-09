@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { SharedMaterialModule } from '../../../shared/modules/material.module';
@@ -17,14 +17,12 @@ import { Organization } from '../../../shared/models';
   styleUrl: './organization-list.scss'
 })
 export class OrganizationList implements OnInit {
+  private readonly providerService = inject(ProviderService);
+  private readonly organizationService = inject(OrganizationService);
+
   organizations: Organization[] = [];
   loading = false;
   errorMessage: string | null = null;
-
-  constructor(
-    private providerService: ProviderService,
-    private organizationService: OrganizationService
-  ) {}
 
   ngOnInit(): void {
     this.loadOrganizations();
@@ -67,5 +65,9 @@ export class OrganizationList implements OnInit {
 
   getAuthProviderName(type: string): string {
     return this.providerService.getAuthProviderName(type);
+  }
+
+  trackByOrganizationId(_: number, org: Organization): string {
+    return org.id;
   }
 }

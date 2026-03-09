@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, forkJoin, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
@@ -46,12 +46,12 @@ const EMPTY_PREVIEW: DashboardPreview = {
   providedIn: 'root'
 })
 export class DashboardPreviewService {
+  private readonly http = inject(HttpClient);
+
   private readonly orgsUrl = `${environment.apiBaseUrl}/organizations`;
   private readonly teamsUrl = `${environment.apiBaseUrl}/teams`;
   private readonly queriesUrl = `${environment.apiBaseUrl}/queries`;
   private readonly reposUrl = `${environment.apiBaseUrl}/gitrepositories`;
-
-  constructor(private http: HttpClient) {}
 
   /**
    * Get dashboard preview data for authenticated user

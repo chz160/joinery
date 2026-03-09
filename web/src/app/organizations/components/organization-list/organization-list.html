@@ -9,7 +9,7 @@
   </div>
 
   <div class="organizations-grid" *ngIf="!loading && !errorMessage">
-    <mat-card *ngFor="let org of organizations" class="org-card">
+    <mat-card *ngFor="let org of organizations; trackBy: trackByOrganizationId" class="org-card">
       <mat-card-header>
         <mat-icon mat-card-avatar>business</mat-icon>
         <mat-card-title>{{ org.name }}</mat-card-title>
