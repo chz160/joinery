@@ -32,6 +32,8 @@ public sealed class WebhookEventQueue : IWebhookEventQueue
 
     public ValueTask QueueAsync(int webhookEventId, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         if (_channel.Writer.TryWrite(webhookEventId))
             return ValueTask.CompletedTask;
 

@@ -53,4 +53,15 @@ public class WebhookEventQueueTests
         Assert.Throws<InvalidOperationException>(() =>
             queue.QueueAsync(9999).AsTask().GetAwaiter().GetResult());
     }
+
+    [Fact]
+    public void Queue_CancelledToken_ThrowsOperationCanceled()
+    {
+        var queue = new WebhookEventQueue();
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        Assert.ThrowsAny<OperationCanceledException>(() =>
+            queue.QueueAsync(1, cts.Token).AsTask().GetAwaiter().GetResult());
+    }
 }

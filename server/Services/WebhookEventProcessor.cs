@@ -6,7 +6,8 @@ namespace JoineryServer.Services;
 /// <summary>
 /// Background service that processes queued webhook events.
 /// Retries failed events up to <see cref="MaxRetries"/> times with exponential back-off.
-/// On startup, rehydrates any pending/processing events from the database into the queue.
+/// On startup and periodically, rehydrates pending/processing events from the database
+/// into the queue so stranded events are not lost.
 /// </summary>
 public sealed class WebhookEventProcessor : BackgroundService
 {
@@ -15,6 +16,12 @@ public sealed class WebhookEventProcessor : BackgroundService
     private readonly ILogger<WebhookEventProcessor> _logger;
 
     internal const int MaxRetries = 3;
+
+    /// <summary>
+    /// How often to poll for stranded pending events that couldn't be enqueued
+    /// (e.g. when the queue was full at persist time).
+    /// </summary>
+    private static readonly TimeSpan RehydrationInterval = TimeSpan.FromMinutes(1);
 
     public WebhookEventProcessor(
         IWebhookEventQueue queue,
@@ -31,6 +38,10 @@ public sealed class WebhookEventProcessor : BackgroundService
         _logger.LogInformation("WebhookEventProcessor started");
 
         await RehydratePendingEventsAsync(stoppingToken);
+
+        // Start periodic rehydration in the background so events persisted but
+        // not enqueued (e.g. queue was full) are eventually picked up.
+        _ = PeriodicRehydrationAsync(stoppingToken);
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -52,7 +63,7 @@ public sealed class WebhookEventProcessor : BackgroundService
 
     /// <summary>
     /// Re-queues any events that were left in "pending" or "processing" state
-    /// (e.g. after a service restart) so they are not stranded.
+    /// (e.g. after a service restart or failed enqueue) so they are not stranded.
     /// </summary>
     private async Task RehydratePendingEventsAsync(CancellationToken stoppingToken)
     {
@@ -67,16 +78,18 @@ public sealed class WebhookEventProcessor : BackgroundService
                 .Select(e => e.Id)
                 .ToListAsync(stoppingToken);
 
-            foreach (var id in strandedIds)
+            for (var i = 0; i < strandedIds.Count; i++)
             {
                 try
                 {
-                    await _queue.QueueAsync(id, stoppingToken);
+                    await _queue.QueueAsync(strandedIds[i], stoppingToken);
                 }
                 catch (InvalidOperationException)
                 {
-                    _logger.LogWarning("Queue full during rehydration; skipping remaining {Count} events",
-                        strandedIds.Count - strandedIds.IndexOf(id) - 1);
+                    var remainingCount = strandedIds.Count - i - 1;
+                    _logger.LogWarning(
+                        "Queue full during rehydration; skipping remaining {Count} events",
+                        remainingCount);
                     break;
                 }
             }
@@ -87,6 +100,30 @@ public sealed class WebhookEventProcessor : BackgroundService
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "Failed to rehydrate pending webhook events on startup");
+        }
+    }
+
+    /// <summary>
+    /// Periodically checks for stranded pending events and re-queues them.
+    /// This catches events that were persisted but couldn't be enqueued (e.g. queue was full).
+    /// </summary>
+    private async Task PeriodicRehydrationAsync(CancellationToken stoppingToken)
+    {
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                await Task.Delay(RehydrationInterval, stoppingToken);
+                await RehydratePendingEventsAsync(stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Periodic rehydration failed; will retry at next interval");
+            }
         }
     }
 
@@ -181,9 +218,20 @@ public sealed class WebhookEventProcessor : BackgroundService
 
         var branch = webhookEvent.Branch ?? "";
 
-        // Use case-insensitive filter for PostgreSQL compatibility.
-        var candidates = await context.GitRepositories
-            .Where(r => r.IsActive && EF.Functions.ILike(r.RepositoryUrl, "%" + webhookEvent.RepositoryFullName + "%"))
+        // Use case-insensitive filter when running on PostgreSQL (Npgsql);
+        // fall back to the default (case-insensitive in most providers) otherwise
+        // so InMemory and other test providers don't break.
+        var providerName = context.Database.ProviderName ?? "";
+        var isNpgsql = providerName.Contains("Npgsql", StringComparison.OrdinalIgnoreCase);
+
+        IQueryable<Models.GitRepository> query = context.GitRepositories
+            .Where(r => r.IsActive);
+
+        query = isNpgsql
+            ? query.Where(r => EF.Functions.ILike(r.RepositoryUrl, "%" + webhookEvent.RepositoryFullName + "%"))
+            : query.Where(r => r.RepositoryUrl.Contains(webhookEvent.RepositoryFullName));
+
+        var candidates = await query
             .Include(r => r.QueryFiles.Where(qf => qf.IsActive))
             .ToListAsync(stoppingToken);
 
@@ -207,9 +255,11 @@ public sealed class WebhookEventProcessor : BackgroundService
 
             repository.LastSyncAt = DateTime.UtcNow;
             repository.LastHeadCommitSha = syncResult.HeadCommitSha ?? repository.LastHeadCommitSha;
-            await context.SaveChangesAsync(stoppingToken);
             syncedCount++;
         }
+
+        if (syncedCount > 0)
+            await context.SaveChangesAsync(stoppingToken);
 
         return syncedCount;
     }
@@ -298,9 +348,23 @@ public sealed class WebhookEventProcessor : BackgroundService
             await Task.Delay(delay, stoppingToken);
             await _queue.QueueAsync(eventId, stoppingToken);
         }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            // Graceful shutdown — retry will not occur but the event remains
+            // in "pending" status and will be picked up on next startup.
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Queue is full or completed — the periodic rehydration will
+            // pick up the stranded event once capacity is available.
+            _logger.LogWarning(ex,
+                "Unable to schedule retry for webhook event {EventId} after delay {Delay} because the queue is not accepting new items",
+                eventId, delay);
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to schedule retry for webhook event {EventId} after delay {Delay}",
+            _logger.LogError(ex,
+                "Failed to schedule retry for webhook event {EventId} after delay {Delay}",
                 eventId, delay);
         }
     }

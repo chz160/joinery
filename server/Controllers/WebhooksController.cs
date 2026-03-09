@@ -76,7 +76,7 @@ public class WebhooksController : ControllerBase
         };
 
         _context.WebhookEvents.Add(webhookEvent);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(HttpContext.RequestAborted);
 
         try
         {
@@ -85,7 +85,7 @@ public class WebhooksController : ControllerBase
         catch (InvalidOperationException)
         {
             _logger.LogWarning("Webhook event queue is full; GitHub event {EventId} persisted but not queued", webhookEvent.Id);
-            return StatusCode(503, new { message = "Webhook event queue is saturated. Event was persisted and will be retried.", eventId = webhookEvent.Id });
+            return StatusCode(503, new { message = "Webhook event queue is saturated. Event was persisted but could not be queued for processing.", eventId = webhookEvent.Id });
         }
 
         _logger.LogInformation("GitHub webhook event {EventId} queued for processing (type={EventType})",
@@ -141,7 +141,7 @@ public class WebhooksController : ControllerBase
         };
 
         _context.WebhookEvents.Add(webhookEvent);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(HttpContext.RequestAborted);
 
         try
         {
@@ -150,7 +150,7 @@ public class WebhooksController : ControllerBase
         catch (InvalidOperationException)
         {
             _logger.LogWarning("Webhook event queue is full; GitLab event {EventId} persisted but not queued", webhookEvent.Id);
-            return StatusCode(503, new { message = "Webhook event queue is saturated. Event was persisted and will be retried.", eventId = webhookEvent.Id });
+            return StatusCode(503, new { message = "Webhook event queue is saturated. Event was persisted but could not be queued for processing.", eventId = webhookEvent.Id });
         }
 
         _logger.LogInformation("GitLab webhook event {EventId} queued for processing (type={EventType})",
