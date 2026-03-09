@@ -105,6 +105,21 @@ describe('LandingPage', () => {
     expect(compiled.textContent).not.toContain('No data mining');
   });
 
+  it('should not display "Your Team\'s Data Hub" card', () => {
+    const compiled = fixture.nativeElement;
+    expect(compiled.textContent).not.toContain("Your Team's Data Hub");
+  });
+
+  it('should not display "Sign in with GitHub" button', () => {
+    const compiled = fixture.nativeElement;
+    expect(compiled.textContent).not.toContain('Sign in with GitHub');
+  });
+
+  it('should not display "Learn More" button', () => {
+    const compiled = fixture.nativeElement;
+    expect(compiled.textContent).not.toContain('Learn More');
+  });
+
   it('should have a "View on GitHub" trust link in the Open Source card', () => {
     const compiled = fixture.nativeElement;
     const trustLink = compiled.querySelector('.trust-link');
