@@ -94,7 +94,6 @@ public class TeamsController : ControllerBase
         // Check that the organization exists and user has access
         var organization = await _context.Organizations
             .Where(o => o.Id == organizationId && o.IsActive)
-            .Include(o => o.OrganizationMembers.Where(om => om.IsActive))
             .FirstOrDefaultAsync();
 
         if (organization == null)
@@ -103,7 +102,8 @@ public class TeamsController : ControllerBase
         }
 
         var isOrgCreator = organization.CreatedByUserId == currentUserId;
-        var isOrgMember = organization.OrganizationMembers.Any(om => om.UserId == currentUserId && om.IsActive);
+        var isOrgMember = await _context.OrganizationMembers
+            .AnyAsync(om => om.OrganizationId == organizationId && om.UserId == currentUserId && om.IsActive);
 
         if (!isOrgCreator && !isOrgMember)
         {

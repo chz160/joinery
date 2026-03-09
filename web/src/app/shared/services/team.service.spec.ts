@@ -28,7 +28,7 @@ interface TeamDetailApiDto {
     id: number;
     role: number;
     permissions?: number;
-    effectivePermissions: number;
+    effectivePermissions?: number;
     joinedAt: string;
     user: { id: number; username: string; email: string; fullName: string | null; };
   }[];
@@ -66,6 +66,26 @@ describe('TeamService', () => {
         id: 1,
         role: 1,
         effectivePermissions: 31,
+        joinedAt: '2024-01-15T00:00:00Z',
+        user: { id: 42, username: 'admin', email: 'admin@example.com', fullName: 'Admin User' }
+      }
+    ],
+    userRole: 1
+  };
+
+  // Mirrors the actual POST /api/teams response: members omit permissions/effectivePermissions
+  const createTeamResponseDto = {
+    id: 1,
+    name: 'Backend Engineering',
+    description: 'API development',
+    createdAt: '2024-01-15T00:00:00Z',
+    updatedAt: '2024-02-01T00:00:00Z',
+    createdBy: { id: 42, username: 'admin', email: 'admin@example.com' },
+    organization: { id: 10, name: 'Acme Corp' },
+    members: [
+      {
+        id: 1,
+        role: 1,
         joinedAt: '2024-01-15T00:00:00Z',
         user: { id: 42, username: 'admin', email: 'admin@example.com', fullName: 'Admin User' }
       }
@@ -167,7 +187,7 @@ describe('TeamService', () => {
     const req = httpMock.expectOne(apiUrl);
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual(request);
-    req.flush(detailDto);
+    req.flush(createTeamResponseDto);
   });
 
   it('should update a team and return mapped result', () => {

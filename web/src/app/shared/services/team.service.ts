@@ -22,7 +22,7 @@ interface TeamMemberApiDto {
   id: number;
   role: number;
   permissions?: number;
-  effectivePermissions: number;
+  effectivePermissions?: number;
   joinedAt: string;
   user: { id: number; username: string; email: string; fullName: string | null; };
 }
@@ -140,8 +140,8 @@ export class TeamService {
    * Create a new team
    */
   createTeam(request: CreateTeamRequest): Observable<Team> {
-    return this.http.post<TeamDetailApiDto>(this.apiUrl, request).pipe(
-      map(dto => this.mapDetailDto(dto))
+    return this.http.post<Partial<TeamDetailApiDto>>(this.apiUrl, request).pipe(
+      map(dto => this.mapDetailDto(dto as TeamDetailApiDto))
     );
   }
 
