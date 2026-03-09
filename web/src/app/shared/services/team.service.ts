@@ -65,6 +65,11 @@ export interface UpdateMemberPermissionsRequest {
   permissions: number;
 }
 
+export interface InviteTeamMemberRequest {
+  email: string;
+  role?: number;
+}
+
 /**
  * Service for managing teams.
  * Handles CRUD operations for teams and member management.
@@ -230,5 +235,12 @@ export class TeamService {
    */
   updateMemberPermissions(teamId: string, userId: string, request: UpdateMemberPermissionsRequest): Observable<unknown> {
     return this.http.put(`${this.apiUrl}/${teamId}/members/${userId}/permissions`, request);
+  }
+
+  /**
+   * Invite a member to a team by email address
+   */
+  inviteTeamMember(teamId: string, request: InviteTeamMemberRequest): Observable<unknown> {
+    return this.http.post(`${this.apiUrl}/${teamId}/members/invite`, request);
   }
 }

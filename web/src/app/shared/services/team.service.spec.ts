@@ -287,4 +287,15 @@ describe('TeamService', () => {
     expect(TeamService.mapRoleToApi('member')).toBe(0);
     expect(TeamService.mapRoleToApi('viewer')).toBe(-1);
   });
+
+  it('should invite a team member by email', () => {
+    const request = { email: 'alice@example.com', role: 0 };
+
+    service.inviteTeamMember('1', request).subscribe();
+
+    const req = httpMock.expectOne(`${apiUrl}/1/members/invite`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual(request);
+    req.flush({});
+  });
 });

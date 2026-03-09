@@ -3,8 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, forkJoin, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 import { SharedMaterialModule } from '../../../shared/modules/material.module';
 import { TeamService } from '../../../shared/services/team.service';
 import { Team, TeamMember, TeamMemberRole } from '../../../shared/models';
@@ -181,28 +181,24 @@ export class TeamMemberList implements OnInit, OnDestroy {
     if (!this.teamId) return;
 
     const roleNum = TeamService.mapRoleToApi(result.role);
-    let completed = 0;
-    const total = result.emails.length;
+    const invites$ = result.emails.map(email =>
+      this.teamService.inviteTeamMember(this.teamId!, { email, role: roleNum }).pipe(
+        catchError(() => of({ error: true, email }))
+      )
+    );
 
-    for (const email of result.emails) {
-      // Use email as a proxy — backend addTeamMember expects userId.
-      // In a real system this would resolve the email to a userId or send an invite.
-      const request = { userId: 0, role: roleNum, email };
-      this.teamService.addTeamMember(this.teamId, request as any).pipe(
-        takeUntil(this.destroy$)
-      ).subscribe({
-        next: () => {
-          completed++;
-          if (completed === total && this.teamId) {
-            this.loadTeamAndMembers(this.teamId);
-          }
-        },
-        error: () => {
-          completed++;
-          this.errorMessage = `Failed to invite some members. Please try again.`;
-        }
-      });
-    }
+    forkJoin(invites$).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(results => {
+      const failed = results.filter(r => r && typeof r === 'object' && 'error' in r);
+      if (failed.length > 0) {
+        const failedEmails = failed.map(f => (f as { email: string }).email).join(', ');
+        this.errorMessage = `Failed to invite: ${failedEmails}. Please try again.`;
+      }
+      if (this.teamId) {
+        this.loadTeamAndMembers(this.teamId);
+      }
+    });
   }
 
   private updateMemberRole(member: TeamMember, newRole: TeamMemberRole): void {
