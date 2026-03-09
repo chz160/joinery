@@ -57,6 +57,15 @@ public class WebhooksControllerTests
         Assert.True(WebhooksController.ValidateSignature(body, secret, signature));
     }
 
+    [Theory]
+    [InlineData("sha256=ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ")]
+    [InlineData("sha256=not-hex-at-all!!")]
+    public void ValidateSignature_WithInvalidHexInHeader_ReturnsFalse(string malformedHeader)
+    {
+        // Should not throw FormatException — must return false instead.
+        Assert.False(WebhooksController.ValidateSignature("body", "secret", malformedHeader));
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     private static string ComputeSha256Signature(string body, string secret)

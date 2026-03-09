@@ -32,6 +32,7 @@ public class GitRepositoryServiceTests
         var result = new IncrementalSyncResult("abc123", [], [], [], IsNoOp: true);
 
         Assert.True(result.IsNoOp);
+        Assert.False(result.IsFullSync);
         Assert.Empty(result.Added);
         Assert.Empty(result.Modified);
         Assert.Empty(result.DeletedFilePaths);
@@ -54,8 +55,24 @@ public class GitRepositoryServiceTests
             IsNoOp: false);
 
         Assert.False(result.IsNoOp);
+        Assert.False(result.IsFullSync);
         Assert.Single(result.Added);
         Assert.Empty(result.Modified);
         Assert.Single(result.DeletedFilePaths);
+    }
+
+    [Fact]
+    public void IncrementalSyncResult_FullSync_HasIsFullSyncTrue()
+    {
+        var files = new List<JoineryServer.Models.GitQueryFile>
+        {
+            new() { FilePath = "queries/a.sql", FileName = "a.sql" }
+        };
+
+        var result = new IncrementalSyncResult("headsha", files, [], [], IsNoOp: false, IsFullSync: true);
+
+        Assert.True(result.IsFullSync);
+        Assert.False(result.IsNoOp);
+        Assert.Single(result.Added);
     }
 }

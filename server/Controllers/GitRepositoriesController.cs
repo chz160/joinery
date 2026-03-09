@@ -288,38 +288,7 @@ public class GitRepositoriesController : ControllerBase
             var existingFiles = repository.QueryFiles.Where(f => f.IsActive).ToList();
             var syncResult = await _gitService.IncrementalSyncRepositoryAsync(repository, existingFiles);
 
-            if (!syncResult.IsNoOp)
-            {
-                // Remove deleted files
-                foreach (var deletedPath in syncResult.DeletedFilePaths)
-                {
-                    var toRemove = repository.QueryFiles.FirstOrDefault(
-                        f => string.Equals(f.FilePath, deletedPath, StringComparison.OrdinalIgnoreCase));
-                    if (toRemove != null)
-                        _context.GitQueryFiles.Remove(toRemove);
-                }
-
-                // Add new files
-                foreach (var added in syncResult.Added)
-                    _context.GitQueryFiles.Add(added);
-
-                // Update modified files
-                foreach (var mod in syncResult.Modified)
-                {
-                    var existing = repository.QueryFiles.FirstOrDefault(f => f.Id == mod.Id);
-                    if (existing != null)
-                    {
-                        existing.SqlContent = mod.SqlContent;
-                        existing.Description = mod.Description;
-                        existing.DatabaseType = mod.DatabaseType;
-                        existing.Tags = mod.Tags;
-                        existing.LastCommitSha = mod.LastCommitSha;
-                        existing.LastCommitAuthor = mod.LastCommitAuthor;
-                        existing.LastCommitAt = mod.LastCommitAt;
-                        existing.LastSyncAt = mod.LastSyncAt;
-                    }
-                }
-            }
+            _context.ApplyIncrementalSyncResult(repository, syncResult);
 
             repository.LastSyncAt = DateTime.UtcNow;
             repository.LastHeadCommitSha = syncResult.HeadCommitSha ?? repository.LastHeadCommitSha;
@@ -330,7 +299,7 @@ public class GitRepositoriesController : ControllerBase
                 RepositoryId = repository.Id,
                 SyncedAt = repository.LastSyncAt,
                 HeadCommitSha = repository.LastHeadCommitSha,
-                IsIncremental = !string.IsNullOrEmpty(repository.LastHeadCommitSha),
+                IsIncremental = !syncResult.IsFullSync,
                 FilesAdded = syncResult.Added.Count,
                 FilesModified = syncResult.Modified.Count,
                 FilesDeleted = syncResult.DeletedFilePaths.Count,

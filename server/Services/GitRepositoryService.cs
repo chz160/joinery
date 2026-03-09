@@ -11,7 +11,8 @@ public record IncrementalSyncResult(
     IReadOnlyList<GitQueryFile> Added,
     IReadOnlyList<GitQueryFile> Modified,
     IReadOnlyList<string> DeletedFilePaths,
-    bool IsNoOp);
+    bool IsNoOp,
+    bool IsFullSync = false);
 
 public interface IGitRepositoryService
 {
@@ -145,7 +146,7 @@ public class GitRepositoryService : IGitRepositoryService
         string? headSha)
     {
         var files = await SyncRepositoryAsync(repository);
-        return new IncrementalSyncResult(headSha, files, [], [], IsNoOp: false);
+        return new IncrementalSyncResult(headSha, files, [], [], IsNoOp: false, IsFullSync: true);
     }
 
     private async Task<string?> GetBranchHeadShaAsync(
@@ -265,8 +266,11 @@ public class GitRepositoryService : IGitRepositoryService
         try
         {
             // Use the Contents API to download the file at the new HEAD.
+            // Forward slashes in the path must not be percent-encoded — the GitHub Contents
+            // API interprets each path segment separately, so encoding slashes breaks
+            // sub-directory lookups (e.g. "queries%2Ffile.sql" → 404).
             var branch = repository.Branch ?? "main";
-            var contentsUrl = $"https://api.github.com/repos/{owner}/{repoName}/contents/{Uri.EscapeDataString(file.Filename)}?ref={Uri.EscapeDataString(branch)}";
+            var contentsUrl = $"https://api.github.com/repos/{owner}/{repoName}/contents/{file.Filename}?ref={Uri.EscapeDataString(branch)}";
             using var metaResponse = await ExecuteWithRetryAsync(httpClient, contentsUrl, repository.AccessToken);
             if (!metaResponse.IsSuccessStatusCode)
             {
@@ -610,7 +614,7 @@ public class GitRepositoryService : IGitRepositoryService
             .ToList();
     }
 
-    private static (string owner, string repoName) ParseGitHubUrl(string url)
+    internal static (string owner, string repoName) ParseGitHubUrl(string url)
     {
         if (string.IsNullOrWhiteSpace(url)) return ("", "");
 

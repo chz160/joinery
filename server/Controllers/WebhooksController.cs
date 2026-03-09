@@ -90,15 +90,16 @@ public class WebhooksController : ControllerBase
         _logger.LogInformation("Push event for repository {FullName} on branch {Branch}",
             repoFullName, pushedBranch);
 
-        // Find matching repositories tracked in the database.
-        var repositories = await _context.GitRepositories
-            .Where(r => r.IsActive)
+        // Pre-filter in the database using a URL substring match to avoid loading every
+        // repository into memory, then apply exact matching via the canonical URL parser.
+        var candidates = await _context.GitRepositories
+            .Where(r => r.IsActive && r.RepositoryUrl.Contains(repoFullName))
             .Include(r => r.QueryFiles.Where(qf => qf.IsActive))
             .ToListAsync();
 
-        var matched = repositories.Where(r =>
+        var matched = candidates.Where(r =>
         {
-            var (owner, repo) = ParseFullName(r.RepositoryUrl);
+            var (owner, repo) = GitRepositoryService.ParseGitHubUrl(r.RepositoryUrl);
             return string.Equals($"{owner}/{repo}", repoFullName, StringComparison.OrdinalIgnoreCase) &&
                    string.Equals(r.Branch ?? "main", pushedBranch, StringComparison.OrdinalIgnoreCase);
         }).ToList();
@@ -117,35 +118,7 @@ public class WebhooksController : ControllerBase
                 var existingFiles = repository.QueryFiles.Where(f => f.IsActive).ToList();
                 var syncResult = await _gitService.IncrementalSyncRepositoryAsync(repository, existingFiles);
 
-                if (!syncResult.IsNoOp)
-                {
-                    foreach (var deletedPath in syncResult.DeletedFilePaths)
-                    {
-                        var toRemove = repository.QueryFiles.FirstOrDefault(
-                            f => string.Equals(f.FilePath, deletedPath, StringComparison.OrdinalIgnoreCase));
-                        if (toRemove != null)
-                            _context.GitQueryFiles.Remove(toRemove);
-                    }
-
-                    foreach (var added in syncResult.Added)
-                        _context.GitQueryFiles.Add(added);
-
-                    foreach (var mod in syncResult.Modified)
-                    {
-                        var existing = repository.QueryFiles.FirstOrDefault(f => f.Id == mod.Id);
-                        if (existing != null)
-                        {
-                            existing.SqlContent = mod.SqlContent;
-                            existing.Description = mod.Description;
-                            existing.DatabaseType = mod.DatabaseType;
-                            existing.Tags = mod.Tags;
-                            existing.LastCommitSha = mod.LastCommitSha;
-                            existing.LastCommitAuthor = mod.LastCommitAuthor;
-                            existing.LastCommitAt = mod.LastCommitAt;
-                            existing.LastSyncAt = mod.LastSyncAt;
-                        }
-                    }
-                }
+                _context.ApplyIncrementalSyncResult(repository, syncResult);
 
                 repository.LastSyncAt = DateTime.UtcNow;
                 repository.LastHeadCommitSha = syncResult.HeadCommitSha ?? repository.LastHeadCommitSha;
@@ -153,9 +126,9 @@ public class WebhooksController : ControllerBase
                 syncedCount++;
 
                 _logger.LogInformation(
-                    "Webhook sync for repository {Id}: +{Added} ~{Modified} -{Deleted} (noOp={NoOp})",
+                    "Webhook sync for repository {Id}: +{Added} ~{Modified} -{Deleted} (noOp={NoOp}, fullSync={FullSync})",
                     repository.Id, syncResult.Added.Count, syncResult.Modified.Count,
-                    syncResult.DeletedFilePaths.Count, syncResult.IsNoOp);
+                    syncResult.DeletedFilePaths.Count, syncResult.IsNoOp, syncResult.IsFullSync);
             }
             catch (Exception ex)
             {
@@ -180,44 +153,22 @@ public class WebhooksController : ControllerBase
         var secretBytes = Encoding.UTF8.GetBytes(secret);
         var bodyBytes = Encoding.UTF8.GetBytes(rawBody);
 
-        var expectedHex = Convert.ToHexString(HMACSHA256.HashData(secretBytes, bodyBytes));
+        var expectedBytes = Convert.FromHexString(
+            Convert.ToHexString(HMACSHA256.HashData(secretBytes, bodyBytes)));
 
-        return CryptographicOperations.FixedTimeEquals(
-            Convert.FromHexString(receivedHex.ToUpperInvariant()),
-            Convert.FromHexString(expectedHex));
-    }
-
-    private static (string owner, string repo) ParseFullName(string repositoryUrl)
-    {
-        if (string.IsNullOrWhiteSpace(repositoryUrl)) return ("", "");
-
+        // Guard: return false immediately for any invalid hex rather than letting
+        // Convert.FromHexString throw a FormatException at comparison time.
+        byte[] receivedBytes;
         try
         {
-            // HTTPS: https://github.com/owner/repo[.git]
-            if (Uri.TryCreate(repositoryUrl, UriKind.Absolute, out var uri) &&
-                uri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase) &&
-                uri.Host.Equals("github.com", StringComparison.OrdinalIgnoreCase))
-            {
-                var segments = uri.AbsolutePath.Trim('/').Split('/');
-                if (segments.Length >= 2)
-                    return (segments[0], segments[1].Replace(".git", "", StringComparison.OrdinalIgnoreCase));
-            }
-
-            // SSH: git@github.com:owner/repo.git
-            if (repositoryUrl.StartsWith("git@github.com:", StringComparison.OrdinalIgnoreCase))
-            {
-                var path = repositoryUrl["git@github.com:".Length..]
-                    .Replace(".git", "", StringComparison.OrdinalIgnoreCase);
-                var parts = path.Split('/');
-                if (parts.Length == 2) return (parts[0], parts[1]);
-            }
+            receivedBytes = Convert.FromHexString(receivedHex);
         }
-        catch (Exception)
+        catch (FormatException)
         {
-            // URL parsing is best-effort; any malformed URL simply returns empty values.
+            return false;
         }
 
-        return ("", "");
+        return CryptographicOperations.FixedTimeEquals(receivedBytes, expectedBytes);
     }
 
     private static readonly JsonSerializerOptions JsonOptions =
@@ -238,3 +189,4 @@ public class WebhooksController : ControllerBase
         public string FullName { get; set; } = "";
     }
 }
+
